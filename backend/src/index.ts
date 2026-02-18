@@ -16,7 +16,9 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://localhost:3000',
-        'https://aviation-config-hub.vercel.app'
+        'https://aviation-config-hub.vercel.app',
+        'https://aviation-config-hub-9y2x.vercel.app',
+        'https://aviation-config-hub-9y2x-kkv3w4db9-vishveshwaran-as-projects.vercel.app'
     ],
     credentials: true
 }));
