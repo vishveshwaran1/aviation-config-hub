@@ -120,9 +120,22 @@ export function AircraftForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('aircraft_model')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Select..." {...field} />
-                                    </FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select..." />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="B737-700">B737-700</SelectItem>
+                                            <SelectItem value="B737-800">B737-800</SelectItem>
+                                            <SelectItem value="B737-900">B737-900</SelectItem>
+                                            <SelectItem value="B737-900ER">B737-900ER</SelectItem>
+                                            <SelectItem value="A320-200">A320-200</SelectItem>
+                                            <SelectItem value="ATR72-500">ATR72-500</SelectItem>
+                                            <SelectItem value="ATR72-600">ATR72-600</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -134,20 +147,9 @@ export function AircraftForm() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('country')}</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select..." />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Malaysia">Malaysia</SelectItem>
-                                            <SelectItem value="Spain">Spain</SelectItem>
-                                            <SelectItem value="Germany">Germany</SelectItem>
-                                            <SelectItem value="Russia">Russia</SelectItem>
-                                            <SelectItem value="Italy">Italy</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <FormControl>
+                                        <Input placeholder="Enter country" {...field} />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -809,10 +811,10 @@ export function AircraftForm() {
 
                 <div className="flex justify-end space-x-4">
                     <Button variant="outline" type="button" onClick={() => navigate("/dashboard")}>
-                        {t('cancel')}
+                        Cancel
                     </Button>
                     <Button type="submit" disabled={loading}>
-                        {loading ? t('saving') : t('save_configuration')}
+                        {loading ? "Saving..." : "Save Configuration"}
                     </Button>
                 </div>
             </form>

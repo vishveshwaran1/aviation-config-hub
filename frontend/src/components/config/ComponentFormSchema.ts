@@ -15,6 +15,7 @@ export const componentSchema = z.object({
     classification_date: z.string().optional(),
     class_linkage: optionalString,
     compatible_aircraft_models: z.array(z.string()).min(1, "Select at least one model"),
+    currency: z.enum(["MYR", "USD", "EUR"]).default("MYR"),
     estimated_price: z.coerce.number().min(0).optional(),
     quotation_price: z.coerce.number().min(0).optional(),
 })

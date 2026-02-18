@@ -13,6 +13,7 @@ import AircraftSetup from "@/pages/config/AircraftSetup";
 import ComponentListSetup from "@/pages/config/ComponentListSetup";
 import ServiceListSetup from "@/pages/config/ServiceListSetup";
 import NotFound from "@/pages/NotFound";
+import ForgotPassword from "@/pages/ForgotPassword";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route
               element={

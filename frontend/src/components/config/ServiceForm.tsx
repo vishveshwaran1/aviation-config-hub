@@ -37,10 +37,19 @@ const ZONE_OPTIONS: Option[] = [
     { label: "800 - Doors", value: "800" },
 ];
 
+const AIRCRAFT_MODELS = [
+    "B737-700",
+    "B737-800",
+    "B737-900",
+    "B737-900ER",
+    "A320-200",
+    "ATR72-500",
+    "ATR72-600",
+];
+
 export function ServiceForm() {
     const [loading, setLoading] = useState(false);
     const [components, setComponents] = useState<{ id: string; name: string }[]>([]);
-    const [aircraftModels, setAircraftModels] = useState<string[]>([]);
     const navigate = useNavigate();
 
     const form = useForm<ServiceFormData>({
@@ -59,14 +68,6 @@ export function ServiceForm() {
             // Fetch Components for assignment
             const componentsData = await api.components.list();
             if (componentsData) setComponents(componentsData);
-
-            // Fetch Aircraft Models
-            const aircraftData = await api.aircrafts.list();
-
-            if (aircraftData) {
-                const uniqueModels = Array.from(new Set(aircraftData.map((a: any) => a.model)));
-                setAircraftModels(uniqueModels as string[]);
-            }
         } catch (error) {
             console.error("Error fetching form data:", error);
         }
@@ -112,24 +113,20 @@ export function ServiceForm() {
                                 <FormLabel className="text-right">Aircraft Model</FormLabel>
                                 <div className="col-span-3">
                                     <FormControl>
-                                        {aircraftModels.length > 0 ? (
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select aircraft model" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {aircraftModels.map((model) => (
-                                                        <SelectItem key={model} value={model}>
-                                                            {model}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        ) : (
-                                            <Input placeholder="e.g. A320-200" {...field} />
-                                        )}
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select aircraft model" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {AIRCRAFT_MODELS.map((model) => (
+                                                    <SelectItem key={model} value={model}>
+                                                        {model}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </FormControl>
                                     <FormMessage />
                                 </div>

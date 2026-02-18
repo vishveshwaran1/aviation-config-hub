@@ -1,4 +1,5 @@
-const API_URL = "https://aviation-config-h8ouraw96-vishveshwaran-as-projects.vercel.app/api";
+const useProd = import.meta.env.VITE_USE_PROD_API === 'True';
+const API_URL = useProd ? import.meta.env.VITE_API_URL_LIVE : (import.meta.env.VITE_API_URL_LOCAL || "http://localhost:3000/api");
 
 
 const getHeaders = () => {

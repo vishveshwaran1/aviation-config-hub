@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,39 +25,27 @@ import { componentSchema, ComponentFormData } from "./ComponentFormSchema";
 import { useNavigate } from "react-router-dom";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 
+const AIRCRAFT_MODELS: Option[] = [
+    { label: "B737-700", value: "B737-700" },
+    { label: "B737-800", value: "B737-800" },
+    { label: "B737-900", value: "B737-900" },
+    { label: "B737-900ER", value: "B737-900ER" },
+    { label: "A320-200", value: "A320-200" },
+    { label: "ATR72-500", value: "ATR72-500" },
+    { label: "ATR72-600", value: "ATR72-600" },
+];
+
 export function ComponentForm() {
     const [loading, setLoading] = useState(false);
-    const [aircraftModels, setAircraftModels] = useState<Option[]>([]);
     const navigate = useNavigate();
 
     const form = useForm<ComponentFormData>({
         resolver: zodResolver(componentSchema),
         defaultValues: {
             compatible_aircraft_models: [],
+            currency: "MYR",
         },
     });
-
-    useEffect(() => {
-        fetchAircraftModels();
-    }, []);
-
-    const fetchAircraftModels = async () => {
-        try {
-            const data = await api.aircrafts.list(); // Assuming api.aircrafts.list() returns an array of aircraft objects with a 'model' property
-
-            // Extract unique models
-            const uniqueModels = Array.from(new Set((data as any[]).map((a: any) => a.model))).map(
-                (model: unknown) => ({
-                    label: model as string,
-                    value: model as string,
-                })
-            );
-            setAircraftModels(uniqueModels);
-        } catch (error) {
-            console.error("Error fetching aircraft models:", error);
-            toast.error("Failed to fetch aircraft models.");
-        }
-    };
 
     async function onSubmit(data: ComponentFormData) {
         setLoading(true);
@@ -65,7 +53,7 @@ export function ComponentForm() {
             await api.components.create(data);
 
             toast.success("Component saved successfully");
-            navigate("/dashboard"); // Or stay on page? Navigate for now.
+            navigate("/dashboard");
         } catch (error: any) {
             console.error("Error saving component:", error);
             toast.error(error.message || "Failed to save component");
@@ -92,9 +80,19 @@ export function ComponentForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="manufacturer1">Manufacturer A</SelectItem>
-                                            <SelectItem value="manufacturer2">Manufacturer B</SelectItem>
-                                            <SelectItem value="manufacturer3">Manufacturer C</SelectItem>
+                                            <SelectItem value="Hamilton Sundstrand">Hamilton Sundstrand</SelectItem>
+                                            <SelectItem value="Honeywell International">Honeywell International</SelectItem>
+                                            <SelectItem value="Pratt&Whitney Canada">Pratt&Whitney Canada</SelectItem>
+                                            <SelectItem value="Eaton Aerospace">Eaton Aerospace</SelectItem>
+                                            <SelectItem value="Honeywell ASCA">Honeywell ASCA</SelectItem>
+                                            <SelectItem value="CFM International">CFM International</SelectItem>
+                                            <SelectItem value="BAE Systems">BAE Systems</SelectItem>
+                                            <SelectItem value="Rockwell Collins">Rockwell Collins</SelectItem>
+                                            <SelectItem value="Eldec Corporation">Eldec Corporation</SelectItem>
+                                            <SelectItem value="Sensor Systems">Sensor Systems</SelectItem>
+                                            <SelectItem value="GE Aviation Systems">GE Aviation Systems</SelectItem>
+                                            <SelectItem value="BF Goodrich Rosemount">BF Goodrich Rosemount</SelectItem>
+                                            <SelectItem value="Safran Landing Systems">Safran Landing Systems</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -206,9 +204,10 @@ export function ComponentForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="class1">Class 1</SelectItem>
-                                            <SelectItem value="class2">Class 2</SelectItem>
-                                            <SelectItem value="class3">Class 3</SelectItem>
+                                            <SelectItem value="Active">Active</SelectItem>
+                                            <SelectItem value="Alternative">Alternative</SelectItem>
+                                            <SelectItem value="Obsolete">Obsolete</SelectItem>
+                                            <SelectItem value="Superseded">Superseded</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -245,9 +244,9 @@ export function ComponentForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="linkage1">Linkage A</SelectItem>
-                                            <SelectItem value="linkage2">Linkage B</SelectItem>
-                                            <SelectItem value="linkage3">Linkage C</SelectItem>
+                                            <SelectItem value="Subassembly">Subassembly</SelectItem>
+                                            <SelectItem value="Single">Single</SelectItem>
+                                            <SelectItem value="Consumable">Consumable</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -264,7 +263,7 @@ export function ComponentForm() {
                                 <div className="col-span-3">
                                     <FormControl>
                                         <MultiSelect
-                                            options={aircraftModels}
+                                            options={AIRCRAFT_MODELS}
                                             selected={field.value}
                                             onChange={field.onChange}
                                             placeholder="Select aircraft models"
@@ -277,23 +276,38 @@ export function ComponentForm() {
                     />
                     <FormField
                         control={form.control}
+                        name="currency"
+                        render={({ field }) => (
+                            <FormItem className="grid grid-cols-4 items-center gap-4 space-y-0">
+                                <FormLabel className="text-right">Currency</FormLabel>
+                                <div className="col-span-3">
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select currency" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="MYR">MYR</SelectItem>
+                                            <SelectItem value="USD">USD</SelectItem>
+                                            <SelectItem value="EUR">EUR</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </div>
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
                         name="estimated_price"
                         render={({ field }) => (
                             <FormItem className="grid grid-cols-4 items-center gap-4 space-y-0">
                                 <FormLabel className="text-right">Estimated Price</FormLabel>
                                 <div className="col-span-3">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select estimated price" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="price1">0 - 1000</SelectItem>
-                                            <SelectItem value="price2">1000 - 5000</SelectItem>
-                                            <SelectItem value="price3">5000+</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" {...field} />
+                                    </FormControl>
                                     <FormMessage />
                                 </div>
                             </FormItem>
@@ -306,17 +320,9 @@ export function ComponentForm() {
                             <FormItem className="grid grid-cols-4 items-center gap-4 space-y-0">
                                 <FormLabel className="text-right">Quotation Price</FormLabel>
                                 <div className="col-span-3">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select quotation price" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="quote1">Standard Quote</SelectItem>
-                                            <SelectItem value="quote2">Premium Quote</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" {...field} />
+                                    </FormControl>
                                     <FormMessage />
                                 </div>
                             </FormItem>
