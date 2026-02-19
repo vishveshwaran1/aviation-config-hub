@@ -15,7 +15,7 @@ const Navbar = () => {
   const isConfigActive = ["/config/aircraft", "/config/components", "/config/services"].includes(location.pathname);
 
   return (
-    <nav className="flex h-11 items-center gap-1 bg-gradient-to-r from-primary to-accent px-4">
+    <nav className="flex h-14 items-center gap-1 px-4 bg-[#556ee6]">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
