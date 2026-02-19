@@ -56,6 +56,11 @@ export const api = {
             const res = await fetch(`${API_URL}/aircrafts`, { headers: getHeaders() });
             return res.json();
         },
+        get: async (id: string) => {
+            const res = await fetch(`${API_URL}/aircrafts/${id}`, { headers: getHeaders() });
+            if (!res.ok) throw await res.json();
+            return res.json();
+        },
         update: async (id: string, data: any) => {
             const res = await fetch(`${API_URL}/aircrafts/${id}`, {
                 method: 'PATCH',

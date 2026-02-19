@@ -9,6 +9,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
+import AircraftDetails from "@/pages/AircraftDetails";
 import AircraftSetup from "@/pages/config/AircraftSetup";
 import ComponentListSetup from "@/pages/config/ComponentListSetup";
 import ServiceListSetup from "@/pages/config/ServiceListSetup";
@@ -37,6 +38,7 @@ const App = () => (
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/aircraft/:id" element={<AircraftDetails />} />
               <Route path="/config/aircraft" element={<AircraftSetup />} />
               <Route path="/config/components" element={<ComponentListSetup />} />
               <Route path="/config/services" element={<ServiceListSetup />} />

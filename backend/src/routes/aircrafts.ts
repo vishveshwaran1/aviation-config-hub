@@ -25,7 +25,32 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// Create aircraft
+// Get aircraft by ID
+router.get('/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user.userId;
+
+        const aircraft = await prisma.aircraft.findFirst({
+            where: {
+                id: id,
+                user_id: userId
+            },
+            include: {
+                components: true
+            }
+        });
+
+        if (!aircraft) {
+            return res.status(404).json({ error: 'Aircraft not found' });
+        }
+
+        res.json(aircraft);
+    } catch (error) {
+        console.error("Error fetching aircraft:", error);
+        res.status(500).json({ error: 'Failed to fetch aircraft', details: (error as Error).message });
+    }
+});
 router.post('/', authenticateToken, async (req, res) => {
     try {
         const {
