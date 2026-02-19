@@ -53,13 +53,13 @@ const Header = () => {
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "AT";
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-card px-4 shadow-sm">
+    <header className="flex h-18 items-center justify-between border-b bg-card px-4 shadow-sm">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
             <img src={img} alt="Logo" className="h-8 w-8" />
           </div>
-          <span className="text-2xl font-semibold text-foreground text-[rgb(73,80,87)]">AEROTREND</span>
+          <span className="text-2xl font-semibold text-foreground text-[#343a40]">AEROTREND</span>
         </div>
 
         <div className="hidden md:flex items-center ml-4">
