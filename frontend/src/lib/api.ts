@@ -99,6 +99,23 @@ export const api = {
         getForAircraft: async (id: string) => {
             const res = await fetch(`${API_URL}/aircraft_components/${id}`, { headers: getHeaders() });
             return res.json();
+        },
+        update: async (componentId: string, data: any) => {
+            const res = await fetch(`${API_URL}/aircraft_components/${componentId}`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw await res.json();
+            return res.json();
+        },
+        delete: async (componentId: string) => {
+            const res = await fetch(`${API_URL}/aircraft_components/${componentId}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw await res.json();
+            return res.json();
         }
     },
     services: {

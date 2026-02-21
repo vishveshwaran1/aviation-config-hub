@@ -163,7 +163,7 @@ export function AircraftTable() {
                                                     View Details
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    onClick={() => navigate(`/config/aircraft?id=${aircraft.id}`)}
+                                                    onClick={() => navigate(`/aircraft/${aircraft.id}/activity`)}
                                                 >
                                                     <Settings className="mr-2 h-4 w-4" />
                                                     Settings

@@ -13,6 +13,12 @@ import AircraftDetails from "@/pages/AircraftDetails";
 import AircraftSetup from "@/pages/config/AircraftSetup";
 import ComponentListSetup from "@/pages/config/ComponentListSetup";
 import ServiceListSetup from "@/pages/config/ServiceListSetup";
+import AircraftActivity from "@/pages/AircraftActivity";
+import OccmPanel from "@/pages/OccmPanel";
+import OccmForm from "@/pages/OccmForm";
+import JourneyLog from "@/pages/JourneyLog";
+import JourneyLogForm from "@/pages/JourneyLogForm";
+import ViewJourneyLog from "@/pages/ViewJourneyLog";
 import NotFound from "@/pages/NotFound";
 import ForgotPassword from "@/pages/ForgotPassword";
 
@@ -39,6 +45,13 @@ const App = () => (
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/aircraft/:id" element={<AircraftDetails />} />
+              <Route path="/aircraft/:id/activity" element={<AircraftActivity />} />
+              <Route path="/aircraft/:id/occm" element={<OccmPanel />} />
+              <Route path="/aircraft/:id/occm/:componentId/edit" element={<OccmForm />} />
+              <Route path="/aircraft/:id/journey" element={<JourneyLog />} />
+              <Route path="/aircraft/:id/journey/new" element={<JourneyLogForm />} />
+              <Route path="/aircraft/:id/journey/:logId/edit" element={<JourneyLogForm />} />
+              <Route path="/aircraft/:id/journey/:logId/view" element={<ViewJourneyLog />} />
               <Route path="/config/aircraft" element={<AircraftSetup />} />
               <Route path="/config/components" element={<ComponentListSetup />} />
               <Route path="/config/services" element={<ServiceListSetup />} />

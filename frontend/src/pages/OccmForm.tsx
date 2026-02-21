@@ -1,0 +1,312 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Save, X } from "lucide-react";
+import { api } from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+
+interface FormState {
+  part_number: string;
+  serial_number: string;
+  model: string;          // Description
+  section: string;        // POS / Position
+  manufacturer: string;
+  last_shop_visit_date: string;  // INST Date
+  hours_since_new: string;       // TSN
+  cycles_since_new: string;      // CSN
+}
+
+const EMPTY: FormState = {
+  part_number: "",
+  serial_number: "",
+  model: "",
+  section: "",
+  manufacturer: "",
+  last_shop_visit_date: "",
+  hours_since_new: "",
+  cycles_since_new: "",
+};
+
+
+const toInputDate = (d?: string | null) => {
+  if (!d) return "";
+  try {
+    return new Date(d).toISOString().substring(0, 10);
+  } catch {
+    return "";
+  }
+};
+
+const Field = ({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) => (
+  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[200px_1fr] sm:items-start sm:gap-4">
+    <div className="pt-2">
+      <Label className="text-sm font-medium text-gray-700">
+        {label}
+        {required && <span className="ml-0.5 text-rose-500">*</span>}
+      </Label>
+      {hint && <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>}
+    </div>
+    <div>{children}</div>
+  </div>
+);
+
+const OccmForm = () => {
+  const { id, componentId } = useParams<{ id: string; componentId: string }>();
+  const navigate = useNavigate();
+
+  const [form, setForm]       = useState<FormState>(EMPTY);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+
+  /* ── Load component ── */
+  useEffect(() => {
+    if (!id || !componentId) return;
+    api.aircraftComponents
+      .getForAircraft(id)
+      .then((data: any[]) => {
+        const comp = Array.isArray(data) ? data.find((c) => c.id === componentId) : null;
+        if (comp) {
+          setForm({
+            part_number:          comp.part_number          ?? "",
+            serial_number:        comp.serial_number        ?? "",
+            model:                comp.model                ?? "",
+            section:              comp.section              ?? "",
+            manufacturer:         comp.manufacturer         ?? "",
+            last_shop_visit_date: toInputDate(comp.last_shop_visit_date),
+            hours_since_new:      comp.hours_since_new != null ? String(comp.hours_since_new) : "",
+            cycles_since_new:     comp.cycles_since_new != null ? String(comp.cycles_since_new) : "",
+          });
+        } else {
+          toast.error("Component not found.");
+          navigate(-1);
+        }
+      })
+      .catch(() => {
+        toast.error("Failed to load component.");
+        navigate(-1);
+      })
+      .finally(() => setLoading(false));
+  }, [id, componentId]);
+
+  /* ── Handlers ── */
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!componentId) return;
+
+    // Basic validation
+    if (!form.part_number.trim() || !form.serial_number.trim()) {
+      toast.error("Part No. and Serial No. are required.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.aircraftComponents.update(componentId, {
+        part_number:          form.part_number.trim(),
+        serial_number:        form.serial_number.trim(),
+        model:                form.model.trim(),
+        section:              form.section.trim(),
+        manufacturer:         form.manufacturer.trim(),
+        last_shop_visit_date: form.last_shop_visit_date || null,
+        hours_since_new:      form.hours_since_new !== "" ? parseFloat(form.hours_since_new) : null,
+        cycles_since_new:     form.cycles_since_new !== "" ? parseFloat(form.cycles_since_new) : null,
+      });
+      toast.success("Component updated successfully.");
+      navigate(`/aircraft/${id}/occm`);
+    } catch {
+      toast.error("Failed to update component.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ── Render ── */
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground text-sm">
+        Loading component…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 pb-12 max-w-3xl">
+
+      {/* ── Page header ── */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div>
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">
+            OCCM Panel / Edit Component
+          </p>
+          <h1 className="text-lg font-bold text-gray-800 leading-none mt-0.5">
+            {form.part_number || "Component"}
+          </h1>
+        </div>
+      </div>
+
+      {/* ── Form card ── */}
+      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b bg-gray-50">
+          <h2 className="text-sm font-semibold text-gray-800">Component Details</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            All fields marked <span className="text-rose-500 font-medium">*</span> are required.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
+
+          {/* Identification */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">
+              Identification
+            </h3>
+
+            <Field label="Component Part No." required hint="legacy: COMP_PART_NO">
+              <Input
+                name="part_number"
+                value={form.part_number}
+                onChange={handleChange}
+                placeholder="e.g. 3873700-4"
+                maxLength={60}
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field label="Serial No." required hint="legacy: SERIAL_NO">
+              <Input
+                name="serial_number"
+                value={form.serial_number}
+                onChange={handleChange}
+                placeholder="e.g. SN-00412"
+                maxLength={60}
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field label="Description" hint="legacy: DESCRIPTION (free text)">
+              <Input
+                name="model"
+                value={form.model}
+                onChange={handleChange}
+                placeholder="e.g. Air Data Computer"
+                maxLength={255}
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field label="POS / Section" hint="legacy: POS (position on aircraft)">
+              <Input
+                name="section"
+                value={form.section}
+                onChange={handleChange}
+                placeholder="e.g. 34-10-01"
+                maxLength={120}
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field label="Manufacturer">
+              <Input
+                name="manufacturer"
+                value={form.manufacturer}
+                onChange={handleChange}
+                placeholder="e.g. Honeywell International"
+                maxLength={120}
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+
+          {/* Time & Cycles */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">
+              Time &amp; Cycles
+            </h3>
+
+            <Field label="INST Date" hint="legacy: INST_DATE — installation / last shop visit date">
+              <Input
+                type="date"
+                name="last_shop_visit_date"
+                value={form.last_shop_visit_date}
+                onChange={handleChange}
+              />
+            </Field>
+
+            <Field label="TSN — Hours Since New" hint="legacy: TSN (Time Since New in hours)">
+              <Input
+                type="number"
+                name="hours_since_new"
+                value={form.hours_since_new}
+                onChange={handleChange}
+                placeholder="0"
+                min={0}
+                step="0.1"
+              />
+            </Field>
+
+            <Field label="CSN — Cycles Since New" hint="legacy: CSN (Cycles Since New)">
+              <Input
+                type="number"
+                name="cycles_since_new"
+                value={form.cycles_since_new}
+                onChange={handleChange}
+                placeholder="0"
+                min={0}
+                step="1"
+              />
+            </Field>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <Button
+              type="submit"
+              disabled={saving}
+              className="gap-1.5 bg-[#556ee6] hover:bg-[#4560d5]"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving…" : "Update Component"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => navigate(-1)}
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+          </div>
+
+        </form>
+      </div>
+
+
+
+    </div>
+  );
+};
+
+export default OccmForm;
