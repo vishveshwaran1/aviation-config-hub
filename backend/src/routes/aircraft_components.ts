@@ -63,4 +63,42 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Update a single aircraft component
+router.patch('/:componentId', async (req, res) => {
+    try {
+        const { componentId } = req.params;
+        const body = req.body;
+        const result = await prisma.aircraftComponent.update({
+            where: { id: componentId },
+            data: {
+                section: body.section,
+                manufacturer: body.manufacturer,
+                model: body.model,
+                serial_number: body.serial_number,
+                part_number: body.part_number,
+                last_shop_visit_date: body.last_shop_visit_date ? new Date(body.last_shop_visit_date) : null,
+                hours_since_new: body.hours_since_new !== undefined ? Number(body.hours_since_new) : undefined,
+                cycles_since_new: body.cycles_since_new !== undefined ? Number(body.cycles_since_new) : undefined,
+            }
+        });
+        console.log("Updated aircraft component:", result);
+        res.json(result);
+    } catch (error) {
+        console.error("Error updating aircraft component:", error);
+        res.status(500).json({ error: 'Failed to update aircraft component', details: (error as Error).message });
+    }
+});
+
+// Delete a single aircraft component
+router.delete('/:componentId', async (req, res) => {
+    try {
+        const { componentId } = req.params;
+        await prisma.aircraftComponent.delete({ where: { id: componentId } });
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting aircraft component:", error);
+        res.status(500).json({ error: 'Failed to delete aircraft component', details: (error as Error).message });
+    }
+});
+
 export default router;
