@@ -26,11 +26,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/aircrafts', aircraftRoutes);
 app.use('/api/components', componentRoutes);
 import aircraftComponentRoutes from './routes/aircraft_components';
-
-// ... other imports
+import forecastRoutes from './routes/forecast';
+import schedulerRoutes from './routes/scheduler';
 
 app.use('/api/services', serviceRoutes);
 app.use('/api/aircraft_components', aircraftComponentRoutes);
+app.use('/api/forecast', forecastRoutes);
+app.use('/api/scheduler', schedulerRoutes);
 
 const PORT = process.env.PORT || 3000;
 

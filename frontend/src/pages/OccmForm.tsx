@@ -10,12 +10,14 @@ import { toast } from "sonner";
 interface FormState {
   part_number: string;
   serial_number: string;
-  model: string;          // Description
-  section: string;        // POS / Position
+  model: string;                // Description
+  section: string;              // POS / Position
   manufacturer: string;
-  last_shop_visit_date: string;  // INST Date
-  hours_since_new: string;       // TSN
-  cycles_since_new: string;      // CSN
+  last_shop_visit_date: string; // INST Date
+  hours_since_new: string;      // TSN
+  cycles_since_new: string;     // CSN
+  tsi: string;                  // Time Since Installation
+  csi: string;                  // Cycles Since Installation
 }
 
 const EMPTY: FormState = {
@@ -27,6 +29,8 @@ const EMPTY: FormState = {
   last_shop_visit_date: "",
   hours_since_new: "",
   cycles_since_new: "",
+  tsi: "",
+  csi: "",
 };
 
 
@@ -41,12 +45,10 @@ const toInputDate = (d?: string | null) => {
 
 const Field = ({
   label,
-  hint,
   required,
   children,
 }: {
   label: string;
-  hint?: string;
   required?: boolean;
   children: React.ReactNode;
 }) => (
@@ -56,7 +58,6 @@ const Field = ({
         {label}
         {required && <span className="ml-0.5 text-rose-500">*</span>}
       </Label>
-      {hint && <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>}
     </div>
     <div>{children}</div>
   </div>
@@ -85,8 +86,10 @@ const OccmForm = () => {
             section:              comp.section              ?? "",
             manufacturer:         comp.manufacturer         ?? "",
             last_shop_visit_date: toInputDate(comp.last_shop_visit_date),
-            hours_since_new:      comp.hours_since_new != null ? String(comp.hours_since_new) : "",
+            hours_since_new:      comp.hours_since_new  != null ? String(comp.hours_since_new)  : "",
             cycles_since_new:     comp.cycles_since_new != null ? String(comp.cycles_since_new) : "",
+            tsi:                  comp.tsi != null ? String(comp.tsi) : "",
+            csi:                  comp.csi != null ? String(comp.csi) : "",
           });
         } else {
           toast.error("Component not found.");
@@ -124,8 +127,10 @@ const OccmForm = () => {
         section:              form.section.trim(),
         manufacturer:         form.manufacturer.trim(),
         last_shop_visit_date: form.last_shop_visit_date || null,
-        hours_since_new:      form.hours_since_new !== "" ? parseFloat(form.hours_since_new) : null,
+        hours_since_new:      form.hours_since_new  !== "" ? parseFloat(form.hours_since_new)  : null,
         cycles_since_new:     form.cycles_since_new !== "" ? parseFloat(form.cycles_since_new) : null,
+        tsi:                  form.tsi !== "" ? parseFloat(form.tsi) : null,
+        csi:                  form.csi !== "" ? parseFloat(form.csi) : null,
       });
       toast.success("Component updated successfully.");
       navigate(`/aircraft/${id}/occm`);
@@ -170,20 +175,14 @@ const OccmForm = () => {
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b bg-gray-50">
           <h2 className="text-sm font-semibold text-gray-800">Component Details</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            All fields marked <span className="text-rose-500 font-medium">*</span> are required.
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
 
           {/* Identification */}
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">
-              Identification
-            </h3>
 
-            <Field label="Component Part No." required hint="legacy: COMP_PART_NO">
+            <Field label="Component Part No." >
               <Input
                 name="part_number"
                 value={form.part_number}
@@ -194,7 +193,7 @@ const OccmForm = () => {
               />
             </Field>
 
-            <Field label="Serial No." required hint="legacy: SERIAL_NO">
+            <Field label="Serial No.">
               <Input
                 name="serial_number"
                 value={form.serial_number}
@@ -205,7 +204,7 @@ const OccmForm = () => {
               />
             </Field>
 
-            <Field label="Description" hint="legacy: DESCRIPTION (free text)">
+            <Field label="Description" >
               <Input
                 name="model"
                 value={form.model}
@@ -216,7 +215,7 @@ const OccmForm = () => {
               />
             </Field>
 
-            <Field label="POS / Section" hint="legacy: POS (position on aircraft)">
+            <Field label="POS">
               <Input
                 name="section"
                 value={form.section}
@@ -227,25 +226,7 @@ const OccmForm = () => {
               />
             </Field>
 
-            <Field label="Manufacturer">
-              <Input
-                name="manufacturer"
-                value={form.manufacturer}
-                onChange={handleChange}
-                placeholder="e.g. Honeywell International"
-                maxLength={120}
-                autoComplete="off"
-              />
-            </Field>
-          </div>
-
-          {/* Time & Cycles */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">
-              Time &amp; Cycles
-            </h3>
-
-            <Field label="INST Date" hint="legacy: INST_DATE — installation / last shop visit date">
+            <Field label="INST Date">
               <Input
                 type="date"
                 name="last_shop_visit_date"
@@ -254,7 +235,7 @@ const OccmForm = () => {
               />
             </Field>
 
-            <Field label="TSN — Hours Since New" hint="legacy: TSN (Time Since New in hours)">
+            <Field label="TSN">
               <Input
                 type="number"
                 name="hours_since_new"
@@ -266,7 +247,7 @@ const OccmForm = () => {
               />
             </Field>
 
-            <Field label="CSN — Cycles Since New" hint="legacy: CSN (Cycles Since New)">
+            <Field label="CSN" >
               <Input
                 type="number"
                 name="cycles_since_new"
@@ -277,6 +258,31 @@ const OccmForm = () => {
                 step="1"
               />
             </Field>
+
+            <Field label="TSI">
+              <Input
+                type="number"
+                name="tsi"
+                value={form.tsi}
+                onChange={handleChange}
+                placeholder="0"
+                min={0}
+                step="0.1"
+              />
+            </Field>
+
+            <Field label="CSI">
+              <Input
+                type="number"
+                name="csi"
+                value={form.csi}
+                onChange={handleChange}
+                placeholder="0"
+                min={0}
+                step="1"
+              />
+            </Field>
+
           </div>
 
           {/* Actions */}

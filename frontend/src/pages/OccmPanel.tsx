@@ -3,10 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Search,
-  PackageOpen,
-  Clock,
-  RotateCcw,
-  CalendarDays,
   Info,
   Pencil,
   Trash2,
@@ -42,14 +38,17 @@ interface Aircraft {
 interface AircraftComponent {
   id: string;
   aircraft_id?: string;
-  section: string;         
+  ata?: string;
+  section: string;           // POS
   manufacturer?: string;
-  model?: string;          
-  serial_number?: string;  
-  part_number?: string;    
-  last_shop_visit_date?: string; 
-  hours_since_new?: number;     
-  cycles_since_new?: number;     
+  model?: string;            // Description
+  serial_number?: string;
+  part_number?: string;
+  last_shop_visit_date?: string; // INST Date
+  hours_since_new?: number;      // TSN
+  cycles_since_new?: number;     // CSN
+  tsi?: number;                  // Time Since Installation
+  csi?: number;                  // Cycles Since Installation
 }
 
 const fmtDate = (d?: string | null) =>
@@ -58,41 +57,10 @@ const fmtDate = (d?: string | null) =>
 const fmtNum = (n?: number | null) =>
   n !== undefined && n !== null ? n.toLocaleString() : "";
 
-const hoursStatus = (hrs?: number | null): "ok" | "watch" | "due" => {
-  if (!hrs) return "ok";
-  const pct = hrs / 25000;
-  if (pct >= 0.9) return "due";
-  if (pct >= 0.75) return "watch";
-  return "ok";
-};
-
-const STATUS_META = {
-  ok:    { label: "Normal",  dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  watch: { label: "Monitor", dot: "bg-amber-400",   badge: "bg-amber-50   text-amber-700   border-amber-200"   },
-  due:   { label: "Review",  dot: "bg-rose-500",    badge: "bg-rose-50    text-rose-700    border-rose-200"    },
-};
-
 const StatPill = ({ label, value }: { label: string; value: string | number }) => (
   <div className="flex flex-col gap-0.5 min-w-[80px]">
     <span className="text-[10px] uppercase tracking-widest text-white/50 font-medium">{label}</span>
     <span className="text-sm font-semibold text-white leading-none">{value ?? "-"}</span>
-  </div>
-);
-
-const SummaryCard = ({
-  icon: Icon, label, value, sub, accent,
-}: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string; accent: string;
-}) => (
-  <div className="flex items-center gap-4 rounded-xl border bg-white px-5 py-4 shadow-sm">
-    <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg shrink-0", accent)}>
-      <Icon className="h-5 w-5 text-white" />
-    </div>
-    <div>
-      <p className="text-xs text-muted-foreground font-medium">{label}</p>
-      <p className="text-xl font-bold text-gray-800 leading-tight">{value}</p>
-      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
-    </div>
   </div>
 );
 
@@ -170,14 +138,17 @@ const OccmPanel = () => {
         const mapped: AircraftComponent[] = rows.map((r) => ({
           id: "",
           aircraft_id: id,
-          part_number:           r["PART_NO"]    ?? r["part_number"]    ?? "",
-          serial_number:         r["SERIAL_NO"]  ?? r["serial_number"]  ?? "",
-          model:                 r["DESCRIPTION"]?? r["model"]          ?? "",
-          section:               r["POS"]        ?? r["section"]        ?? "",
-          manufacturer:          r["MANUFACTURER"] ?? r["manufacturer"] ?? "",
-          last_shop_visit_date:  r["INST_DATE"]  ?? r["last_shop_visit_date"] ?? "",
-          hours_since_new:       parseFloat(r["TSN"] ?? r["hours_since_new"] ?? "0") || 0,
-          cycles_since_new:      parseFloat(r["CSN"] ?? r["cycles_since_new"] ?? "0") || 0,
+          ata:               r["ATA"]          ?? r["ata"]               ?? "",
+          part_number:       r["PART_NO"]      ?? r["part_number"]       ?? "",
+          serial_number:     r["SERIAL_NO"]    ?? r["serial_number"]     ?? "",
+          model:             r["DESCRIPTION"]  ?? r["model"]             ?? "",
+          section:           r["POS"]          ?? r["section"]           ?? "",
+          manufacturer:      r["MANUFACTURER"] ?? r["manufacturer"]      ?? "",
+          last_shop_visit_date: r["INST_DATE"] ?? r["last_shop_visit_date"] ?? "",
+          hours_since_new:   parseFloat(r["TSN"] ?? r["hours_since_new"] ?? "0") || 0,
+          cycles_since_new:  parseFloat(r["CSN"] ?? r["cycles_since_new"] ?? "0") || 0,
+          tsi:               parseFloat(r["TSI"] ?? r["tsi"] ?? "0") || 0,
+          csi:               parseFloat(r["CSI"] ?? r["csi"] ?? "0") || 0,
         }));
 
         setImportRows(mapped);
@@ -195,14 +166,16 @@ const OccmPanel = () => {
     if (!id || importRows.length === 0) return;
     setImporting(true);
     try {
-      const payload = importRows.map((r) => ({ ...r, aircraft_id: id }));
+      // Strip the temporary `id: ""` field; only send data columns + aircraft_id
+      const payload = importRows.map(({ id: _omit, ...r }) => ({ ...r, aircraft_id: id }));
       await api.aircraftComponents.create(payload);
       toast.success(`${importRows.length} component(s) imported successfully.`);
       setShowImportModal(false);
       setImportRows([]);
       loadComponents();
-    } catch {
+    } catch(error) {
       toast.error("Import failed. Please try again.");
+      console.log(error)
     } finally {
       setImporting(false);
     }
@@ -222,9 +195,6 @@ const OccmPanel = () => {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-
-  const counts = { ok: 0, watch: 0, due: 0 };
-  components.forEach((c) => counts[hoursStatus(c.hours_since_new)]++);
 
   const loading = loadingAc || loadingComp;
 
@@ -264,16 +234,6 @@ const OccmPanel = () => {
           )}
         </div>
       </div>
-
-      {/*  Summary cards  */}
-      {/* {!loading && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <SummaryCard icon={PackageOpen} label="Total Components" value={components.length}   sub="tracked on this aircraft"  accent="bg-[#556ee6]" />
-          <SummaryCard icon={Clock}       label="Normal"           value={counts.ok}           sub="within limits"             accent="bg-emerald-500" />
-          <SummaryCard icon={RotateCcw}   label="Monitor"          value={counts.watch}        sub="approaching threshold"     accent="bg-amber-400" />
-          <SummaryCard icon={CalendarDays}label="Review"           value={counts.due}          sub="needs attention"           accent="bg-rose-500" />
-        </div>
-      )} */}
 
       {/*  Component table  */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
@@ -321,7 +281,7 @@ const OccmPanel = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b text-left">
-                {["#", "Part No.", "Serial No.", "Description", "POS / Section", "Manufacturer", "INST Date (TSN)", "CSN", "Status", "Actions"].map((h) => (
+                {["#", "Part No.", "Serial No.", "Description", "POS", "INST Date","TSN", "CSN", "TSI","CSI", "Actions"].map((h) => (
                   <th key={h} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                     {h}
                   </th>
@@ -332,7 +292,7 @@ const OccmPanel = () => {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 10 }).map((_, j) => (
+                    {Array.from({ length: 11 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-3 rounded bg-gray-100 animate-pulse" style={{ width: "60%" }} />
                       </td>
@@ -341,7 +301,7 @@ const OccmPanel = () => {
                 ))
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-16 text-center">
+                  <td colSpan={11} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Info className="h-8 w-8 opacity-30" />
                       <p className="text-sm font-medium">
@@ -355,40 +315,48 @@ const OccmPanel = () => {
                 </tr>
               ) : (
                 paginated.map((comp, idx) => {
-                  const status = hoursStatus(comp.hours_since_new);
-                  const meta   = STATUS_META[status];
                   const rowNum = (page - 1) * PER_PAGE + idx + 1;
                   return (
                     <tr key={comp.id} className="hover:bg-gray-50/60 transition-colors">
+                      {/* # */}
                       <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">{rowNum}</td>
+                      {/* Part No. */}
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
                         {comp.part_number || "NA"}
                       </td>
+                      {/* Serial No. */}
                       <td className="px-4 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">
                         {comp.serial_number || "NA"}
                       </td>
+                      {/* Description */}
                       <td className="px-4 py-3 text-gray-700 whitespace-nowrap max-w-[180px] truncate" title={comp.model ?? ""}>
                         {comp.model || "NA"}
                       </td>
+                      {/* POS */}
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {comp.section || "NA"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {comp.manufacturer || "NA"}
+                      {/* INST Date */}
+                      <td className="px-4 py-3 text-gray-700 text-xs whitespace-nowrap">
+                        {fmtDate(comp.last_shop_visit_date) || "NA"}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-gray-700 text-xs">{fmtDate(comp.last_shop_visit_date)}</div>
-                        <div className="text-[11px] text-muted-foreground tabular-nums">TSN: {fmtNum(comp.hours_since_new)}</div>
+                      {/* TSN */}
+                      <td className="px-4 py-3 tabular-nums text-gray-700 whitespace-nowrap">
+                        {fmtNum(comp.hours_since_new)}
                       </td>
+                      {/* CSN */}
                       <td className="px-4 py-3 tabular-nums text-gray-700 whitespace-nowrap">
                         {fmtNum(comp.cycles_since_new)}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium", meta.badge)}>
-                          <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
-                          {meta.label}
-                        </span>
+                      {/* TSI */}
+                      <td className="px-4 py-3 tabular-nums text-gray-700 whitespace-nowrap">
+                        {fmtNum(comp.tsi)}
                       </td>
+                      {/* CSI */}
+                      <td className="px-4 py-3 tabular-nums text-gray-700 whitespace-nowrap">
+                        {fmtNum(comp.csi)}
+                      </td>
+                      {/* Actions */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button
@@ -419,7 +387,7 @@ const OccmPanel = () => {
         {filtered.length > PER_PAGE && (
           <div className="flex items-center justify-between px-5 py-3 border-t">
             <p className="text-xs text-muted-foreground">
-              Showing {(page - 1) * PER_PAGE + 1}â€“{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
+              Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
             </p>
             <div className="flex items-center gap-1">
               <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
@@ -437,7 +405,7 @@ const OccmPanel = () => {
                 </Button>
               ))}
               <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-                Next â†’
+                Next →
               </Button>
             </div>
           </div>
@@ -484,7 +452,7 @@ const OccmPanel = () => {
             <table className="w-full">
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
-                  {["Part No.", "Serial No.", "Description", "POS", "TSN", "CSN"].map((h) => (
+                  {["Part No.", "Serial No.", "Description", "POS", "INST Date", "TSN", "CSN", "TSI", "CSI"].map((h) => (
                     <th key={h} className="px-3 py-2 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -496,15 +464,18 @@ const OccmPanel = () => {
                     <td className="px-3 py-1.5 font-mono">{r.serial_number || "NA"}</td>
                     <td className="px-3 py-1.5 max-w-[140px] truncate">{r.model || "NA"}</td>
                     <td className="px-3 py-1.5">{r.section || "NA"}</td>
+                    <td className="px-3 py-1.5 text-xs">{fmtDate(r.last_shop_visit_date) || "NA"}</td>
                     <td className="px-3 py-1.5 tabular-nums">{r.hours_since_new ?? 0}</td>
                     <td className="px-3 py-1.5 tabular-nums">{r.cycles_since_new ?? 0}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{r.tsi ?? 0}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{r.csi ?? 0}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {importRows.length > 20 && (
               <p className="text-center text-muted-foreground py-2 text-[11px]">
-                â€¦and {importRows.length - 20} more rows
+                …and {importRows.length - 20} more rows
               </p>
             )}
           </div>
