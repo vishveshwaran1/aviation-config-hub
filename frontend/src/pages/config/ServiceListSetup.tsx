@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -24,6 +25,7 @@ export interface ServiceItem {
 
 const ServiceListSetup = () => {
   const [isCreating, setIsCreating] = useState(false);
+  const [editingItem, setEditingItem] = useState<ServiceItem | null>(null);
   const [data, setData] = useState<ServiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,21 +39,39 @@ const ServiceListSetup = () => {
       } else if (result.data && Array.isArray(result.data)) {
         setData(result.data);
       } else {
-        console.error("Unexpected API response format:", result);
         setData([]);
       }
     } catch (error) {
       console.error("Failed to fetch services:", error);
+      setData([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!isCreating) {
+    if (!isCreating && !editingItem) {
       fetchData();
     }
-  }, [isCreating]);
+  }, [isCreating, editingItem]);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete service "${name}"?`)) return;
+    try {
+      const res = await fetch(`http://localhost:3000/api/services/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        setData(data.filter(item => item.id !== id));
+        toast.success("Service deleted");
+      } else {
+        toast.error("Failed to delete service");
+      }
+    } catch {
+      toast.error("Failed to delete service");
+    }
+  };
 
   const filteredData = data.filter((item) =>
     Object.values(item).some((val) =>
@@ -59,30 +79,33 @@ const ServiceListSetup = () => {
     )
   );
 
-  if (isCreating) {
+  if (isCreating || editingItem) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6 pb-10">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <h2 className="text-2xl font-bold tracking-tight">Add New Service</h2>
-            <p className="text-muted-foreground">
-              Define maintenance tasks and services.
-            </p>
+      <div className="w-full pb-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">
+              {editingItem ? "Edit Service" : "Add New Service"}
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1">Define maintenance tasks and services.</p>
           </div>
-          <Button variant="outline" onClick={() => setIsCreating(false)}>
-            Back to List
+          <Button variant="outline" onClick={() => { setIsCreating(false); setEditingItem(null); }}>
+            ← Back to List
           </Button>
         </div>
         <div className="border rounded-lg p-6 bg-card text-card-foreground shadow-sm">
-          <ServiceForm />
+          <ServiceForm
+            defaultValues={editingItem ?? undefined}
+            onSuccess={() => { setIsCreating(false); setEditingItem(null); fetchData(); }}
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex items-center justify-between">
+    <div className="w-full pb-10">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold tracking-tight uppercase text-[#343a40]">SERVICE LIST SETUP</h2>
         <div className="text-sm text-muted-foreground">Configuration / Service List Setup</div>
       </div>
@@ -98,12 +121,12 @@ const ServiceListSetup = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button className="bg-[#556ee6] hover:bg-[#556ee6]-700 text-white" onClick={() => setIsCreating(true)}>
+          <Button className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white" onClick={() => setIsCreating(true)}>
             <Plus className="mr-2 h-4 w-4" /> Create New
           </Button>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader className="bg-gray-50">
               <TableRow>
@@ -119,31 +142,39 @@ const ServiceListSetup = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                    Loading...
-                  </TableCell>
+                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                    No results found.
-                  </TableCell>
+                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">No results found.</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((item, index) => (
                   <TableRow key={item.id || index}>
                     <TableCell><input type="checkbox" className="translate-y-[2px]" /></TableCell>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell className="font-medium bg-secondary/20 rounded-sm px-2 py-1 inline-block mt-2 mb-2">{item.task_name}</TableCell>
+                    <TableCell className="font-medium">{item.task_name}</TableCell>
                     <TableCell>{item.aircraft_model}</TableCell>
                     <TableCell>{item.mpd_amm_task_ids || '-'}</TableCell>
                     <TableCell>{item.task_card_ref || '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-500 hover:bg-blue-50"
+                          onClick={() => setEditingItem(item)}
+                          title="Edit"
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:bg-red-50"
+                          onClick={() => handleDelete(item.id, item.task_name)}
+                          title="Delete"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

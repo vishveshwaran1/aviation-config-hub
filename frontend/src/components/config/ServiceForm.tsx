@@ -47,7 +47,12 @@ const AIRCRAFT_MODELS = [
     "ATR72-600",
 ];
 
-export function ServiceForm() {
+interface ServiceFormProps {
+    defaultValues?: any;
+    onSuccess?: () => void;
+}
+
+export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
     const [loading, setLoading] = useState(false);
     const [components, setComponents] = useState<{ id: string; name: string }[]>([]);
     const navigate = useNavigate();
@@ -56,6 +61,7 @@ export function ServiceForm() {
         resolver: zodResolver(serviceSchema),
         defaultValues: {
             zones: [],
+            ...defaultValues,
         },
     });
 
@@ -76,23 +82,34 @@ export function ServiceForm() {
     async function onSubmit(data: ServiceFormData) {
         setLoading(true);
         try {
-            await api.services.create({
-                aircraft_model: data.aircraft_model,
-                task_name: data.task_name,
-                mpd_amm_task_ids: data.mpd_amm_task_ids || null,
-                task_card_ref: data.task_card_ref || null,
-                description: data.description || null,
-                assigned_component_id: data.assigned_component_id || null,
-                zones: data.zones,
-                estimated_manhours: data.estimated_manhours || null,
-                estimated_price: data.estimated_price || null,
-                quotation_price: data.quotation_price || null,
-                interval_threshold: data.interval_threshold || null,
-                repeat_interval: data.repeat_interval || null,
-            });
-
-            toast.success("Service saved successfully");
-            navigate("/dashboard");
+            if (defaultValues?.id) {
+                // Edit mode — PATCH
+                const res = await fetch(`http://localhost:3000/api/services/${defaultValues.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify(data),
+                });
+                if (!res.ok) throw await res.json();
+                toast.success("Service updated successfully");
+            } else {
+                await api.services.create({
+                    aircraft_model: data.aircraft_model,
+                    task_name: data.task_name,
+                    mpd_amm_task_ids: data.mpd_amm_task_ids || null,
+                    task_card_ref: data.task_card_ref || null,
+                    description: data.description || null,
+                    assigned_component_id: data.assigned_component_id || null,
+                    zones: data.zones,
+                    estimated_manhours: data.estimated_manhours || null,
+                    estimated_price: data.estimated_price || null,
+                    quotation_price: data.quotation_price || null,
+                    interval_threshold: data.interval_threshold || null,
+                    repeat_interval: data.repeat_interval || null,
+                });
+                toast.success("Service saved successfully");
+            }
+            if (onSuccess) onSuccess();
+            else navigate("/config/services");
         } catch (error: any) {
             console.error("Error saving service:", error);
             toast.error(error.message || "Failed to save service");
@@ -328,11 +345,11 @@ export function ServiceForm() {
                 </div>
 
                 <div className="flex justify-end space-x-4">
-                    <Button variant="outline" type="button" onClick={() => navigate("/dashboard")}>
-                        Cancel
+                    <Button variant="outline" type="button" onClick={() => onSuccess ? onSuccess() : navigate("/config/services")}>
+                        ← Back
                     </Button>
                     <Button type="submit" disabled={loading}>
-                        {loading ? "Saving..." : "Save Service"}
+                        {loading ? "Saving..." : defaultValues?.id ? "Update Service" : "Save Service"}
                     </Button>
                 </div>
             </form>

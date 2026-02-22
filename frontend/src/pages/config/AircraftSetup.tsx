@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Pencil, Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -20,11 +21,15 @@ export interface Aircraft {
   registration_number: string;
   engines_count: number;
   status?: string;
+  aircraft_received_status?: string;
   [key: string]: any;
 }
 
+type StatusUnion = "Active" | "Inactive" | "Maintenance" | "Storage" | "Pending" | "Declined";
+
 const AircraftSetup = () => {
   const [isCreating, setIsCreating] = useState(false);
+  const [editingAircraft, setEditingAircraft] = useState<Aircraft | null>(null);
   const [data, setData] = useState<Aircraft[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,72 +38,109 @@ const AircraftSetup = () => {
     setIsLoading(true);
     try {
       const result = await api.aircrafts.list();
-      // Assuming API returns an array or { data: [...] }
       if (Array.isArray(result)) {
         setData(result);
-      } else if (result.data && Array.isArray(result.data)) {
+      } else if (result?.data && Array.isArray(result.data)) {
         setData(result.data);
       } else {
-        console.error("Unexpected API response format:", result);
         setData([]);
       }
     } catch (error) {
       console.error("Failed to fetch aircrafts:", error);
-      // toast.error("Failed to load aircrafts"); // keeping minimal imports for now
+      setData([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!isCreating) {
+    if (!isCreating && !editingAircraft) {
       fetchData();
     }
-  }, [isCreating]);
+  }, [isCreating, editingAircraft]);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
       await api.aircrafts.update(id, { status: newStatus });
-      // Update local state
-      setData(data.map(item => item.id === id ? { ...item, status: newStatus } : item));
+      setData(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
+      toast.success(`Aircraft ${newStatus === "Active" ? "approved" : "declined"}`);
     } catch (error) {
       console.error("Failed to update status:", error);
+      toast.error("Failed to update status");
     }
   };
 
-  const filteredData = data.filter((item) =>
-    Object.values(item).some((val) =>
+  const handleDelete = async (id: string, model: string) => {
+    if (!window.confirm(`Are you sure you want to delete aircraft "${model}"?`)) return;
+    try {
+      const res = await fetch(`http://localhost:3000/api/aircrafts/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (res.ok) {
+        setData(prev => prev.filter(item => item.id !== id));
+        toast.success("Aircraft deleted");
+      } else {
+        toast.error("Failed to delete aircraft");
+      }
+    } catch {
+      toast.error("Failed to delete aircraft");
+    }
+  };
+
+  const filteredData = data.filter(item =>
+    Object.values(item).some(val =>
       String(val).toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
 
-  if (isCreating) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6 pb-10">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <h2 className="text-2xl font-bold tracking-tight">Add New Aircraft</h2>
-            <p className="text-muted-foreground">
-              Configure aircraft details, APU, and landing gears.
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => setIsCreating(false)}>
-            Back to List
+  /* ── Header row shared by both views ── */
+  const PageHeader = ({ showBack = false }: { showBack?: boolean }) => (
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-2xl font-bold tracking-tight uppercase text-[#343a40]">
+        AIRCRAFT SETUP
+      </h2>
+      <div className="flex items-center gap-4">
+        <span className="text-sm text-muted-foreground">Configuration / Aircraft Setup</span>
+        {showBack && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setIsCreating(false); setEditingAircraft(null); }}
+          >
+            ← Back
           </Button>
-        </div>
-        <div className="border rounded-lg p-6 bg-card text-card-foreground shadow-sm">
-          <AircraftForm />
+        )}
+      </div>
+    </div>
+  );
+
+  /* ── Form view ── */
+  if (isCreating || editingAircraft) {
+    return (
+      <div className="w-full pb-10">
+        <PageHeader showBack />
+        <div className="bg-white border rounded-lg p-8 shadow-sm max-w-7xl mx-auto">
+          <AircraftForm
+            defaultValues={
+              editingAircraft
+                ? {
+                  ...editingAircraft,
+                  status: (editingAircraft.status as StatusUnion) ?? "Pending",
+                }
+                : undefined
+            }
+            onSuccess={() => { setIsCreating(false); setEditingAircraft(null); }}
+          />
         </div>
       </div>
     );
   }
 
+  /* ── List view ── */
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight uppercase text-[#343a40]">AIRCRAFT SETUP</h2>
-        <div className="text-sm text-muted-foreground">Configuration / Aircraft Setup</div>
-      </div>
+    <div className="w-full pb-10">
+      <PageHeader />
 
       <div className="bg-white border rounded-lg p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
@@ -108,81 +150,108 @@ const AircraftSetup = () => {
               placeholder="Search"
               className="pl-10"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button className="bg-[#556ee6] hover:bg-[#556ee6]-700 text-white" onClick={() => setIsCreating(true)}>
+          <Button
+            className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white"
+            onClick={() => setIsCreating(true)}
+          >
             <Plus className="mr-2 h-4 w-4" /> Create New
           </Button>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead className="w-[50px]"><input type="checkbox" className="translate-y-[2px]" /></TableHead>
-                <TableHead className="w-[50px]">#</TableHead>
+                <TableHead className="w-[40px]">
+                  <input type="checkbox" className="translate-y-[2px]" />
+                </TableHead>
+                <TableHead className="w-[40px]">#</TableHead>
                 <TableHead>Aircraft Model</TableHead>
                 <TableHead>MSN</TableHead>
                 <TableHead>National Reg ID</TableHead>
                 <TableHead>No of Engines</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Aircraft Received Status</TableHead>
+                <TableHead>Approval Status</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                     No results found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((item, index) => (
-                  <TableRow key={item.id || index}>
-                    <TableCell><input type="checkbox" className="translate-y-[2px]" /></TableCell>
+                  <TableRow key={item.id ?? index}>
+                    <TableCell>
+                      <input type="checkbox" className="translate-y-[2px]" />
+                    </TableCell>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell className="font-medium bg-secondary/20 rounded-sm px-2 py-1 inline-block mt-2 mb-2">{item.model}</TableCell>
+                    <TableCell className="font-medium">{item.model}</TableCell>
                     <TableCell>{item.msn}</TableCell>
                     <TableCell>{item.registration_number}</TableCell>
                     <TableCell>{item.engines_count}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'Active' ? 'bg-green-100 text-green-800' :
-                          item.status === 'Declined' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.aircraft_received_status === "Received"
+                        ? "bg-blue-100 text-blue-800"
+                        : item.aircraft_received_status === "Not Received"
+                          ? "bg-orange-100 text-orange-800"
+                          : "bg-gray-100 text-gray-600"
                         }`}>
-                        {item.status || 'Pending'}
+                        {item.aircraft_received_status || "Pending"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === "Active" ? "bg-green-100 text-green-800" :
+                        item.status === "Declined" ? "bg-red-100 text-red-800" :
+                          "bg-gray-100 text-gray-800"
+                        }`}>
+                        {item.status || "Pending"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          onClick={() => handleStatusUpdate(item.id, 'Active')}
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-green-600 hover:bg-green-50"
+                          onClick={() => handleStatusUpdate(item.id, "Active")}
                           title="Approve"
                         >
                           <ThumbsUp className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-50"
-                          onClick={() => handleStatusUpdate(item.id, 'Declined')}
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-orange-500 hover:bg-orange-50"
+                          onClick={() => handleStatusUpdate(item.id, "Declined")}
                           title="Decline"
                         >
                           <ThumbsDown className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500">
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-blue-500 hover:bg-blue-50"
+                          onClick={() => setEditingAircraft({ ...item })}
+                          title="Edit"
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-red-500 hover:bg-red-50"
+                          onClick={() => handleDelete(item.id, item.model)}
+                          title="Delete"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

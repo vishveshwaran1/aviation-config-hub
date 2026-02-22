@@ -35,7 +35,12 @@ const AIRCRAFT_MODELS: Option[] = [
     { label: "ATR72-600", value: "ATR72-600" },
 ];
 
-export function ComponentForm() {
+interface ComponentFormProps {
+    defaultValues?: any;
+    onSuccess?: () => void;
+}
+
+export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -44,16 +49,28 @@ export function ComponentForm() {
         defaultValues: {
             compatible_aircraft_models: [],
             currency: "MYR",
+            ...defaultValues,
         },
     });
 
     async function onSubmit(data: ComponentFormData) {
         setLoading(true);
         try {
-            await api.components.create(data);
-
-            toast.success("Component saved successfully");
-            navigate("/dashboard");
+            if (defaultValues?.id) {
+                // Edit mode — PATCH
+                const res = await fetch(`http://localhost:3000/api/components/${defaultValues.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify(data),
+                });
+                if (!res.ok) throw await res.json();
+                toast.success("Component updated successfully");
+            } else {
+                await api.components.create(data);
+                toast.success("Component saved successfully");
+            }
+            if (onSuccess) onSuccess();
+            else navigate("/config/components");
         } catch (error: any) {
             console.error("Error saving component:", error);
             toast.error(error.message || "Failed to save component");
@@ -331,11 +348,11 @@ export function ComponentForm() {
                 </div>
 
                 <div className="flex justify-end space-x-4">
-                    <Button variant="outline" type="button" onClick={() => navigate("/dashboard")}>
-                        Cancel
+                    <Button variant="outline" type="button" onClick={() => onSuccess ? onSuccess() : navigate("/config/components")}>
+                        ← Back
                     </Button>
                     <Button type="submit" disabled={loading}>
-                        {loading ? "Saving..." : "Save Component"}
+                        {loading ? "Saving..." : defaultValues?.id ? "Update Component" : "Save Component"}
                     </Button>
                 </div>
             </form>

@@ -15,6 +15,8 @@ const createReEntrySchema = (fieldName: string, label: string) => {
 };
 
 export const aircraftSchema = z.object({
+    // Optional id for edit mode
+    id: z.string().optional(),
     // Section A: Aircraft Setup
     model: requiredString,
     msn: requiredString,
@@ -22,7 +24,7 @@ export const aircraftSchema = z.object({
     country: requiredString,
     registration_number: requiredString,
     confirm_registration_number: requiredString,
-    manufacture_date: z.string().optional(), // Date picker usually returns Date or string
+    manufacture_date: z.string().optional(),
     delivery_date: z.string().optional(),
     flight_hours: z.coerce.number().min(0),
     flight_cycles: z.coerce.number().min(0),
