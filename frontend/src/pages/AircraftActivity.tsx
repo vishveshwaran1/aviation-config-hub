@@ -76,7 +76,7 @@ const PANELS: Panel[] = [
     label: "Forecast",
     sublabel: "Predictive maintenance planning",
     icon: TrendingUp,
-    href: "/aircraft/:id",
+    href: "/aircraft/:id/forecast",
   },
 ];
 
@@ -119,6 +119,9 @@ const AircraftActivity = () => {
   return (
     <div className="space-y-0 pb-12">
       {/* ── Header bar ── */}
+      <p className="text-xs uppercase tracking-widest text-black/90  font-bold mb-0.5">
+                Aircraft Activity Selection
+              </p>
       <div className="rounded-xl bg-[#556ee6] px-6 py-5 mb-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -129,9 +132,7 @@ const AircraftActivity = () => {
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
-              <p className="text-xs uppercase tracking-widest text-white/60 font-medium mb-0.5">
-                Aircraft Activity Selection
-              </p>
+              <p className="text-xs uppercase tracking-widest text-white/60  font-medium mb-0.5">Aircraft Model</p>
               <h1 className="text-lg font-bold text-white leading-none">
                 {loading ? "Loading…" : (aircraft?.model ?? "—")}
               </h1>
@@ -140,13 +141,11 @@ const AircraftActivity = () => {
 
           {!loading && aircraft && (
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3 sm:justify-end">
-              <StatBadge label="Registration" value={aircraft.registration_number} />
+              <StatBadge label="National Reg ID" value={aircraft.registration_number} />
               <div className="hidden sm:block w-px h-8 bg-white/20" />
-              <StatBadge label="Flight Hours" value={aircraft.flight_hours} />
+              <StatBadge label="Aircraft FH" value={aircraft.flight_hours} />
               <div className="hidden sm:block w-px h-8 bg-white/20" />
-              <StatBadge label="Flight Cycles" value={aircraft.flight_cycles} />
-              <div className="hidden sm:block w-px h-8 bg-white/20" />
-              <StatBadge label="MSN" value={aircraft.msn} />
+              <StatBadge label="Aircraft FC" value={aircraft.flight_cycles} />
             </div>
           )}
         </div>
