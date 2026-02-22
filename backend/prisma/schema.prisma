@@ -44,6 +44,7 @@ model Aircraft {
 model AircraftComponent {
   id                  String    @id @default(uuid())
   aircraft_id         String
+  ata                 String?
   section             String
   manufacturer        String?
   model               String?
@@ -54,7 +55,8 @@ model AircraftComponent {
   last_shop_visit_date DateTime?
   hours_since_new     Float?
   cycles_since_new    Float?
-  
+  tsi                 Float?
+  csi                 Float?
   aircraft            Aircraft  @relation(fields: [aircraft_id], references: [id])
   
   created_at          DateTime  @default(now())
@@ -92,7 +94,42 @@ model Service {
   quotation_price       Float?
   interval_threshold    Float?
   repeat_interval       Float?
-  
+  interval_unit         String    @default("Hours")
+
   created_at            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
+}
+
+model Forecast {
+  id               String    @id @default(uuid())
+  aircraft_id      String
+  service_id       String
+  interval_unit    String    @default("Hours")
+  last_date        DateTime?
+  last_hours       Float?
+  last_cycles      Float?
+  next_date        DateTime?
+  next_hours       Float?
+  next_cycles      Float?
+  remaining_hours  Float?
+  remaining_cycles Float?
+  avg_hours        Float?    @default(10)
+  avg_cycles       Float?    @default(2)
+  status           String    @default("active")
+
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  @@unique([aircraft_id, service_id])
+}
+
+model Scheduler {
+  id            String   @id @default(uuid())
+  aircraft_id   String
+  flight_date   DateTime
+  flight_hours  Float    @default(0)
+  flight_cycles Float    @default(0)
+
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 }
