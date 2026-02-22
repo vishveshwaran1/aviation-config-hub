@@ -108,10 +108,16 @@ const Login = () => {
                 {loading ? "Logging in..." : "Log In"}
               </Button>
 
-              <div className="text-center pt-2">
+              <div className="text-center pt-2 space-y-3">
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700">
                   <Lock className="h-3 w-3" />
                   <Link to="/forgot-password">Forgot your password?</Link>
+                </div>
+                <div className="text-sm text-gray-500">
+                  Don't have an account?{" "}
+                  <Link to="/signup" className="text-[#4f46e5] font-semibold hover:underline">
+                    Signup
+                  </Link>
                 </div>
               </div>
             </form>

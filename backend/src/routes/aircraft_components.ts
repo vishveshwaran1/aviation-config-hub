@@ -32,8 +32,10 @@ router.post('/', async (req, res) => {
                     model: item.model,
                     serial_number: item.serial_number,
                     part_number: item.part_number,
+                    status: item.status,
+                    manufacture_date: (item.manufacture_date && item.manufacture_date.trim() !== "") ? new Date(item.manufacture_date) : null,
                     // handle dates and numbers
-                    last_shop_visit_date: item.last_shop_visit_date ? new Date(item.last_shop_visit_date) : null,
+                    last_shop_visit_date: (item.last_shop_visit_date && item.last_shop_visit_date.trim() !== "") ? new Date(item.last_shop_visit_date) : null,
                     hours_since_new: item.hours_since_new ? Number(item.hours_since_new) : 0,
                     cycles_since_new: item.cycles_since_new ? Number(item.cycles_since_new) : 0,
                 }))
@@ -49,7 +51,9 @@ router.post('/', async (req, res) => {
                     model: body.model,
                     serial_number: body.serial_number,
                     part_number: body.part_number,
-                    last_shop_visit_date: body.last_shop_visit_date ? new Date(body.last_shop_visit_date) : null,
+                    status: body.status,
+                    manufacture_date: (body.manufacture_date && body.manufacture_date.trim() !== "") ? new Date(body.manufacture_date) : null,
+                    last_shop_visit_date: (body.last_shop_visit_date && body.last_shop_visit_date.trim() !== "") ? new Date(body.last_shop_visit_date) : null,
                     hours_since_new: body.hours_since_new ? Number(body.hours_since_new) : 0,
                     cycles_since_new: body.cycles_since_new ? Number(body.cycles_since_new) : 0,
                 }
@@ -76,7 +80,9 @@ router.patch('/:componentId', async (req, res) => {
                 model: body.model,
                 serial_number: body.serial_number,
                 part_number: body.part_number,
-                last_shop_visit_date: body.last_shop_visit_date ? new Date(body.last_shop_visit_date) : null,
+                status: body.status,
+                manufacture_date: (body.manufacture_date && body.manufacture_date.trim() !== "") ? new Date(body.manufacture_date) : undefined,
+                last_shop_visit_date: (body.last_shop_visit_date && body.last_shop_visit_date.trim() !== "") ? new Date(body.last_shop_visit_date) : null,
                 hours_since_new: body.hours_since_new !== undefined ? Number(body.hours_since_new) : undefined,
                 cycles_since_new: body.cycles_since_new !== undefined ? Number(body.cycles_since_new) : undefined,
             }
