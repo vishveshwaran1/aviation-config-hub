@@ -81,7 +81,7 @@ const AircraftDetails = () => {
 
             <div className="space-y-6">
                 {/* Aircraft Setup */}
-                <DetailSection title="Section A: Aircraft Setup">
+                <DetailSection title="Aircraft Setup">
                     <DetailItem label="Aircraft Model" value={aircraft.model} />
                     <DetailItem label="Country" value={aircraft.country} />
                     <DetailItem label="MSN" value={aircraft.msn} />
@@ -101,7 +101,7 @@ const AircraftDetails = () => {
                 </DetailSection>
 
                 {/* APU Details */}
-                <DetailSection title="Section B: APU Details">
+                <DetailSection title="APU Details">
                     <DetailItem label="APU Manufacturer" value={apu.manufacturer} />
                     <DetailItem label="APU Model" value={apu.model} />
                     <DetailItem label="APU Serial No" value={apu.serial_number} />
@@ -115,7 +115,7 @@ const AircraftDetails = () => {
                 </DetailSection>
 
                 {/* Main Landing Gear Left */}
-                <DetailSection title="Section C: Main Landing Gear Left">
+                <DetailSection title="Main Landing Gear Left">
                     <DetailItem label="Manufacturer" value={mlgLeft.manufacturer} />
                     <DetailItem label="Model" value={mlgLeft.model} />
                     <DetailItem label="Serial No" value={mlgLeft.serial_number} />
@@ -129,7 +129,7 @@ const AircraftDetails = () => {
                 </DetailSection>
 
                 {/* Main Landing Gear Right */}
-                <DetailSection title="Section D: Main Landing Gear Right">
+                <DetailSection title="Main Landing Gear Right">
                     <DetailItem label="Manufacturer" value={mlgRight.manufacturer} />
                     <DetailItem label="Model" value={mlgRight.model} />
                     <DetailItem label="Serial No" value={mlgRight.serial_number} />
@@ -143,7 +143,7 @@ const AircraftDetails = () => {
                 </DetailSection>
 
                 {/* Nose Landing Gear */}
-                <DetailSection title="Section E: Nose Landing Gear">
+                <DetailSection title="Nose Landing Gear">
                     <DetailItem label="Manufacturer" value={nlg.manufacturer} />
                     <DetailItem label="Model" value={nlg.model} />
                     <DetailItem label="Serial No" value={nlg.serial_number} />
