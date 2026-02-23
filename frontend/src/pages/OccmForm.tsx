@@ -165,16 +165,13 @@ const OccmForm = () => {
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">
             OCCM Panel / Edit Component
           </p>
-          <h1 className="text-lg font-bold text-gray-800 leading-none mt-0.5">
-            {form.part_number || "Component"}
-          </h1>
         </div>
       </div>
 
       {/* ── Form card ── */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b bg-gray-50">
-          <h2 className="text-sm font-semibold text-gray-800">Component Details</h2>
+          <h2 className="text-sm font-semibold text-gray-800">COMPONENT</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
@@ -193,7 +190,7 @@ const OccmForm = () => {
               />
             </Field>
 
-            <Field label="Serial No.">
+            <Field label="Serial No">
               <Input
                 name="serial_number"
                 value={form.serial_number}
@@ -286,22 +283,21 @@ const OccmForm = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-2 border-t">
+          <div className="flex justify-center items-center gap-3 pt-2 border-t">
             <Button
               type="submit"
               disabled={saving}
-              className="gap-1.5 bg-[#556ee6] hover:bg-[#4560d5]"
+              className="gap-1.5 bg-[#17d488] hover:bg-[#1cc45f]"
             >
               <Save className="h-4 w-4" />
-              {saving ? "Saving…" : "Update Component"}
+              {saving ? "Saving…" : "Update"}
             </Button>
             <Button
               type="button"
               variant="outline"
-              className="gap-1.5"
+              className="gap-1.5 bg-[#68686f] hover:bg-[#585d65]"
               onClick={() => navigate(-1)}
             >
-              <X className="h-4 w-4" />
               Cancel
             </Button>
           </div>

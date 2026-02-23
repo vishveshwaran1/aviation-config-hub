@@ -203,38 +203,21 @@ const OccmPanel = () => {
     <div className="space-y-6 pb-12">
 
       {/*  Aircraft header  */}
-      <div className="rounded-xl bg-[#556ee6] px-6 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+      <div className="rounded-xl  px-6 py-4 shadow-sm">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => navigate(-1)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-black hover:bg-white/20 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-8" />
             </button>
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-white/55 font-medium mb-0.5">
-                OCCM Panel On-Condition Component Management
+              <p className="text-[15px] uppercase tracking-widest text-black font-medium mb-0.5">
+                OCCM Panel
               </p>
-              <h1 className="text-lg font-bold text-white leading-none">
-                {loadingAc ? "Loading..." : (aircraft?.model ?? "Aircraft")}
-              </h1>
             </div>
           </div>
-          {!loadingAc && aircraft && (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <StatPill label="Registration"  value={aircraft.registration_number} />
-              <div className="hidden sm:block w-px h-7 bg-white/20" />
-              <StatPill label="Flight Hours"  value={fmtNum(aircraft.flight_hours)} />
-              <div className="hidden sm:block w-px h-7 bg-white/20" />
-              <StatPill label="Flight Cycles" value={fmtNum(aircraft.flight_cycles)} />
-              <div className="hidden sm:block w-px h-7 bg-white/20" />
-              <StatPill label="MSN"           value={aircraft.msn} />
-            </div>
-          )}
         </div>
-      </div>
-
       {/*  Component table  */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
 
@@ -269,11 +252,6 @@ const OccmPanel = () => {
               Import Excel
             </Button>
           </div>
-        </div>
-
-        {/* Excel column hint */}
-        <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-[11px] text-blue-600">
-          Expected Excel columns: <span className="font-semibold">PART_NO, SERIAL_NO, DESCRIPTION, POS, MANUFACTURER, INST_DATE, TSN, CSN</span>
         </div>
 
         {/* Table */}
