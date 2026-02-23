@@ -147,7 +147,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                     <FormField control={form.control} name="confirm_name" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Confirm Component Name</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Re-Enter Component Name</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
@@ -161,7 +161,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                     <FormField control={form.control} name="part_number" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Part No</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Component Part No</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
@@ -175,7 +175,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                     <FormField control={form.control} name="confirm_part_number" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Confirm Part No</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Re-enter Component  Part No</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
@@ -203,7 +203,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                     <FormField control={form.control} name="confirm_cmm_number" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Confirm CMM No</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Re-enter CMM No</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
@@ -243,7 +243,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                     <FormField control={form.control} name="classification_date" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Classification Date</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}> Component Classification Changed Date</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input type="date" className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
