@@ -667,7 +667,46 @@ const Forecast = () => {
           </div>
         </div>
       </div>
-
+  {!loadingAc && aircraft && (
+        <div className="rounded-xl border bg-white shadow-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-0 divide-x divide-gray-100">
+            {/* Aircraft Model */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Aircraft Model</p>
+              <p className="text-sm font-semibold text-gray-800">{aircraft.model}</p>
+            </div>
+            {/* MSN */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">MSN</p>
+              <p className="text-sm font-semibold text-gray-800">{aircraft.msn}</p>
+            </div>
+            {/* Total FH */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Total FH</p>
+              <p className="text-sm font-semibold text-gray-800">{aircraft.flight_hours.toLocaleString()} hrs</p>
+            </div>
+            {/* Total FC */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Total FC</p>
+              <p className="text-sm font-semibold text-gray-800">{aircraft.flight_cycles.toLocaleString()}</p>
+            </div>
+            {/* Avg FH — editable */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
+                Avg FH / day
+              </p>
+              <InlineEdit value={avgHours} label="Avg FH/day" onSave={handleAvgHoursChange} />
+            </div>
+            {/* Avg FC — editable */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
+                Avg FC / day
+              </p>
+              <InlineEdit value={avgCycles} label="Avg FC/day" onSave={handleAvgCyclesChange} />
+            </div>
+          </div>
+        </div>
+      )}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
 
         <div className="flex flex-col gap-3 px-5 py-4 border-b sm:flex-row sm:items-center sm:justify-between">
