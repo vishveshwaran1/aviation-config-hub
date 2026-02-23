@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,8 +35,24 @@ const AIRCRAFT_MODELS = [
     "A320-200", "ATR72-500", "ATR72-600",
 ];
 
+// Task class options matching old PanelGthreeForm service_class values
+const SERVICE_CLASS_OPTIONS = [
+    "GVI (General Visual Inspection)",
+    "DET (Detailed Visual Inspection)",
+    "FNC (Functional Check)",
+    "DIS (Discard)",
+    "LUB (Lubricate)",
+    "OPC (Operational Check)",
+    "RST (Restore)",
+    "SBC (Servicing)",
+    "VIC (Visual Check)",
+    "Internal",
+    "Third Party",
+    "CAAM",
+];
+
 const CURRENCIES = ["MYR", "USD", "EUR"];
-const UNIT_OPTIONS = ["Hour", "Cycle"];
+const UNIT_OPTIONS = ["Hours", "Cycles"];
 
 interface ServiceFormProps {
     defaultValues?: any;
@@ -45,7 +61,8 @@ interface ServiceFormProps {
 
 export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
     const [loading, setLoading] = useState(false);
-    const [components, setComponents] = useState<{ id: string; name: string }[]>([]);
+    const [components, setComponents] = useState<{ id: string; name: string; compatible_aircraft_models: string[] }[]>([]);
+    const [descriptionCount, setDescriptionCount] = useState(0);
     const navigate = useNavigate();
 
     const form = useForm<ServiceFormData>({
@@ -53,12 +70,17 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
         mode: "onBlur",
         defaultValues: {
             zones: [],
-            currency: "MYR",
-            interval_threshold_unit: "Hour",
-            repeat_interval_unit: "Hour",
+            assigned_component_ids: [],
+            estimated_currency: "MYR",
+            quotation_currency: "MYR",
+            interval_threshold_unit: "Hours",
+            repeat_interval_unit: "Hours",
             ...defaultValues,
         },
     });
+
+    // Watch aircraft model to filter components
+    const watchedAircraftModel = useWatch({ control: form.control, name: "aircraft_model" });
 
     useEffect(() => { fetchFormData(); }, []);
 
@@ -71,26 +93,53 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
         }
     };
 
+    // Filter components by selected aircraft model (using compatible_aircraft_models)
+    const filteredComponents = watchedAircraftModel
+        ? components.filter(
+            (c) =>
+                !c.compatible_aircraft_models ||
+                c.compatible_aircraft_models.length === 0 ||
+                c.compatible_aircraft_models.includes(watchedAircraftModel)
+        )
+        : components;
+
     async function onSubmit(data: ServiceFormData) {
         setLoading(true);
         try {
+            // Strip all UI-only fields that the backend doesn't accept
+            const {
+                estimated_currency,
+                quotation_currency,
+                assigned_component_ids,
+                interval_threshold_unit,
+                repeat_interval_unit,
+                ...rest
+            } = data;
+
+            // Map form fields to backend field names
+            const payload = {
+                ...rest,
+                // Backend expects a single assigned_component_id (string | null)
+                assigned_component_id: assigned_component_ids?.[0] || null,
+                // Backend stores a single interval_unit; use threshold unit as the primary
+                interval_unit: interval_threshold_unit || "Hours",
+                // Nullable optional fields
+                mpd_id: data.mpd_id || null,
+                amm_id: data.amm_id || null,
+                task_card_ref: data.task_card_ref || null,
+                description: data.description || null,
+                estimated_manhours: data.estimated_manhours ?? null,
+                estimated_price: data.estimated_price ?? null,
+                quotation_price: data.quotation_price ?? null,
+                interval_threshold: data.interval_threshold ?? null,
+                repeat_interval: data.repeat_interval ?? null,
+            };
+
             if (defaultValues?.id) {
-                await api.services.update(defaultValues.id, data);
+                await api.services.update(defaultValues.id, payload);
                 toast.success("Service updated successfully");
             } else {
-                await api.services.create({
-                    ...data,
-                    mpd_id: data.mpd_id || null,
-                    amm_id: data.amm_id || null,
-                    task_card_ref: data.task_card_ref || null,
-                    description: data.description || null,
-                    assigned_component_id: data.assigned_component_id || null,
-                    estimated_manhours: data.estimated_manhours || null,
-                    estimated_price: data.estimated_price || null,
-                    quotation_price: data.quotation_price || null,
-                    interval_threshold: data.interval_threshold || null,
-                    repeat_interval: data.repeat_interval || null,
-                });
+                await api.services.create(payload);
                 toast.success("Service saved successfully");
             }
             if (onSuccess) onSuccess();
@@ -149,17 +198,28 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
-                    {/* Task Name */}
+                    {/* Task Class (maps to task_name in DB — same as old service_class) */}
                     <FormField control={form.control} name="task_name" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Task</FormLabel>
                                 <div className="relative flex-1">
-                                    <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
-                                    {fieldState.error && <ErrorBadge />}
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
+                                                <SelectValue placeholder="Select task class" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {SERVICE_CLASS_OPTIONS.map(cls => (
+                                                <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {fieldState.error && <SelectErrorBadge />}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Task Name</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Select Task Class</p>}
                         </FormItem>
                     )} />
 
@@ -169,7 +229,14 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>MPD Task ID</FormLabel>
                                 <div className="relative flex-1">
-                                    <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
+                                    <FormControl><Input
+                                        className={inputCls(!!fieldState.error)}
+                                        maxLength={40}
+                                        autoComplete="off"
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        {...field}
+                                    /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
@@ -183,7 +250,14 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>AMM Task ID</FormLabel>
                                 <div className="relative flex-1">
-                                    <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
+                                    <FormControl><Input
+                                        className={inputCls(!!fieldState.error)}
+                                        maxLength={40}
+                                        autoComplete="off"
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        {...field}
+                                    /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
@@ -197,7 +271,14 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Task Card Ref ID</FormLabel>
                                 <div className="relative flex-1">
-                                    <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
+                                    <FormControl><Input
+                                        className={inputCls(!!fieldState.error)}
+                                        maxLength={40}
+                                        autoComplete="off"
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        {...field}
+                                    /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
@@ -211,38 +292,54 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Description</FormLabel>
                                 <div className="relative flex-1">
-                                    <FormControl><Textarea className="min-h-[100px] text-sm border-gray-300" {...field} /></FormControl>
+                                    <FormControl><Textarea
+                                        className="min-h-[100px] text-sm border-gray-300"
+                                        maxLength={999}
+                                        placeholder="This textarea has a limit of 999 chars."
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        onChange={(e) => {
+                                            setDescriptionCount(e.target.value.length);
+                                            field.onChange(e);
+                                        }}
+                                        value={field.value}
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                        ref={field.ref}
+                                    /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
+                                    {descriptionCount > 0 && (
+                                        <span className="text-xs text-green-600 font-medium mt-0.5 block">
+                                            {descriptionCount} / 999
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Description</p>}
                         </FormItem>
                     )} />
 
-                    {/* Assigned Component */}
-                    <FormField control={form.control} name="assigned_component_id" render={({ field, fieldState }) => (
+                    {/* Assigned Component — multi-select, filtered by selected aircraft model */}
+                    <FormField control={form.control} name="assigned_component_ids" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}> Service Assigned Component</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Service Assigned Component</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
-                                                <SelectValue placeholder="Select component" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {components.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    {fieldState.error && <SelectErrorBadge />}
+                                    <FormControl>
+                                        <MultiSelect
+                                            options={filteredComponents.map(c => ({ label: c.name, value: c.id }))}
+                                            selected={field.value || []}
+                                            onChange={field.onChange}
+                                            placeholder={watchedAircraftModel ? "Select components" : "Select aircraft model first"}
+                                        />
+                                    </FormControl>
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Assigned Component</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Select at least one component</p>}
                         </FormItem>
                     )} />
 
-                    {/* Zones */}
+                    {/* Zones — creatable: user can type and add custom zones */}
                     <FormField control={form.control} name="zones" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
@@ -253,7 +350,8 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                                             options={ZONE_OPTIONS}
                                             selected={field.value || []}
                                             onChange={field.onChange}
-                                            placeholder="Select zones"
+                                            placeholder="Select or type to create zones"
+                                            creatable
                                         />
                                     </FormControl>
                                 </div>
@@ -282,7 +380,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Comp Price</FormLabel>
                                 <div className="flex gap-2 flex-1">
-                                    <FormField control={form.control} name="currency" render={({ field: cf }) => (
+                                    <FormField control={form.control} name="estimated_currency" render={({ field: cf }) => (
                                         <Select onValueChange={cf.onChange} value={cf.value as string}>
                                             <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
                                                 <SelectValue placeholder="CCY" />
@@ -308,7 +406,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Service Price</FormLabel>
                                 <div className="flex gap-2 flex-1">
-                                    <FormField control={form.control} name="currency" render={({ field: cf }) => (
+                                    <FormField control={form.control} name="quotation_currency" render={({ field: cf }) => (
                                         <Select onValueChange={cf.onChange} value={cf.value as string}>
                                             <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
                                                 <SelectValue placeholder="CCY" />
@@ -329,7 +427,10 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     )} />
 
                     {/* Interval Threshold */}
-                    <FormField control={form.control} name="interval_threshold" render={({ field, fieldState }) => (
+                    <FormField control={form.control} name="interval_threshold" render={({ field, fieldState }) => {
+                        const unit = form.watch("interval_threshold_unit");
+                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Threshold in Cycles" : "Enter Threshold";
+                        return (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Interval Threshold</FormLabel>
@@ -345,17 +446,27 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                                         </Select>
                                     )} />
                                     <div className="relative flex-1">
-                                        <FormControl><Input type="number" className={inputCls(!!fieldState.error)} {...field} /></FormControl>
+                                        <FormControl><Input
+                                            type="number"
+                                            maxLength={4}
+                                            placeholder={placeholder}
+                                            className={inputCls(!!fieldState.error)}
+                                            {...field}
+                                        /></FormControl>
                                         {fieldState.error && <ErrorBadge />}
                                     </div>
                                 </div>
                             </div>
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Interval Threshold</p>}
                         </FormItem>
-                    )} />
+                        );
+                    }} />
 
                     {/* Repeat Interval */}
-                    <FormField control={form.control} name="repeat_interval" render={({ field, fieldState }) => (
+                    <FormField control={form.control} name="repeat_interval" render={({ field, fieldState }) => {
+                        const unit = form.watch("repeat_interval_unit");
+                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Interval Repeat in Cycles" : "Enter Interval Repeat";
+                        return (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Interval Repeat</FormLabel>
@@ -371,14 +482,21 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                                         </Select>
                                     )} />
                                     <div className="relative flex-1">
-                                        <FormControl><Input type="number" className={inputCls(!!fieldState.error)} {...field} /></FormControl>
+                                        <FormControl><Input
+                                            type="number"
+                                            maxLength={4}
+                                            placeholder={placeholder}
+                                            className={inputCls(!!fieldState.error)}
+                                            {...field}
+                                        /></FormControl>
                                         {fieldState.error && <ErrorBadge />}
                                     </div>
                                 </div>
                             </div>
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Repeat Interval</p>}
                         </FormItem>
-                    )} />
+                        );
+                    }} />
 
                 </div>
 
