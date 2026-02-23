@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { api } from "@/lib/api";
 import {
   ArrowLeft,
   Search,
@@ -10,7 +11,6 @@ import {
   Info,
   Eye,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,31 +23,28 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+interface JourneyLogSector {
+  id: string;
+  sl_no: number;
+  flight_num?: string;
+  sector_from?: string;
+  sector_to?: string;
+}
+
 interface JourneyLogEntry {
   id: string;
-  aircraft_type: string;
+  aircraft_id: string;
+  aircraft_type?: string;
   registration: string;
-  flight_num: string;
-  sector_from: string;
-  sector_to: string;
-  total_flight_hrs: number;
-  total_flight_cyc: number;
+  total_flight_hrs?: number | null;
+  total_flight_cyc?: number | null;
   date: string;
   pic_name: string;
   company_name?: string;
+  log_sl_no?: string;
+  sectors: JourneyLogSector[];
+  defects: unknown[];
 }
-
-
-const MOCK_LOGS: JourneyLogEntry[] = [
-  { id: "JL001", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK101", sector_from: "KUL", sector_to: "SIN", total_flight_hrs: 1.25, total_flight_cyc: 1, date: "2026-02-01", pic_name: "Capt. Ahmad", company_name: "AeroTech MRO" },
-  { id: "JL002", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK102", sector_from: "SIN", sector_to: "KUL", total_flight_hrs: 1.30, total_flight_cyc: 1, date: "2026-02-01", pic_name: "Capt. Ahmad", company_name: "AeroTech MRO" },
-  { id: "JL003", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK201", sector_from: "KUL", sector_to: "BKK", total_flight_hrs: 2.10, total_flight_cyc: 1, date: "2026-02-03", pic_name: "Capt. Zulkifli", company_name: "AeroTech MRO" },
-  { id: "JL004", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK202", sector_from: "BKK", sector_to: "KUL", total_flight_hrs: 2.05, total_flight_cyc: 1, date: "2026-02-03", pic_name: "Capt. Zulkifli", company_name: "AeroTech MRO" },
-  { id: "JL005", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK305", sector_from: "KUL", sector_to: "CGK", total_flight_hrs: 1.55, total_flight_cyc: 1, date: "2026-02-05", pic_name: "Capt. Ravi", company_name: "AeroTech MRO" },
-  { id: "JL006", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK306", sector_from: "CGK", sector_to: "KUL", total_flight_hrs: 1.50, total_flight_cyc: 1, date: "2026-02-05", pic_name: "Capt. Ravi", company_name: "AeroTech MRO" },
-  { id: "JL007", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK411", sector_from: "KUL", sector_to: "PEN", total_flight_hrs: 0.45, total_flight_cyc: 1, date: "2026-02-07", pic_name: "Capt. Nizam", company_name: "AeroTech MRO" },
-  { id: "JL008", aircraft_type: "Boeing 737-800", registration: "9M-XXA", flight_num: "AK412", sector_from: "PEN", sector_to: "KUL", total_flight_hrs: 0.50, total_flight_cyc: 1, date: "2026-02-07", pic_name: "Capt. Nizam", company_name: "AeroTech MRO" },
-];
 
 
 const PER_PAGE = 10;
@@ -62,43 +59,50 @@ const JourneyLog = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // ── State ──────────────────────────────────────────────
-  const [logs, setLogs] = useState<JourneyLogEntry[]>(MOCK_LOGS);
+  const [logs, setLogs] = useState<JourneyLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<JourneyLogEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  // ── Backend fetch placeholder (uncomment when backend is ready) ──
-  // const [loading, setLoading] = useState(true);
-  // useEffect(() => {
-  //   if (!id) return;
-  //   api.journeyLogs
-  //     .getForAircraft(id)
-  //     .then((d: JourneyLogEntry[]) => setLogs(Array.isArray(d) ? d : []))
-  //     .catch(console.error)
-  //     .finally(() => setLoading(false));
-  // }, [id]);
 
-  // ── Delete handler (static) ────────────────────────────
-  const confirmDelete = () => {
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    api.journeyLogs
+      .getForAircraft(id)
+      .then((d: JourneyLogEntry[]) => setLogs(Array.isArray(d) ? d : []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setLogs((prev) => prev.filter((l) => l.id !== deleteTarget.id));
-    toast.success("Journey log entry deleted.");
-    setDeleteTarget(null);
-
-    // Uncomment when backend is ready:
-    // await api.journeyLogs.delete(deleteTarget.id);
+    setDeleting(true);
+    try {
+      await api.journeyLogs.delete(deleteTarget.id);
+      setLogs((prev) => prev.filter((l) => l.id !== deleteTarget.id));
+      toast.success("Journey log entry deleted.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete entry.");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
   };
 
 
   const filtered = logs.filter((l) => {
     const q = search.toLowerCase();
+    const s0 = l.sectors?.[0];
     return (
-      l.flight_num.toLowerCase().includes(q) ||
-      l.sector_from.toLowerCase().includes(q) ||
-      l.sector_to.toLowerCase().includes(q) ||
+      (s0?.flight_num ?? "").toLowerCase().includes(q) ||
+      (s0?.sector_from ?? "").toLowerCase().includes(q) ||
+      (s0?.sector_to ?? "").toLowerCase().includes(q) ||
       l.registration.toLowerCase().includes(q) ||
-      l.aircraft_type.toLowerCase().includes(q) ||
+      (l.aircraft_type ?? "").toLowerCase().includes(q) ||
       l.pic_name.toLowerCase().includes(q)
     );
   });
@@ -110,28 +114,28 @@ const JourneyLog = () => {
   return (
     <div className="space-y-6 pb-12">
 
-      <div className="rounded-xl bg-[#556ee6] px-6 py-5 shadow-sm">
+      <div className="rounded-xl bg-[#ffffff] px-6 py-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-black hover:bg-white/20 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-white/55 font-medium mb-0.5">
+              <p className="text-[11px] uppercase tracking-widest text-black font-medium mb-0.5">
                 S2 — Journey Log
               </p>
-              <h1 className="text-lg font-bold text-white leading-none">
+              <h1 className="text-lg font-bold text-black leading-none">
                 Flight Journey Records
               </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
-              {logs.length} entries
+            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-black">
+              {loading ? "…" : `${logs.length} entries`}
             </span>
             <Button
               size="sm"
@@ -195,7 +199,13 @@ const JourneyLog = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {paginated.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={11} className="px-4 py-16 text-center">
+                    <p className="text-sm text-muted-foreground">Loading…</p>
+                  </td>
+                </tr>
+              ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -211,6 +221,7 @@ const JourneyLog = () => {
               ) : (
                 paginated.map((log, idx) => {
                   const rowNum = (page - 1) * PER_PAGE + idx + 1;
+                  const s0 = log.sectors?.[0];
                   return (
                     <tr
                       key={log.id}
@@ -223,12 +234,12 @@ const JourneyLog = () => {
                         {fmtDate(log.date)}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-[#556ee6] whitespace-nowrap">
-                        {log.flight_num}
+                        {s0?.flight_num ?? "—"}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <span className="inline-flex items-center justify-center rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-gray-700">
-                            {log.sector_from}
+                            {s0?.sector_from ?? "—"}
                           </span>
                         </div>
                       </td>
@@ -236,21 +247,21 @@ const JourneyLog = () => {
                         <div className="flex items-center gap-1.5">
                           <Plane className="h-3 w-3 text-muted-foreground/50 shrink-0" />
                           <span className="inline-flex items-center justify-center rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-gray-700">
-                            {log.sector_to}
+                            {s0?.sector_to ?? "—"}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-700 whitespace-nowrap">
-                        {log.aircraft_type}
+                        {log.aircraft_type ?? "—"}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">
                         {log.registration}
                       </td>
                       <td className="px-4 py-3 tabular-nums text-xs font-medium text-gray-700 whitespace-nowrap">
-                        {log.total_flight_hrs.toFixed(2)} hrs
+                        {log.total_flight_hrs != null ? Number(log.total_flight_hrs).toFixed(2) + " hrs" : "—"}
                       </td>
                       <td className="px-4 py-3 tabular-nums text-xs text-gray-700 whitespace-nowrap">
-                        {log.total_flight_cyc}
+                        {log.total_flight_cyc ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                         <span className="font-medium text-gray-700">{log.pic_name}</span>
@@ -338,8 +349,8 @@ const JourneyLog = () => {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete flight{" "}
-              <strong>{deleteTarget?.flight_num}</strong> (
-              {deleteTarget?.sector_from} → {deleteTarget?.sector_to})?
+              <strong>{deleteTarget?.sectors?.[0]?.flight_num ?? deleteTarget?.log_sl_no ?? deleteTarget?.id}</strong> (
+              {deleteTarget?.sectors?.[0]?.sector_from ?? "?"} → {deleteTarget?.sectors?.[0]?.sector_to ?? "?"})?
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
@@ -347,8 +358,8 @@ const JourneyLog = () => {
             <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" size="sm" onClick={confirmDelete}>
-              Delete
+            <Button variant="destructive" size="sm" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

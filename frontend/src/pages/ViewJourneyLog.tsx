@@ -1,10 +1,11 @@
 ﻿import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { JOURNEY_MOCK } from "@/pages/JourneyLogForm";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-/*  UI HELPERS  */
+
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="space-y-4">
     <div className="flex items-center gap-3">
@@ -50,17 +51,70 @@ const CAT_COLORS: Record<string, string> = {
   CABIN: "bg-purple-100 text-purple-700",
 };
 
-/*  MAIN  */
 const ViewJourneyLog = () => {
   const { id, logId } = useParams<{ id: string; logId: string }>();
   const navigate = useNavigate();
 
-  //  Uncomment when backend is ready 
-  // const { data, isLoading } = useQuery(["journeyLog", logId], () => api.journeyLogs.get(logId!));
-  // if (isLoading) return <LoadingSpinner />;
-  // const { form, sectors, defects } = data;
+  const [loading, setLoading] = useState(true);
+  const [entry, setEntry] = useState<{ form: any; sectors: any[]; defects: any[] } | null>(null);
 
-  const entry = logId ? JOURNEY_MOCK[logId] : null;
+  useEffect(() => {
+    if (!logId) return;
+    setLoading(true);
+    api.journeyLogs.get(logId)
+      .then((data: any) => {
+        const fmt = (v: string | null | undefined) =>
+          v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+        setEntry({
+          form: {
+            company_name:           data.company_name,
+            date:                   fmt(data.date),
+            registration:           data.registration,
+            aircraft_type:          data.aircraft_type,
+            log_sl_no:              data.log_sl_no,
+            pic_name:               data.pic_name,
+            pic_license_no:         data.pic_license_no,
+            pic_sign:               data.pic_sign,
+            commander_sign:         data.commander_sign,
+            fuel_arrival:           data.fuel_arrival?.toString(),
+            fuel_departure:         data.fuel_departure?.toString(),
+            remaining_fuel_onboard: data.remaining_fuel_onboard?.toString(),
+            fuel_uplift:            data.fuel_uplift?.toString(),
+            calculate_total_fuel:   data.calculate_total_fuel?.toString(),
+            fuel_discrepancy:       data.fuel_discrepancy?.toString(),
+            aircraft_total_hrs:     data.aircraft_total_hrs?.toString(),
+            aircraft_total_cyc:     data.aircraft_total_cyc?.toString(),
+            fuel_flight_deck_gauge: data.fuel_flight_deck_gauge?.toString(),
+            next_due_maintenance:   fmt(data.next_due_maintenance),
+            due_at_date:            fmt(data.due_at_date),
+            due_at_hours:           data.due_at_hours?.toString(),
+            total_flight_hrs:       data.total_flight_hrs?.toString(),
+            total_flight_cyc:       data.total_flight_cyc?.toString(),
+            daily_inspection:       fmt(data.daily_inspection),
+            type_of_maintenance:    data.type_of_maintenance,
+            apu_hrs:                data.apu_hrs?.toString(),
+            apu_cyc:                data.apu_cyc?.toString(),
+            oil_uplift_eng1:        data.oil_uplift_eng1?.toString(),
+            oil_uplift_eng2:        data.oil_uplift_eng2?.toString(),
+            oil_uplift_apu:         data.oil_uplift_apu?.toString(),
+            daily_inspection_sign:  data.daily_inspection_sign,
+            sign_stamp:             data.sign_stamp,
+          },
+          sectors: data.sectors ?? [],
+          defects: data.defects ?? [],
+        });
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [logId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
 
   if (!entry) {
     return (
