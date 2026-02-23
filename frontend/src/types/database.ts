@@ -24,6 +24,8 @@ export interface AircraftComponent {
   last_shop_visit_date: string | null;
   hours_since_new: number;
   cycles_since_new: number;
+  tsi: number | null;           // Time Since Installation
+  csi: number | null;           // Cycles Since Installation
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +60,27 @@ export interface Service {
   quotation_price: number | null;
   interval_threshold: number | null;
   repeat_interval: number | null;
+  interval_unit: string;          // "Hours" | "Cycles"
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Forecast {
+  id: string;
+  aircraft_id: string;
+  service_id: string;
+  interval_unit: string;          // "Hours" | "Cycles"
+  last_date: string | null;
+  last_hours: number | null;
+  last_cycles: number | null;
+  next_date: string | null;
+  next_hours: number | null;
+  next_cycles: number | null;
+  remaining_hours: number | null;
+  remaining_cycles: number | null;
+  avg_hours: number | null;
+  avg_cycles: number | null;
+  status: string;
   created_at: string;
   updated_at: string;
 }

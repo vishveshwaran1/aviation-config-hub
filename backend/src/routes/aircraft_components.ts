@@ -25,20 +25,24 @@ router.post('/', async (req, res) => {
         if (Array.isArray(body)) {
             // Prisma createMany
             const result = await prisma.aircraftComponent.createMany({
-                data: body.map(item => ({
+                data: body.map(({ id: _omit, ...item }: any) => ({
                     aircraft_id: item.aircraft_id,
-                    section: item.section,
+                    ata: item.ata ?? null,
+                    section: item.section ?? "",
                     manufacturer: item.manufacturer,
                     model: item.model,
                     serial_number: item.serial_number,
                     part_number: item.part_number,
+                    last_shop_visit_date: item.last_shop_visit_date ? new Date(item.last_shop_visit_date) : null,
                     status: item.status,
                     manufacture_date: (item.manufacture_date && item.manufacture_date.trim() !== "") ? new Date(item.manufacture_date) : null,
                     // handle dates and numbers
                     last_shop_visit_date: (item.last_shop_visit_date && item.last_shop_visit_date.trim() !== "") ? new Date(item.last_shop_visit_date) : null,
                     hours_since_new: item.hours_since_new ? Number(item.hours_since_new) : 0,
                     cycles_since_new: item.cycles_since_new ? Number(item.cycles_since_new) : 0,
-                }))
+                    tsi: item.tsi !== undefined && item.tsi !== null ? Number(item.tsi) : null,
+                    csi: item.csi !== undefined && item.csi !== null ? Number(item.csi) : null,
+                } as any))
             });
             res.json(result);
         } else {
@@ -46,6 +50,7 @@ router.post('/', async (req, res) => {
             const result = await prisma.aircraftComponent.create({
                 data: {
                     aircraft_id: body.aircraft_id,
+                    ata: body.ata ?? null,
                     section: body.section,
                     manufacturer: body.manufacturer,
                     model: body.model,
@@ -56,7 +61,9 @@ router.post('/', async (req, res) => {
                     last_shop_visit_date: (body.last_shop_visit_date && body.last_shop_visit_date.trim() !== "") ? new Date(body.last_shop_visit_date) : null,
                     hours_since_new: body.hours_since_new ? Number(body.hours_since_new) : 0,
                     cycles_since_new: body.cycles_since_new ? Number(body.cycles_since_new) : 0,
-                }
+                    tsi: body.tsi !== undefined && body.tsi !== null ? Number(body.tsi) : null,
+                    csi: body.csi !== undefined && body.csi !== null ? Number(body.csi) : null,
+                } as any
             });
             res.json(result);
         }
@@ -75,6 +82,7 @@ router.patch('/:componentId', async (req, res) => {
         const result = await prisma.aircraftComponent.update({
             where: { id: componentId },
             data: {
+                ata: body.ata !== undefined ? body.ata : undefined,
                 section: body.section,
                 manufacturer: body.manufacturer,
                 model: body.model,
@@ -85,7 +93,9 @@ router.patch('/:componentId', async (req, res) => {
                 last_shop_visit_date: (body.last_shop_visit_date && body.last_shop_visit_date.trim() !== "") ? new Date(body.last_shop_visit_date) : null,
                 hours_since_new: body.hours_since_new !== undefined ? Number(body.hours_since_new) : undefined,
                 cycles_since_new: body.cycles_since_new !== undefined ? Number(body.cycles_since_new) : undefined,
-            }
+                tsi: body.tsi !== undefined && body.tsi !== null ? Number(body.tsi) : undefined,
+                csi: body.csi !== undefined && body.csi !== null ? Number(body.csi) : undefined,
+            } as any
         });
         console.log("Updated aircraft component:", result);
         res.json(result);

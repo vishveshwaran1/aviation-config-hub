@@ -75,12 +75,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
         setLoading(true);
         try {
             if (defaultValues?.id) {
-                const res = await fetch(`http://localhost:3000/api/services/${defaultValues.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
-                    body: JSON.stringify(data),
-                });
-                if (!res.ok) throw await res.json();
+                await api.services.update(defaultValues.id, data);
                 toast.success("Service updated successfully");
             } else {
                 await api.services.create({

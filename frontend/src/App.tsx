@@ -19,6 +19,9 @@ import OccmForm from "@/pages/OccmForm";
 import JourneyLog from "@/pages/JourneyLog";
 import JourneyLogForm from "@/pages/JourneyLogForm";
 import ViewJourneyLog from "@/pages/ViewJourneyLog";
+import Forecast from "@/pages/Forecast";
+import PrintTaskCard from "@/pages/PrintTaskCard";
+import Scheduler from "@/pages/Scheduler";
 import NotFound from "@/pages/NotFound";
 import ForgotPassword from "@/pages/ForgotPassword";
 
@@ -52,6 +55,9 @@ const App = () => (
               <Route path="/aircraft/:id/journey/new" element={<JourneyLogForm />} />
               <Route path="/aircraft/:id/journey/:logId/edit" element={<JourneyLogForm />} />
               <Route path="/aircraft/:id/journey/:logId/view" element={<ViewJourneyLog />} />
+              <Route path="/aircraft/:id/forecast" element={<Forecast />} />
+              <Route path="/aircraft/:id/forecast/print/:selectedIds" element={<PrintTaskCard />} />
+              <Route path="/aircraft/:id/scheduler" element={<Scheduler />} />
               <Route path="/config/aircraft" element={<AircraftSetup />} />
               <Route path="/config/components" element={<ComponentListSetup />} />
               <Route path="/config/services" element={<ServiceListSetup />} />
