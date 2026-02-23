@@ -79,19 +79,17 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                 toast.success("Service updated successfully");
             } else {
                 await api.services.create({
-                    aircraft_model: data.aircraft_model,
-                    task_name: data.task_name,
-                    mpd_amm_task_ids: data.mpd_amm_task_ids || null,
+                    ...data,
+                    mpd_id: data.mpd_id || null,
+                    amm_id: data.amm_id || null,
                     task_card_ref: data.task_card_ref || null,
+                    description: data.description || null,
                     assigned_component_id: data.assigned_component_id || null,
-                    zones: data.zones,
                     estimated_manhours: data.estimated_manhours || null,
                     estimated_price: data.estimated_price || null,
                     quotation_price: data.quotation_price || null,
                     interval_threshold: data.interval_threshold || null,
-                    interval_threshold_unit: data.interval_threshold_unit || null,
                     repeat_interval: data.repeat_interval || null,
-                    repeat_interval_unit: data.repeat_interval_unit || null,
                 });
                 toast.success("Service saved successfully");
             }
@@ -155,7 +153,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     <FormField control={form.control} name="task_name" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Task Name</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Task</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
@@ -165,17 +163,31 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
-                    {/* MPD/AMM Task IDs */}
-                    <FormField control={form.control} name="mpd_amm_task_ids" render={({ field, fieldState }) => (
+                    {/* MPD ID */}
+                    <FormField control={form.control} name="mpd_id" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>MPD/AMM Task IDs</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>MPD Task ID</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter MPD/AMM Task IDs</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter MPD ID</p>}
+                        </FormItem>
+                    )} />
+
+                    {/* AMM ID */}
+                    <FormField control={form.control} name="amm_id" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={labelCls(!!fieldState.error)}>AMM Task ID</FormLabel>
+                                <div className="relative flex-1">
+                                    <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
+                                    {fieldState.error && <ErrorBadge />}
+                                </div>
+                            </div>
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter AMM ID</p>}
                         </FormItem>
                     )} />
 
@@ -183,7 +195,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     <FormField control={form.control} name="task_card_ref" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Task Card Ref</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Task Card Ref ID</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
@@ -193,11 +205,25 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
+                    {/* Description */}
+                    <FormField control={form.control} name="description" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={labelCls(!!fieldState.error)}>Description</FormLabel>
+                                <div className="relative flex-1">
+                                    <FormControl><Textarea className="min-h-[100px] text-sm border-gray-300" {...field} /></FormControl>
+                                    {fieldState.error && <ErrorBadge />}
+                                </div>
+                            </div>
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Description</p>}
+                        </FormItem>
+                    )} />
+
                     {/* Assigned Component */}
                     <FormField control={form.control} name="assigned_component_id" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Assigned Component</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}> Service Assigned Component</FormLabel>
                                 <div className="relative flex-1">
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
@@ -332,7 +358,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     <FormField control={form.control} name="repeat_interval" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Repeat Interval</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Interval Repeat</FormLabel>
                                 <div className="flex gap-2 flex-1">
                                     <FormField control={form.control} name="repeat_interval_unit" render={({ field: uf }) => (
                                         <Select onValueChange={uf.onChange} value={uf.value as string}>

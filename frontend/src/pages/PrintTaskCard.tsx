@@ -27,7 +27,8 @@ interface Aircraft {
 interface ServiceRow {
   id: string;
   task_name: string;
-  mpd_amm_task_ids: string | null;
+  mpd_id: string | null;
+  amm_id: string | null;
   task_card_ref: string | null;
   description: string | null;
   zones: string[];
@@ -74,7 +75,7 @@ const fmtDate = (d?: string | Date | null) => {
 const workOrderNo = () => {
   const t = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${t.getFullYear()}${pad(t.getMonth()+1)}${pad(t.getDate())}${pad(t.getHours())}${pad(t.getMinutes())}${pad(t.getSeconds())}`;
+  return `${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}${pad(t.getHours())}${pad(t.getMinutes())}${pad(t.getSeconds())}`;
 };
 
 /**
@@ -302,7 +303,8 @@ const PrintTaskCard = () => {
               <tr className="bg-gray-100">
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-10">NO.</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left">TASKCARD REF</th>
-                <th className="border border-gray-400 px-2 py-1.5 text-left">MPD TASK</th>
+                <th className="border border-gray-400 px-2 py-1.5 text-left">MPD ID</th>
+                <th className="border border-gray-400 px-2 py-1.5 text-left">AMM ID</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-52">DESCRIPTION</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-16">ZONE</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-24">COMP REQ</th>
@@ -336,9 +338,14 @@ const PrintTaskCard = () => {
                     {item.task_card_ref || "—"}
                   </td>
 
-                  {/* MPD TASK */}
+                  {/* MPD ID */}
                   <td className="border border-gray-400 px-2 py-1.5 font-mono text-[10px]">
-                    {item.mpd_amm_task_ids || "—"}
+                    {item.mpd_id || "—"}
+                  </td>
+
+                  {/* AMM ID */}
+                  <td className="border border-gray-400 px-2 py-1.5 font-mono text-[10px]">
+                    {item.amm_id || "—"}
                   </td>
 
                   {/* DESCRIPTION */}

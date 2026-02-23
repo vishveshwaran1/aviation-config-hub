@@ -21,86 +21,86 @@ export const aircraftSchema = z.object({
     model: requiredString,
     msn: requiredString,
     confirm_msn: requiredString,
-    country: z.string().optional(),
+    country: requiredString,
     registration_number: requiredString,
     confirm_registration_number: requiredString,
-    manufacture_date: z.string().optional(),
-    delivery_date: z.string().optional(),
-    flight_hours: z.coerce.number().min(0),
-    flight_cycles: z.coerce.number().min(0),
+    manufacture_date: requiredString,
+    delivery_date: requiredString,
+    flight_hours: z.coerce.number().min(0, "Flight hours must be 0 or more"),
+    flight_cycles: z.coerce.number().min(0, "Flight cycles must be 0 or more"),
     engines_count: z.coerce.number().min(1),
     aircraft_received_status: z.enum(["New", "Used"]).default("New"),
     status: z.enum(["Active", "Inactive", "Maintenance", "Storage", "Pending", "Declined"]).default("Pending"),
 
     // Section: Engine 1
-    engine1_manufacturer: optionalString,
-    engine1_model: optionalString,
-    engine1_serial_number: optionalString,
-    confirm_engine1_serial_number: optionalString,
-    engine1_part_number: optionalString,
-    confirm_engine1_part_number: optionalString,
-    engine1_status: z.enum(["New", "Used", "N/A"]).optional(),
-    engine1_manufacture_date: z.string().optional(),
-    engine1_hours: z.coerce.number().optional(),
-    engine1_cycles: z.coerce.number().optional(),
-    engine1_last_shop_visit: z.string().optional(),
+    engine1_manufacturer: requiredString,
+    engine1_model: requiredString,
+    engine1_serial_number: requiredString,
+    confirm_engine1_serial_number: requiredString,
+    engine1_part_number: requiredString,
+    confirm_engine1_part_number: requiredString,
+    engine1_status: z.enum(["New", "Used", "N/A"]),
+    engine1_manufacture_date: requiredString,
+    engine1_hours: z.coerce.number().min(0, "Engine hours must be 0 or more"),
+    engine1_cycles: z.coerce.number().min(0, "Engine cycles must be 0 or more"),
+    engine1_last_shop_visit: requiredString,
 
     // Section: Engine 2
-    engine2_manufacturer: optionalString,
-    engine2_model: optionalString,
-    engine2_serial_number: optionalString,
-    confirm_engine2_serial_number: optionalString,
-    engine2_part_number: optionalString,
-    confirm_engine2_part_number: optionalString,
-    engine2_status: z.enum(["New", "Used", "N/A"]).optional(),
-    engine2_manufacture_date: z.string().optional(),
-    engine2_hours: z.coerce.number().optional(),
-    engine2_cycles: z.coerce.number().optional(),
-    engine2_last_shop_visit: z.string().optional(),
+    engine2_manufacturer: requiredString,
+    engine2_model: requiredString,
+    engine2_serial_number: requiredString,
+    confirm_engine2_serial_number: requiredString,
+    engine2_part_number: requiredString,
+    confirm_engine2_part_number: requiredString,
+    engine2_status: z.enum(["New", "Used", "N/A"]),
+    engine2_manufacture_date: requiredString,
+    engine2_hours: z.coerce.number().min(0, "Engine hours must be 0 or more"),
+    engine2_cycles: z.coerce.number().min(0, "Engine cycles must be 0 or more"),
+    engine2_last_shop_visit: requiredString,
 
     // Section B: APU Details
-    apu_manufacturer: optionalString,
-    apu_model: optionalString,
-    apu_serial_number: optionalString,
-    confirm_apu_serial_number: optionalString,
-    apu_part_number: optionalString,
-    confirm_apu_part_number: optionalString,
-    apu_last_shop_visit: z.string().optional(),
-    apu_hours: z.coerce.number().optional(),
-    apu_cycles: z.coerce.number().optional(),
+    apu_manufacturer: requiredString,
+    apu_model: requiredString,
+    apu_serial_number: requiredString,
+    confirm_apu_serial_number: requiredString,
+    apu_part_number: requiredString,
+    confirm_apu_part_number: requiredString,
+    apu_last_shop_visit: requiredString,
+    apu_hours: z.coerce.number().min(0, "APU hours must be 0 or more"),
+    apu_cycles: z.coerce.number().min(0, "APU cycles must be 0 or more"),
 
     // Section C: Main Landing Gear Left
-    mlg_left_manufacturer: optionalString,
-    mlg_left_model: optionalString,
-    mlg_left_serial_number: optionalString,
-    confirm_mlg_left_serial_number: optionalString,
-    mlg_left_part_number: optionalString,
-    confirm_mlg_left_part_number: optionalString,
-    mlg_left_shop_visit: z.string().optional(),
-    mlg_left_hours: z.coerce.number().optional(),
-    mlg_left_cycles: z.coerce.number().optional(),
+    mlg_left_manufacturer: requiredString,
+    mlg_left_model: requiredString,
+    mlg_left_serial_number: requiredString,
+    confirm_mlg_left_serial_number: requiredString,
+    mlg_left_part_number: requiredString,
+    confirm_mlg_left_part_number: requiredString,
+    mlg_left_shop_visit: requiredString,
+    mlg_left_hours: z.coerce.number().min(0, "MLG hours must be 0 or more"),
+    mlg_left_cycles: z.coerce.number().min(0, "MLG cycles must be 0 or more"),
 
     // Section D: Main Landing Gear Right
-    mlg_right_manufacturer: optionalString,
-    mlg_right_model: optionalString,
-    mlg_right_serial_number: optionalString,
-    confirm_mlg_right_serial_number: optionalString,
-    mlg_right_part_number: optionalString,
-    confirm_mlg_right_part_number: optionalString,
-    mlg_right_shop_visit: z.string().optional(),
-    mlg_right_hours: z.coerce.number().optional(),
-    mlg_right_cycles: z.coerce.number().optional(),
+    mlg_right_manufacturer: requiredString,
+    mlg_right_model: requiredString,
+    mlg_right_serial_number: requiredString,
+    confirm_mlg_right_serial_number: requiredString,
+    mlg_right_part_number: requiredString,
+    confirm_mlg_right_part_number: requiredString,
+    mlg_right_shop_visit: requiredString,
+    mlg_right_hours: z.coerce.number().min(0, "MLG hours must be 0 or more"),
+    mlg_right_cycles: z.coerce.number().min(0, "MLG cycles must be 0 or more"),
 
     // Section E: Nose Landing Gear
-    nlg_manufacturer: optionalString,
-    nlg_model: optionalString,
-    nlg_serial_number: optionalString,
-    confirm_nlg_serial_number: optionalString,
-    nlg_part_number: optionalString,
-    confirm_nlg_part_number: optionalString,
-    nlg_shop_visit: z.string().optional(),
-    nlg_hours: z.coerce.number().optional(),
-    nlg_cycles: z.coerce.number().optional(),
+    nlg_manufacturer: requiredString,
+    nlg_model: requiredString,
+    nlg_serial_number: requiredString,
+    confirm_nlg_serial_number: requiredString,
+    nlg_part_number: requiredString,
+    confirm_nlg_part_number: requiredString,
+    nlg_shop_visit: requiredString,
+    nlg_hours: z.coerce.number().min(0, "NLG hours must be 0 or more"),
+    nlg_cycles: z.coerce.number().min(0, "NLG cycles must be 0 or more"),
 })
     .refine((data) => data.msn === data.confirm_msn, {
         message: "MSN must match",
@@ -110,51 +110,51 @@ export const aircraftSchema = z.object({
         message: "Registration ID must match",
         path: ["confirm_registration_number"],
     })
-    .refine((data) => !data.engine1_serial_number || data.engine1_serial_number === data.confirm_engine1_serial_number, {
+    .refine((data) => data.engine1_serial_number === data.confirm_engine1_serial_number, {
         message: "Engine 1 Serial Number must match",
         path: ["confirm_engine1_serial_number"],
     })
-    .refine((data) => !data.engine1_part_number || data.engine1_part_number === data.confirm_engine1_part_number, {
+    .refine((data) => data.engine1_part_number === data.confirm_engine1_part_number, {
         message: "Engine 1 Part Number must match",
         path: ["confirm_engine1_part_number"],
     })
-    .refine((data) => !data.engine2_serial_number || data.engine2_serial_number === data.confirm_engine2_serial_number, {
+    .refine((data) => data.engine2_serial_number === data.confirm_engine2_serial_number, {
         message: "Engine 2 Serial Number must match",
         path: ["confirm_engine2_serial_number"],
     })
-    .refine((data) => !data.engine2_part_number || data.engine2_part_number === data.confirm_engine2_part_number, {
+    .refine((data) => data.engine2_part_number === data.confirm_engine2_part_number, {
         message: "Engine 2 Part Number must match",
         path: ["confirm_engine2_part_number"],
     })
-    .refine((data) => !data.apu_serial_number || data.apu_serial_number === data.confirm_apu_serial_number, {
+    .refine((data) => data.apu_serial_number === data.confirm_apu_serial_number, {
         message: "APU Serial Number must match",
         path: ["confirm_apu_serial_number"],
     })
-    .refine((data) => !data.apu_part_number || data.apu_part_number === data.confirm_apu_part_number, {
+    .refine((data) => data.apu_part_number === data.confirm_apu_part_number, {
         message: "APU Part Number must match",
         path: ["confirm_apu_part_number"],
     })
-    .refine((data) => !data.mlg_left_serial_number || data.mlg_left_serial_number === data.confirm_mlg_left_serial_number, {
+    .refine((data) => data.mlg_left_serial_number === data.confirm_mlg_left_serial_number, {
         message: "MLG Left Serial No must match",
         path: ["confirm_mlg_left_serial_number"],
     })
-    .refine((data) => !data.mlg_left_part_number || data.mlg_left_part_number === data.confirm_mlg_left_part_number, {
+    .refine((data) => data.mlg_left_part_number === data.confirm_mlg_left_part_number, {
         message: "MLG Left Part No must match",
         path: ["confirm_mlg_left_part_number"],
     })
-    .refine((data) => !data.mlg_right_serial_number || data.mlg_right_serial_number === data.confirm_mlg_right_serial_number, {
+    .refine((data) => data.mlg_right_serial_number === data.confirm_mlg_right_serial_number, {
         message: "MLG Right Serial No must match",
         path: ["confirm_mlg_right_serial_number"],
     })
-    .refine((data) => !data.mlg_right_part_number || data.mlg_right_part_number === data.confirm_mlg_right_part_number, {
+    .refine((data) => data.mlg_right_part_number === data.confirm_mlg_right_part_number, {
         message: "MLG Right Part No must match",
         path: ["confirm_mlg_right_part_number"],
     })
-    .refine((data) => !data.nlg_serial_number || data.nlg_serial_number === data.confirm_nlg_serial_number, {
+    .refine((data) => data.nlg_serial_number === data.confirm_nlg_serial_number, {
         message: "NLG Serial No must match",
         path: ["confirm_nlg_serial_number"],
     })
-    .refine((data) => !data.nlg_part_number || data.nlg_part_number === data.confirm_nlg_part_number, {
+    .refine((data) => data.nlg_part_number === data.confirm_nlg_part_number, {
         message: "NLG Part No must match",
         path: ["confirm_nlg_part_number"],
     });

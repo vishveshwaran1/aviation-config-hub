@@ -50,7 +50,8 @@ export interface Service {
   id: string;
   aircraft_model: string;
   task_name: string;
-  mpd_amm_task_ids: string | null;
+  mpd_id: string | null;
+  amm_id: string | null;
   task_card_ref: string | null;
   description: string | null;
   assigned_component_id: string | null;

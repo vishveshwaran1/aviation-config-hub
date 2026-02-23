@@ -19,7 +19,8 @@ export interface ServiceItem {
   id: string;
   task_name: string;
   aircraft_model: string;
-  mpd_amm_task_ids?: string;
+  mpd_id?: string;
+  amm_id?: string;
   task_card_ref?: string;
   [key: string]: any;
 }
@@ -143,7 +144,8 @@ const ServiceListSetup = () => {
                 <TableHead className="w-[50px]">#</TableHead>
                 <TableHead>Aircraft Model</TableHead>
                 <TableHead>Task</TableHead>
-                <TableHead>MPD Task ID</TableHead>
+                <TableHead>MPD ID</TableHead>
+                <TableHead>AMM ID</TableHead>
                 <TableHead>Task Card Ref</TableHead>
                 <TableHead>Zone</TableHead>
                 <TableHead>Comp Price</TableHead>
@@ -166,7 +168,8 @@ const ServiceListSetup = () => {
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{item.aircraft_model}</TableCell>
                     <TableCell className="font-medium">{item.task_name}</TableCell>
-                    <TableCell>{item.mpd_amm_task_ids || '-'}</TableCell>
+                    <TableCell>{item.mpd_id || '-'}</TableCell>
+                    <TableCell>{item.amm_id || '-'}</TableCell>
                     <TableCell>{item.task_card_ref || '-'}</TableCell>
                     <TableCell>{Array.isArray(item.zones) ? item.zones.join(', ') : (item.zones || '-')}</TableCell>
                     <TableCell>{item.estimated_price != null ? item.estimated_price : '-'}</TableCell>

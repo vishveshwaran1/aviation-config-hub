@@ -44,7 +44,8 @@ interface Service {
   id: string;
   aircraft_model: string;
   task_name: string;
-  mpd_amm_task_ids: string | null;
+  mpd_id: string | null;
+  amm_id: string | null;
   task_card_ref: string | null;
   description: string | null;
   assigned_component_id: string | null;
@@ -77,7 +78,8 @@ interface ForecastRecord {
 interface ForecastRow {
   serviceId: string;
   serviceName: string;
-  mpdTaskId: string | null;
+  mpdId: string | null;
+  ammId: string | null;
   taskCardRef: string | null;
   description: string | null;
   zones: string[];
@@ -167,7 +169,8 @@ function buildRows(
       return {
         serviceId: service.id,
         serviceName: service.task_name,
-        mpdTaskId: service.mpd_amm_task_ids,
+        mpdId: service.mpd_id,
+        ammId: service.amm_id,
         taskCardRef: service.task_card_ref,
         description: service.description,
         zones: service.zones ?? [],
@@ -269,7 +272,8 @@ const StatPill = ({ label, value }: { label: string; value: string | number }) =
 
 function exportCSV(rows: ForecastRow[], aircraft: Aircraft) {
   const headers = [
-    "MPD Task ID",
+    "MPD ID",
+    "AMM ID",
     "Task Card Ref",
     "Task Name",
     "Interval Unit",
@@ -289,7 +293,8 @@ function exportCSV(rows: ForecastRow[], aircraft: Aircraft) {
 
   const csvRows = rows.map((r) =>
     [
-      r.mpdTaskId ?? "",
+      r.mpdId ?? "",
+      r.ammId ?? "",
       r.taskCardRef ?? "",
       r.serviceName,
       r.intervalUnit,
@@ -532,7 +537,8 @@ const Forecast = () => {
     const q = search.toLowerCase();
     return (
       r.serviceName.toLowerCase().includes(q) ||
-      (r.mpdTaskId ?? "").toLowerCase().includes(q) ||
+      (r.mpdId ?? "").toLowerCase().includes(q) ||
+      (r.ammId ?? "").toLowerCase().includes(q) ||
       (r.taskCardRef ?? "").toLowerCase().includes(q)
     );
   });
@@ -747,7 +753,7 @@ const Forecast = () => {
                   />
                 </th>
                 <th className="w-8 px-3 py-3" />
-                {["#", "MPD Task ID", "Task Card Ref", "Task Name", "Unit", "Next Due", "Rem. Hours", "Rem. Cycles", "Update"].map((h) => (
+                {["#", "MPD ID", "AMM ID", "Task Card Ref", "Task Name", "Unit", "Next Due", "Rem. Hours", "Rem. Cycles", "Update"].map((h) => (
                   <th key={h} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                     {h}
                   </th>
@@ -767,7 +773,7 @@ const Forecast = () => {
                 ))
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-16 text-center">
+                  <td colSpan={12} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Info className="h-8 w-8 opacity-30" />
                       <p className="text-sm font-medium">
@@ -827,9 +833,13 @@ const Forecast = () => {
                             {rowNum}
                           </div>
                         </td>
-                        {/* MPD Task ID */}
+                        {/* MPD ID */}
                         <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
-                          {row.mpdTaskId || "—"}
+                          {row.mpdId || "—"}
+                        </td>
+                        {/* AMM ID */}
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
+                          {row.ammId || "—"}
                         </td>
                         {/* Task Card Ref */}
                         <td className="px-4 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">
@@ -893,7 +903,7 @@ const Forecast = () => {
                       {/* ── Expanded detail row ── */}
                       {isExpanded && (
                         <tr key={`${row.serviceId}-exp`} className="bg-blue-50/30">
-                          <td colSpan={11} className="px-6 py-4">
+                          <td colSpan={12} className="px-6 py-4">
                             <div className="space-y-4">
 
                               {/* Last Carried / Next Due / Remaining */}

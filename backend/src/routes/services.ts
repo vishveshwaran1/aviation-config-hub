@@ -19,7 +19,8 @@ router.post('/', async (req, res) => {
         const {
             aircraft_model,
             task_name,
-            mpd_amm_task_ids,
+            mpd_id,
+            amm_id,
             task_card_ref,
             description,
             assigned_component_id,
@@ -36,7 +37,8 @@ router.post('/', async (req, res) => {
             data: {
                 aircraft_model,
                 task_name,
-                mpd_amm_task_ids,
+                mpd_id,
+                amm_id,
                 task_card_ref,
                 description,
                 assigned_component_id,
@@ -54,6 +56,30 @@ router.post('/', async (req, res) => {
         console.error(error);
         console.error("Error creating service:", error);
         res.status(500).json({ error: 'Failed to create service', details: (error as Error).message });
+    }
+});
+
+// Update service
+router.patch('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+
+        // Convert types if necessary
+        if (data.estimated_manhours) data.estimated_manhours = Number(data.estimated_manhours);
+        if (data.estimated_price) data.estimated_price = Number(data.estimated_price);
+        if (data.quotation_price) data.quotation_price = Number(data.quotation_price);
+        if (data.interval_threshold) data.interval_threshold = Number(data.interval_threshold);
+        if (data.repeat_interval) data.repeat_interval = Number(data.repeat_interval);
+
+        const service = await prisma.service.update({
+            where: { id },
+            data
+        });
+        res.json(service);
+    } catch (error) {
+        console.error("Error updating service:", error);
+        res.status(500).json({ error: 'Failed to update service', details: (error as Error).message });
     }
 });
 

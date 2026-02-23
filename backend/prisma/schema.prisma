@@ -84,7 +84,8 @@ model Service {
   id                    String    @id @default(uuid())
   aircraft_model        String
   task_name             String
-  mpd_amm_task_ids      String?
+  mpd_id                String?
+  amm_id                String?
   task_card_ref         String?
   description           String?
   assigned_component_id String?
