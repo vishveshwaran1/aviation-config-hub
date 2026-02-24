@@ -42,7 +42,7 @@ const Login = () => {
           {/* Header Section */}
           <div className="relative h-32 bg-[#dbeafe] p-6">
             <div className="relative z-10">
-              <h1 className="text-xl font-bold text-[#4f46e5]">Welcome to Aerotrend !</h1>
+              <h1 className="text-xl font-bold text-[#556ee6]">Welcome to Aerotrend !</h1>
               <p className="mt-1 text-sm text-[#6b7280]">Sign in to continue</p>
             </div>
 
@@ -104,7 +104,7 @@ const Login = () => {
                 </label>
               </div>
 
-              <Button type="submit" className="w-full h-11 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-base font-medium rounded-md" disabled={loading}>
+              <Button type="submit" className="w-full h-11 bg-[#556ee6] hover:bg-[#4a5fcc] text-white text-base font-medium rounded-md" disabled={loading}>
                 {loading ? "Logging in..." : "Log In"}
               </Button>
 
@@ -115,7 +115,7 @@ const Login = () => {
                 </div>
                 <div className="text-sm text-gray-500">
                   Don't have an account?{" "}
-                  <Link to="/signup" className="text-[#4f46e5] font-semibold hover:underline">
+                  <Link to="/signup" className="text-[#556ee6] font-semibold hover:underline">
                     Signup
                   </Link>
                 </div>

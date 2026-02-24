@@ -248,8 +248,8 @@ const CATEGORIES = ["PIREP", "MAREP", "INFO", "CABIN"] as const;
 const CAT_COLORS: Record<string, string> = {
   PIREP: "bg-rose-100 text-rose-700 border-rose-300",
   MAREP: "bg-amber-100 text-amber-700 border-amber-300",
-  INFO:  "bg-blue-100 text-blue-700 border-blue-300",
-  CABIN: "bg-purple-100 text-purple-700 border-purple-300",
+  INFO: "bg-blue-100 text-blue-700 border-blue-300",
+  CABIN: "bg-cyan-100 text-cyan-700 border-cyan-300",
 };
 
 /* 
@@ -327,9 +327,9 @@ const JourneyLogForm = () => {
 
   const validate = (): boolean => {
     const e: Partial<Record<keyof JourneyFormData, string>> = {};
-    if (!form.date)         e.date         = "Required";
+    if (!form.date) e.date = "Required";
     if (!form.registration) e.registration = "Required";
-    if (!form.pic_name)     e.pic_name     = "Required";
+    if (!form.pic_name) e.pic_name = "Required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };

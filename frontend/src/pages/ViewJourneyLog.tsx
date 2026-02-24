@@ -46,8 +46,8 @@ const SignBadge = ({ value }: { value?: string }) => (
 const CAT_COLORS: Record<string, string> = {
   PIREP: "bg-rose-100 text-rose-700",
   MAREP: "bg-amber-100 text-amber-700",
-  INFO:  "bg-blue-100 text-blue-700",
-  CABIN: "bg-purple-100 text-purple-700",
+  INFO: "bg-blue-100 text-blue-700",
+  CABIN: "bg-cyan-100 text-cyan-700",
 };
 
 /*  MAIN  */
@@ -107,14 +107,14 @@ const ViewJourneyLog = () => {
           {/* 1. Header */}
           <Section title="Journey Log Panel">
             <Grid cols={3}>
-              <FV label="Company Name"         value={form.company_name} />
-              <FV label="Date"                 value={form.date} />
+              <FV label="Company Name" value={form.company_name} />
+              <FV label="Date" value={form.date} />
               <FV label="Aircraft Registration" value={form.registration} mono />
-              <FV label="Aircraft Type"         value={form.aircraft_type} />
-              <FV label="Log Serial No."        value={form.log_sl_no} mono />
+              <FV label="Aircraft Type" value={form.aircraft_type} />
+              <FV label="Log Serial No." value={form.log_sl_no} mono />
             </Grid>
             <Grid cols={3}>
-              <FV label="PIC Name"        value={form.pic_name} />
+              <FV label="PIC Name" value={form.pic_name} />
               <FV label="PIC Licence No." value={form.pic_license_no} mono />
             </Grid>
             <Grid cols={2}>
@@ -137,8 +137,8 @@ const ViewJourneyLog = () => {
                   <span className="text-[11px] font-bold uppercase tracking-widest text-[#556ee6]">Sl.No: {i + 1}</span>
                   <Grid cols={3}>
                     <FV label="Flight Number" value={s.flight_num} mono />
-                    <FV label="Sector From"   value={s.sector_from} mono />
-                    <FV label="Sector To"     value={s.sector_to}   mono />
+                    <FV label="Sector From" value={s.sector_from} mono />
+                    <FV label="Sector To" value={s.sector_to} mono />
                   </Grid>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="rounded-lg border bg-white p-3 space-y-3">
@@ -146,8 +146,8 @@ const ViewJourneyLog = () => {
                       <Grid cols={2}>
                         <FV label="Departure Date" value={s.on_chock_dep_date} />
                         <FV label="Departure Time" value={s.on_chock_dep_time} mono />
-                        <FV label="Arrival Date"   value={s.on_chock_arr_date} />
-                        <FV label="Arrival Time"   value={s.on_chock_arr_time} mono />
+                        <FV label="Arrival Date" value={s.on_chock_arr_date} />
+                        <FV label="Arrival Time" value={s.on_chock_arr_time} mono />
                       </Grid>
                       <FV label="Sector Duration" value={s.on_chock_duration} mono />
                     </div>
@@ -156,8 +156,8 @@ const ViewJourneyLog = () => {
                       <Grid cols={2}>
                         <FV label="Departure Date" value={s.off_chock_dep_date} />
                         <FV label="Departure Time" value={s.off_chock_dep_time} mono />
-                        <FV label="Arrival Date"   value={s.off_chock_arr_date} />
-                        <FV label="Arrival Time"   value={s.off_chock_arr_time} mono />
+                        <FV label="Arrival Date" value={s.off_chock_arr_date} />
+                        <FV label="Arrival Time" value={s.off_chock_arr_time} mono />
                       </Grid>
                       <FV label="Sector Duration" value={s.off_chock_duration} mono />
                     </div>
@@ -170,14 +170,14 @@ const ViewJourneyLog = () => {
           {/* 3. Fuel */}
           <Section title="Fuel">
             <Grid cols={3}>
-              <FV label="Fuel Arrival (kg)"           value={form.fuel_arrival}           mono />
-              <FV label="Fuel Departure (kg)"         value={form.fuel_departure}         mono />
+              <FV label="Fuel Arrival (kg)" value={form.fuel_arrival} mono />
+              <FV label="Fuel Departure (kg)" value={form.fuel_departure} mono />
               <FV label="Remaining Fuel Onboard (kg)" value={form.remaining_fuel_onboard} mono />
-              <FV label="Fuel Uplift (kg)"            value={form.fuel_uplift}            mono />
-              <FV label="Calculate Total Fuel (kg)"   value={form.calculate_total_fuel}   mono />
-              <FV label="Fuel Discrepancy (kg)"       value={form.fuel_discrepancy}       mono />
-              <FV label="Aircraft Total Hrs"          value={form.aircraft_total_hrs}     mono />
-              <FV label="Aircraft Total Cyc"          value={form.aircraft_total_cyc}     mono />
+              <FV label="Fuel Uplift (kg)" value={form.fuel_uplift} mono />
+              <FV label="Calculate Total Fuel (kg)" value={form.calculate_total_fuel} mono />
+              <FV label="Fuel Discrepancy (kg)" value={form.fuel_discrepancy} mono />
+              <FV label="Aircraft Total Hrs" value={form.aircraft_total_hrs} mono />
+              <FV label="Aircraft Total Cyc" value={form.aircraft_total_cyc} mono />
               <FV label="Fuel Flight Deck Gauge (kg)" value={form.fuel_flight_deck_gauge} mono />
             </Grid>
           </Section>
@@ -185,15 +185,15 @@ const ViewJourneyLog = () => {
           {/* 4. Maintenance */}
           <Section title="Maintenance">
             <Grid cols={3}>
-              <FV label="Next Due Maintenance"  value={form.next_due_maintenance} />
-              <FV label="Due @ Date"            value={form.due_at_date} />
-              <FV label="Due @ Hours"           value={form.due_at_hours} mono />
-              <FV label="Total Flight Hrs"      value={form.total_flight_hrs} mono />
-              <FV label="Total Flight Cyc"      value={form.total_flight_cyc} mono />
-              <FV label="Daily Inspection"      value={form.daily_inspection} />
-              <FV label="Type of Maintenance"   value={form.type_of_maintenance} />
-              <FV label="APU Hrs"               value={form.apu_hrs} mono />
-              <FV label="APU Cyc"               value={form.apu_cyc} mono />
+              <FV label="Next Due Maintenance" value={form.next_due_maintenance} />
+              <FV label="Due @ Date" value={form.due_at_date} />
+              <FV label="Due @ Hours" value={form.due_at_hours} mono />
+              <FV label="Total Flight Hrs" value={form.total_flight_hrs} mono />
+              <FV label="Total Flight Cyc" value={form.total_flight_cyc} mono />
+              <FV label="Daily Inspection" value={form.daily_inspection} />
+              <FV label="Type of Maintenance" value={form.type_of_maintenance} />
+              <FV label="APU Hrs" value={form.apu_hrs} mono />
+              <FV label="APU Cyc" value={form.apu_cyc} mono />
             </Grid>
           </Section>
 
@@ -202,7 +202,7 @@ const ViewJourneyLog = () => {
             <Grid cols={3}>
               <FV label="Oil Uplift Engine No.1 (L)" value={form.oil_uplift_eng1} mono />
               <FV label="Oil Uplift Engine No.2 (L)" value={form.oil_uplift_eng2} mono />
-              <FV label="Oil Uplift APU (L)"          value={form.oil_uplift_apu}  mono />
+              <FV label="Oil Uplift APU (L)" value={form.oil_uplift_apu} mono />
             </Grid>
           </Section>
 
@@ -222,13 +222,13 @@ const ViewJourneyLog = () => {
                     </div>
                     <Grid cols={2}>
                       <FV label="Defect Description" value={d.defect_description} />
-                      <FV label="Action Taken"       value={d.action_taken} />
+                      <FV label="Action Taken" value={d.action_taken} />
                     </Grid>
                     <Grid cols={4}>
                       <FV label="MEL Expiry Date" value={d.mel_expiry_date} />
-                      <FV label="MEL Reference"   value={d.mel_reference} mono />
-                      <FV label="MEL Repair Cat"  value={d.mel_repair_cat} mono />
-                      <FV label="Lic No"          value={d.lic_no} mono />
+                      <FV label="MEL Reference" value={d.mel_reference} mono />
+                      <FV label="MEL Repair Cat" value={d.mel_repair_cat} mono />
+                      <FV label="Lic No" value={d.lic_no} mono />
                     </Grid>
                     {([1, 2] as const).map((pn) => {
                       const pre = `part${pn}_` as "part1_" | "part2_";
@@ -239,9 +239,9 @@ const ViewJourneyLog = () => {
                           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Part Description – {pn}</span>
                           <FV label="Part Description" value={desc} />
                           <Grid cols={2}>
-                            <FV label="Part Number On"   value={d[`${pre}number_on` as keyof typeof d] as string} mono />
-                            <FV label="Part Number Off"  value={d[`${pre}number_off` as keyof typeof d] as string} mono />
-                            <FV label="Serial Number On"  value={d[`${pre}serial_on` as keyof typeof d] as string} mono />
+                            <FV label="Part Number On" value={d[`${pre}number_on` as keyof typeof d] as string} mono />
+                            <FV label="Part Number Off" value={d[`${pre}number_off` as keyof typeof d] as string} mono />
+                            <FV label="Serial Number On" value={d[`${pre}serial_on` as keyof typeof d] as string} mono />
                             <FV label="Serial Number Off" value={d[`${pre}serial_off` as keyof typeof d] as string} mono />
                           </Grid>
                           <FV label="Certificate Number" value={d[`${pre}cert_num` as keyof typeof d] as string} mono />

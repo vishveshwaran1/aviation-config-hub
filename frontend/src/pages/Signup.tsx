@@ -39,7 +39,7 @@ const Signup = () => {
         <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
           <div className="relative h-32 bg-[#dbeafe] p-6">
             <div className="relative z-10">
-              <h1 className="text-xl font-bold text-[#4f46e5]">Join Aerotrend !</h1>
+              <h1 className="text-xl font-bold text-[#556ee6]">Join Aerotrend !</h1>
               <p className="mt-1 text-sm text-[#6b7280]">Register to get started</p>
             </div>
 
@@ -97,14 +97,14 @@ const Signup = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full h-11 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-base font-medium rounded-md mt-2" disabled={loading}>
+              <Button type="submit" className="w-full h-11 bg-[#556ee6] hover:bg-[#4a5fcc] text-white text-base font-medium rounded-md mt-2" disabled={loading}>
                 {loading ? "Creating account…" : "Sign Up"}
               </Button>
 
               <div className="text-center pt-2">
                 <p className="text-sm text-gray-500">
                   Already have an account?{" "}
-                  <Link to="/login" className="text-[#4f46e5] font-semibold hover:underline">
+                  <Link to="/login" className="text-[#556ee6] font-semibold hover:underline">
                     Sign in
                   </Link>
                 </p>

@@ -22,8 +22,8 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 262 60% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 225 73% 96%;
+    --accent-foreground: 225 73% 40%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -35,7 +35,7 @@
     --radius: 0.5rem;
 
     --nav-gradient-from: 225 73% 40%;
-    --nav-gradient-to: 262 60% 50%;
+    --nav-gradient-to: 225 73% 55%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5% 26%;
@@ -66,8 +66,8 @@
     --muted: 217 33% 18%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 262 60% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 225 73% 20%;
+    --accent-foreground: 225 73% 90%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;

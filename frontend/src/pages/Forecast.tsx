@@ -855,7 +855,7 @@ const Forecast = () => {
                             "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
                             row.intervalUnit === "Hours"
                               ? "bg-blue-100 text-blue-700"
-                              : "bg-purple-100 text-purple-700"
+                              : "bg-cyan-100 text-cyan-700"
                           )}>
                             {row.intervalUnit === "Hours" ? "FH" : "FC"}
                           </span>
