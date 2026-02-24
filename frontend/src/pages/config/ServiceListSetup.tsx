@@ -145,7 +145,7 @@ const ServiceListSetup = () => {
                 <TableHead>Aircraft Model</TableHead>
                 <TableHead>Task</TableHead>
                 <TableHead>MPD ID</TableHead>
-                <TableHead>AMM ID</TableHead>
+                {/* <TableHead>AMM ID</TableHead> */}
                 <TableHead>Task Card Ref</TableHead>
                 <TableHead>Zone</TableHead>
                 <TableHead>Comp Price</TableHead>
