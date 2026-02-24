@@ -22,6 +22,7 @@ import ViewJourneyLog from "@/pages/ViewJourneyLog";
 import Forecast from "@/pages/Forecast";
 import PrintTaskCard from "@/pages/PrintTaskCard";
 import Scheduler from "@/pages/Scheduler";
+import PowerBi from "@/pages/PowerBi";
 import NotFound from "@/pages/NotFound";
 import ForgotPassword from "@/pages/ForgotPassword";
 
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/aircraft/:id/forecast" element={<Forecast />} />
               <Route path="/aircraft/:id/forecast/print/:selectedIds" element={<PrintTaskCard />} />
               <Route path="/aircraft/:id/scheduler" element={<Scheduler />} />
+              <Route path="/powerbi" element={<PowerBi />} />
               <Route path="/config/aircraft" element={<AircraftSetup />} />
               <Route path="/config/components" element={<ComponentListSetup />} />
               <Route path="/config/services" element={<ServiceListSetup />} />

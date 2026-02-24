@@ -238,5 +238,48 @@ export const api = {
             await throwIfError(res);
             return res.json();
         }
+    },
+    journeyLogs: {
+        /** List all journey log entries for an aircraft */
+        getForAircraft: async (aircraftId: string) => {
+            const res = await fetch(`${API_URL}/journey_logs/${aircraftId}`, { headers: getHeaders() });
+            await throwIfError(res);
+            return res.json();
+        },
+        /** Get a single journey log entry with full details */
+        get: async (id: string) => {
+            const res = await fetch(`${API_URL}/journey_logs/entry/${id}`, { headers: getHeaders() });
+            await throwIfError(res);
+            return res.json();
+        },
+        /** Create a new journey log entry */
+        create: async (data: any) => {
+            const res = await fetch(`${API_URL}/journey_logs`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            await throwIfError(res);
+            return res.json();
+        },
+        /** Update an existing journey log entry */
+        update: async (id: string, data: any) => {
+            const res = await fetch(`${API_URL}/journey_logs/${id}`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            await throwIfError(res);
+            return res.json();
+        },
+        /** Delete a journey log entry */
+        delete: async (id: string) => {
+            const res = await fetch(`${API_URL}/journey_logs/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+            });
+            await throwIfError(res);
+            return res.status === 204 ? { ok: true } : res.json();
+        },
     }
 };

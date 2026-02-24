@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import * as XLSX from "xlsx";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -29,7 +30,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+
 
 interface Aircraft {
   id: string;
@@ -358,6 +359,9 @@ const Forecast = () => {
     interval_unit: string;
   }>({ last_date: "", last_hours: "", last_cycles: "", interval_unit: "Hours" });
   const [saving, setSaving] = useState(false);
+  const [uploadFileName, setUploadFileName] = useState<string>("No file chosen");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   const loadAll = useCallback(async () => {
@@ -466,6 +470,70 @@ const Forecast = () => {
       last_cycles: row.lastCycles !== null ? String(row.lastCycles) : "",
       interval_unit: row.intervalUnit,
     });
+    setUploadFileName("No file chosen");
+    setUploadError(null);
+  };
+
+  /** Parse uploaded Excel/CSV and fill Date, Hours, Cycles from first data row */
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadFileName(file.name);
+    setUploadError(null);
+  };
+
+  const handleFileSubmit = () => {
+    const file = fileInputRef.current?.files?.[0];
+    if (!file) { setUploadError("Please choose a file first."); return; }
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target!.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: "array", cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: "" });
+
+        if (rows.length === 0) { setUploadError("File is empty or has no data rows."); return; }
+
+        const row = rows[0];
+
+        // Normalise keys: lowercase + trim
+        const norm = (k: string) => k.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const get = (aliases: string[]) => {
+          for (const key of Object.keys(row)) {
+            if (aliases.includes(norm(key))) return row[key];
+          }
+          return "";
+        };
+
+        // Date — accept Date objects, ISO strings, Excel serial, or DD/MM/YYYY
+        let parsedDate = "";
+        const rawDate = get(["date", "lastdate", "maintenancedate", "carrieddate"]);
+        if (rawDate) {
+          try {
+            const d = rawDate instanceof Date ? rawDate : new Date(rawDate);
+            if (!isNaN(d.getTime())) parsedDate = format(d, "yyyy-MM-dd");
+          } catch { /* leave empty */ }
+        }
+
+        const rawHours = get(["hours", "flighthours", "fh", "lasthours", "acfh"]);
+        const rawCycles = get(["cycles", "flightcycles", "fc", "lastcycles", "accycles"]);
+
+        setEditForm((f) => ({
+          ...f,
+          last_date: parsedDate || f.last_date,
+          last_hours: rawHours !== "" ? String(rawHours) : f.last_hours,
+          last_cycles: rawCycles !== "" ? String(rawCycles) : f.last_cycles,
+        }));
+        toast.success("File parsed — fields filled from first data row.");
+        setUploadError(null);
+      } catch (err) {
+        console.error(err);
+        setUploadError("Failed to parse file. Ensure it is a valid .xlsx or .csv.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
 
@@ -531,7 +599,6 @@ const Forecast = () => {
     }
   };
 
-  // ── Derived table data ─────────────────────────────────────────────────────
 
   const filtered = rows.filter((r) => {
     const q = search.toLowerCase();
@@ -546,8 +613,6 @@ const Forecast = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const loading = loadingAc || loadingRows;
-
-  // ── Selection helpers ───────────────────────────────────────────────────────
 
   const toggleSelect = (serviceId: string) => {
     setSelectedServiceIds((prev) => {
@@ -575,7 +640,6 @@ const Forecast = () => {
     });
   };
 
-  // Only rows that have forecast data can be printed
   const printableSelected = [...selectedServiceIds].filter((sid) =>
     rows.find((r) => r.serviceId === sid && r.hasForecast)
   );
@@ -586,45 +650,25 @@ const Forecast = () => {
     <div className="space-y-6 pb-12">
 
       {/* ───── Aircraft header bar ───── */}
-      <div className="rounded-xl bg-[#556ee6] px-6 py-5 shadow-sm">
+      <div className="rounded-xl text-black px-6 py-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10  hover:bg-white/20 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-white/55 font-medium mb-0.5">
-                Forecast Panel — Predictive Maintenance Planning
+              <p className="text-[15px] uppercase tracking-widest  font-medium mb-0.5">
+                Forecast Panel
               </p>
-              <h1 className="text-lg font-bold text-white leading-none">
-                {loadingAc ? "Loading..." : (aircraft?.model ?? "Aircraft")}
-              </h1>
             </div>
           </div>
-          {!loadingAc && aircraft && (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <StatPill label="Registration" value={aircraft.registration_number} />
-              <div className="hidden sm:block w-px h-7 bg-white/20" />
-              <StatPill label="Total FH" value={`${aircraft.flight_hours.toLocaleString()} hrs`} />
-              <div className="hidden sm:block w-px h-7 bg-white/20" />
-              <StatPill label="Total FC" value={aircraft.flight_cycles.toLocaleString()} />
-              <div className="hidden sm:block w-px h-7 bg-white/20" />
-              <StatPill label="MSN" value={aircraft.msn} />
-            </div>
-          )}
         </div>
       </div>
-
-      {/* ───── Aircraft info & avg rate card ───── */}
-      {!loadingAc && aircraft && (
+  {!loadingAc && aircraft && (
         <div className="rounded-xl border bg-white shadow-sm">
-          <div className="px-5 py-3 border-b flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-[#556ee6]" />
-            <span className="text-sm font-semibold text-gray-700">Aircraft Summary &amp; Planning Rates</span>
-          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-0 divide-x divide-gray-100">
             {/* Aircraft Model */}
             <div className="px-5 py-4">
@@ -663,11 +707,8 @@ const Forecast = () => {
           </div>
         </div>
       )}
-
-      {/* ───── Forecast table ───── */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
 
-        {/* Toolbar */}
         <div className="flex flex-col gap-3 px-5 py-4 border-b sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <div className="relative w-full sm:max-w-xs">
@@ -681,7 +722,6 @@ const Forecast = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Print Task Card */}
             <Button
               size="sm"
               variant="outline"
@@ -709,15 +749,16 @@ const Forecast = () => {
               onClick={() => navigate(`/aircraft/${id}/scheduler`)}
             >
               <CalendarDays className="h-3.5 w-3.5" />
-              Scheduler
+              Upload Scheduler
             </Button>
 
-            {/* PowerBI (placeholder — not yet built) */}
+            {/* PowerBI dashboard */}
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 text-xs whitespace-nowrap text-gray-400"
-              title="PowerBI dashboard – coming soon"
+              className="h-8 gap-1.5 text-xs whitespace-nowrap"
+              title="Open PowerBI dashboard"
+              onClick={() => navigate("/powerbi")}
             >
               <BarChart3 className="h-3.5 w-3.5" />
               Dashboard
@@ -783,7 +824,7 @@ const Forecast = () => {
                       </p>
                       {rows.length === 0 && (
                         <p className="text-xs">
-                          Go to <strong>Config → Service List</strong> and add tasks for model{" "}
+                          No Forecast tasks available
                           <strong>{aircraft?.model}</strong>.
                         </p>
                       )}
@@ -1056,160 +1097,105 @@ const Forecast = () => {
       <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[#556ee6]">
-              <Pencil className="h-4 w-4" />
+            <DialogTitle className="text-base font-semibold text-gray-800">
               Last Carried Out
             </DialogTitle>
             {editTarget && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 Task: <strong>{editTarget.serviceName}</strong>
               </p>
             )}
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            {/* Interval Unit */}
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                Interval Type
-              </label>
-              <div className="flex gap-2">
-                {(["Hours", "Cycles"] as const).map((u) => (
-                  <button
-                    key={u}
-                    onClick={() => setEditForm((f) => ({ ...f, interval_unit: u }))}
-                    className={cn(
-                      "flex-1 py-2 rounded-lg text-xs font-semibold border transition-colors",
-                      editForm.interval_unit === u
-                        ? "bg-[#556ee6] text-white border-[#556ee6]"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-[#556ee6]/50"
-                    )}
-                  >
-                    {u === "Hours" ? "Flight Hours (FH)" : "Flight Cycles (FC)"}
-                  </button>
-                ))}
+          <div className="space-y-5 py-1">
+
+            {/* ── Upload Task Card ── */}
+            <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+              <p className="text-sm font-semibold text-[#556ee6] text-center">Upload Task Card</p>
+
+              {/* File chooser row */}
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors whitespace-nowrap">
+                    Choose File
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                </label>
+                <span className="text-xs text-muted-foreground truncate flex-1">{uploadFileName}</span>
+              </div>
+
+              {uploadError && (
+                <p className="text-xs text-red-500">{uploadError}</p>
+              )}
+
+              <Button
+                type="button"
+                size="sm"
+                className="w-full bg-[#556ee6] hover:bg-[#4560d5] gap-1.5 h-8"
+                onClick={handleFileSubmit}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+                Submit
+              </Button>
+            </div>
+
+            {/* ── Manual fields ── */}
+            <div className="space-y-3">
+              {/* Date */}
+              <div className="flex items-center gap-3">
+                <label className="w-16 shrink-0 text-sm font-medium text-gray-700">Date</label>
+                <Input
+                  type="date"
+                  className="h-9 text-sm flex-1"
+                  value={editForm.last_date}
+                  onChange={(e) => setEditForm((f) => ({ ...f, last_date: e.target.value }))}
+                />
+              </div>
+
+              {/* Hours */}
+              <div className="flex items-center gap-3">
+                <label className="w-16 shrink-0 text-sm font-medium text-gray-700">Hours</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  className="h-9 text-sm flex-1"
+                  placeholder="e.g. 12500.5"
+                  value={editForm.last_hours}
+                  onChange={(e) => setEditForm((f) => ({ ...f, last_hours: e.target.value }))}
+                />
+              </div>
+
+              {/* Cycles */}
+              <div className="flex items-center gap-3">
+                <label className="w-16 shrink-0 text-sm font-medium text-gray-700">Cycles</label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  className="h-9 text-sm flex-1"
+                  placeholder="e.g. 8200"
+                  value={editForm.last_cycles}
+                  onChange={(e) => setEditForm((f) => ({ ...f, last_cycles: e.target.value }))}
+                />
               </div>
             </div>
 
-            {/* Date */}
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                Date of Last Maintenance
-              </label>
-              <Input
-                type="date"
-                className="h-9 text-sm"
-                value={editForm.last_date}
-                onChange={(e) => setEditForm((f) => ({ ...f, last_date: e.target.value }))}
-              />
-            </div>
-
-            {/* Hours */}
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                Aircraft FH at Last Maintenance
-                <span className="ml-1 text-muted-foreground font-normal">(decimal hours)</span>
-              </label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                className="h-9 text-sm"
-                placeholder="e.g. 12500.5"
-                value={editForm.last_hours}
-                onChange={(e) => setEditForm((f) => ({ ...f, last_hours: e.target.value }))}
-              />
-            </div>
-
-            {/* Cycles */}
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                Aircraft FC at Last Maintenance
-              </label>
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                className="h-9 text-sm"
-                placeholder="e.g. 8200"
-                value={editForm.last_cycles}
-                onChange={(e) => setEditForm((f) => ({ ...f, last_cycles: e.target.value }))}
-              />
-            </div>
-
-            {/* Calculation preview */}
-            {editTarget && (editForm.last_hours || editForm.last_cycles) && aircraft && (
-              <div className="rounded-lg bg-[#556ee6]/5 border border-[#556ee6]/20 p-3 space-y-1.5">
-                <p className="text-[11px] font-semibold text-[#556ee6] uppercase tracking-wider mb-2">
-                  Calculation Preview
-                </p>
-                {editForm.interval_unit === "Hours" && editForm.last_hours && (
-                  <>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Next Due (FH)</span>
-                      <span className="font-medium tabular-nums">
-                        {(parseFloat(editForm.last_hours) + (editTarget.repeatInterval ?? 0)).toFixed(1)} FH
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Remaining (FH)</span>
-                      <span className={cn(
-                        "font-semibold tabular-nums",
-                        (parseFloat(editForm.last_hours) + (editTarget.repeatInterval ?? 0) - aircraft.flight_hours) <= 0
-                          ? "text-red-600" : "text-emerald-600"
-                      )}>
-                        {(parseFloat(editForm.last_hours) + (editTarget.repeatInterval ?? 0) - aircraft.flight_hours).toFixed(1)} FH
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Est. Days to Due</span>
-                      <span className="font-medium tabular-nums">
-                        {Math.max(0, Math.floor(
-                          (parseFloat(editForm.last_hours) + (editTarget.repeatInterval ?? 0) - aircraft.flight_hours) / avgHours
-                        ))} days
-                      </span>
-                    </div>
-                  </>
-                )}
-                {editForm.interval_unit === "Cycles" && editForm.last_cycles && (
-                  <>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Next Due (FC)</span>
-                      <span className="font-medium tabular-nums">
-                        {parseFloat(editForm.last_cycles) + (editTarget.repeatInterval ?? 0)} FC
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Remaining (FC)</span>
-                      <span className={cn(
-                        "font-semibold tabular-nums",
-                        (parseFloat(editForm.last_cycles) + (editTarget.repeatInterval ?? 0) - aircraft.flight_cycles) <= 0
-                          ? "text-red-600" : "text-emerald-600"
-                      )}>
-                        {(parseFloat(editForm.last_cycles) + (editTarget.repeatInterval ?? 0) - aircraft.flight_cycles).toFixed(0)} FC
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Est. Days to Due</span>
-                      <span className="font-medium tabular-nums">
-                        {Math.max(0, Math.floor(
-                          (parseFloat(editForm.last_cycles) + (editTarget.repeatInterval ?? 0) - aircraft.flight_cycles) / avgCycles
-                        ))} days
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" onClick={() => setEditTarget(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditTarget(null)}>Cancel</Button>
             <Button
               size="sm"
-              className="bg-[#556ee6] hover:bg-[#4560d5] gap-1.5"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5"
               disabled={saving}
               onClick={handleSave}
             >

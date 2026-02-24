@@ -36,6 +36,7 @@ model Aircraft {
   
   user               User               @relation(fields: [user_id], references: [id])
   components         AircraftComponent[]
+  journeyLogs        JourneyLog[]
   
   created_at         DateTime           @default(now())
   updated_at         DateTime           @updatedAt
@@ -133,4 +134,98 @@ model Scheduler {
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+}
+
+model JourneyLog {
+  id                     String             @id @default(uuid())
+  aircraft_id            String
+  aircraft               Aircraft           @relation(fields: [aircraft_id], references: [id])
+  company_name           String?
+  date                   DateTime
+  registration           String
+  aircraft_type          String?
+  log_sl_no              String?
+  pic_name               String
+  pic_license_no         String?
+  pic_sign               String             @default("No")
+  commander_sign         String             @default("No")
+  fuel_arrival           Float?
+  fuel_departure         Float?
+  remaining_fuel_onboard Float?
+  fuel_uplift            Float?
+  calculate_total_fuel   Float?
+  fuel_discrepancy       Float?
+  aircraft_total_hrs     Float?
+  aircraft_total_cyc     Float?
+  fuel_flight_deck_gauge Float?
+  next_due_maintenance   DateTime?
+  due_at_date            DateTime?
+  due_at_hours           Float?
+  total_flight_hrs       Float?
+  total_flight_cyc       Float?
+  daily_inspection       DateTime?
+  type_of_maintenance    String?
+  apu_hrs                Float?
+  apu_cyc                Float?
+  oil_uplift_eng1        Float?
+  oil_uplift_eng2        Float?
+  oil_uplift_apu         Float?
+  daily_inspection_sign  String             @default("No")
+  sign_stamp             String             @default("No")
+
+  sectors                JourneyLogSector[]
+  defects                JourneyLogDefect[]
+
+  created_at             DateTime           @default(now())
+  updated_at             DateTime           @updatedAt
+}
+
+model JourneyLogSector {
+  id                 String     @id @default(uuid())
+  journey_log_id     String
+  journey_log        JourneyLog @relation(fields: [journey_log_id], references: [id], onDelete: Cascade)
+  sl_no              Int
+  flight_num         String?
+  sector_from        String?
+  sector_to          String?
+  on_chock_dep_date  String?
+  on_chock_dep_time  String?
+  on_chock_arr_date  String?
+  on_chock_arr_time  String?
+  on_chock_duration  String?
+  off_chock_dep_date String?
+  off_chock_dep_time String?
+  off_chock_arr_date String?
+  off_chock_arr_time String?
+  off_chock_duration String?
+
+  created_at         DateTime   @default(now())
+}
+
+model JourneyLogDefect {
+  id                  String     @id @default(uuid())
+  journey_log_id      String
+  journey_log         JourneyLog @relation(fields: [journey_log_id], references: [id], onDelete: Cascade)
+  sl_no               Int
+  category            String     @default("PIREP")
+  defect_description  String?
+  action_taken        String?
+  mel_expiry_date     String?
+  mel_reference       String?
+  mel_repair_cat      String?
+  lic_no              String?
+  part1_description   String?
+  part1_number_on     String?
+  part1_number_off    String?
+  part1_serial_on     String?
+  part1_serial_off    String?
+  part1_cert_num      String?
+  part2_description   String?
+  part2_number_on     String?
+  part2_number_off    String?
+  part2_serial_on     String?
+  part2_serial_off    String?
+  part2_cert_num      String?
+
+  created_at          DateTime   @default(now())
 }

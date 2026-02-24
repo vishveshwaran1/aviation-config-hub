@@ -27,7 +27,6 @@ interface Aircraft {
 interface Panel {
   id: string;
   label: string;
-  sublabel: string;
   icon: React.ElementType;
   href?: string; // relative href; :id will be replaced
 }
@@ -36,45 +35,38 @@ const PANELS: Panel[] = [
   {
     id: "S1",
     label: "OCCM Panel",
-    sublabel: "On-condition component management",
     icon: ClipboardList,
     href: "/aircraft/:id/occm",
   },
   {
     id: "S2",
-    label: "Journey Log",
-    sublabel: "Flight journey records & logs",
+    label: "Journey Log Panel S2",
     icon: Plane,
     href: "/aircraft/:id/journey",
   },
   {
     id: "S3",
     label: "Panel S3",
-    sublabel: "Scheduled & unscheduled maintenance",
     icon: Wrench,
   },
   {
     id: "S4",
     label: "Panel S4",
-    sublabel: "Airframe technical record summary",
     icon: FileText,
   },
   {
     id: "S5",
     label: "Panel S5",
-    sublabel: "Manuals, forms and references",
     icon: BookOpen,
   },
   {
     id: "S6",
     label: "Panel S6",
-    sublabel: "Consumables and rotable tracking",
     icon: Package,
   },
   {
     id: "S7",
-    label: "Forecast",
-    sublabel: "Predictive maintenance planning",
+    label: "Forecast Panel S7",
     icon: TrendingUp,
     href: "/aircraft/:id/forecast",
   },
@@ -85,7 +77,6 @@ for (let i = 8; i <= 30; i++) {
   PANELS.push({
     id: `S${i}`,
     label: `Panel S${i}`,
-    sublabel: "",
     icon: Lock,
   });
 }
@@ -152,7 +143,7 @@ const AircraftActivity = () => {
       </div>
 
       {/* ── Panel grid ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mt-2">
         {PANELS.map((panel) => {
           const Icon = panel.icon;
           const isActive = true;
@@ -197,22 +188,7 @@ const AircraftActivity = () => {
                 >
                   {panel.label}
                 </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
-                  {panel.sublabel}
-                </p>
               </div>
-
-              {/* Status */}
-              <span
-                className={cn(
-                  "mt-auto inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  isActive
-                    ? "bg-[#556ee6]/10 text-[#556ee6]"
-                    : "bg-gray-100 text-gray-400"
-                )}
-              >
-                {isActive ? "Active" : "Coming soon"}
-              </span>
             </button>
           );
         })}

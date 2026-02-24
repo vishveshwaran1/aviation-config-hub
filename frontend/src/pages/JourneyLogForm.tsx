@@ -1,14 +1,21 @@
-﻿import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
+﻿import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Save, Plus, Trash2, Upload, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import * as XLSX from "xlsx";
 
-/* 
-   TYPES
- */
+
 interface Sector {
   flight_num: string;
   sector_from: string;
@@ -83,9 +90,69 @@ interface JourneyFormData {
   sign_stamp: string;
 }
 
-/* 
-   MOCK DATA
- */
+
+const COL_MAP: Record<string, string> = {
+  "Company Name": "company_name", "Date": "date", "Registration": "registration",
+  "Aircraft Type": "aircraft_type", "Log Serial No": "log_sl_no",
+  "PIC Name": "pic_name", "PIC License No": "pic_license_no",
+  "PIC Sign": "pic_sign", "Commander Sign": "commander_sign",
+  "Fuel Arrival": "fuel_arrival", "Fuel Departure": "fuel_departure",
+  "Remaining Fuel Onboard": "remaining_fuel_onboard", "Fuel Uplift": "fuel_uplift",
+  "Calculate Total Fuel": "calculate_total_fuel", "Fuel Discrepancy": "fuel_discrepancy",
+  "Aircraft Total Hrs": "aircraft_total_hrs", "Aircraft Total Cyc": "aircraft_total_cyc",
+  "Fuel Flight Deck Gauge": "fuel_flight_deck_gauge",
+  "Next Due Maintenance": "next_due_maintenance", "Due At Date": "due_at_date",
+  "Due At Hours": "due_at_hours", "Total Flight Hrs": "total_flight_hrs",
+  "Total Flight Cyc": "total_flight_cyc", "Daily Inspection": "daily_inspection",
+  "Type of Maintenance": "type_of_maintenance", "APU Hrs": "apu_hrs", "APU Cyc": "apu_cyc",
+  "Oil Uplift Eng1": "oil_uplift_eng1", "Oil Uplift Eng2": "oil_uplift_eng2",
+  "Oil Uplift APU": "oil_uplift_apu",
+  "Daily Inspection Sign": "daily_inspection_sign", "Sign Stamp": "sign_stamp",
+};
+
+const SECTOR_COL_MAP: Record<string, string> = {
+  "Flight Num": "flight_num", "Sector From": "sector_from", "Sector To": "sector_to",
+  "On Chock Dep Date": "on_chock_dep_date", "On Chock Dep Time": "on_chock_dep_time",
+  "On Chock Arr Date": "on_chock_arr_date", "On Chock Arr Time": "on_chock_arr_time",
+  "On Chock Duration": "on_chock_duration",
+  "Off Chock Dep Date": "off_chock_dep_date", "Off Chock Dep Time": "off_chock_dep_time",
+  "Off Chock Arr Date": "off_chock_arr_date", "Off Chock Arr Time": "off_chock_arr_time",
+  "Off Chock Duration": "off_chock_duration",
+};
+
+const TEMPLATE_HEADERS = [
+  "Company Name", "Date", "Registration", "Aircraft Type", "Log Serial No",
+  "PIC Name", "PIC License No", "PIC Sign", "Commander Sign",
+  "Fuel Arrival", "Fuel Departure", "Remaining Fuel Onboard", "Fuel Uplift",
+  "Calculate Total Fuel", "Fuel Discrepancy", "Aircraft Total Hrs", "Aircraft Total Cyc",
+  "Fuel Flight Deck Gauge", "Next Due Maintenance", "Due At Date", "Due At Hours",
+  "Total Flight Hrs", "Total Flight Cyc", "Daily Inspection", "Type of Maintenance",
+  "APU Hrs", "APU Cyc", "Oil Uplift Eng1", "Oil Uplift Eng2", "Oil Uplift APU",
+  "Daily Inspection Sign", "Sign Stamp",
+  "S1 Flight Num", "S1 Sector From", "S1 Sector To",
+  "S1 On Chock Dep Date", "S1 On Chock Dep Time", "S1 On Chock Arr Date", "S1 On Chock Arr Time", "S1 On Chock Duration",
+  "S1 Off Chock Dep Date", "S1 Off Chock Dep Time", "S1 Off Chock Arr Date", "S1 Off Chock Arr Time", "S1 Off Chock Duration",
+  "S2 Flight Num", "S2 Sector From", "S2 Sector To",
+  "S2 On Chock Dep Date", "S2 On Chock Dep Time", "S2 On Chock Arr Date", "S2 On Chock Arr Time", "S2 On Chock Duration",
+  "S2 Off Chock Dep Date", "S2 Off Chock Dep Time", "S2 Off Chock Arr Date", "S2 Off Chock Arr Time", "S2 Off Chock Duration",
+];
+
+const TEMPLATE_SAMPLE_ROW = [
+  "AeroTrend MRO Sdn Bhd", "2026-02-24", "9M-AAD", "B737-900", "9MAAD-001",
+  "Capt. Ahmad Fadzil", "ATPL-MY-00142", "Yes", "Yes",
+  "6800", "9200", "6800", "8500", "15300", "0", "18502", "4201",
+  "6750", "2026-03-01", "2026-03-01", "18600",
+  "1.25", "1", "2026-02-24", "Daily Check",
+  "0.5", "2", "0.5", "0.5", "0", "Yes", "Yes",
+  "AK101", "KUL", "SIN",
+  "2026-02-24", "0800", "2026-02-24", "0915", "1:15",
+  "2026-02-24", "0755", "2026-02-24", "0920", "1:25",
+  "AK102", "SIN", "KUL",
+  "2026-02-24", "1030", "2026-02-24", "1148", "1:18",
+  "2026-02-24", "1025", "2026-02-24", "1153", "1:28",
+];
+
+
 export const JOURNEY_MOCK: Record<string, {
   form: Partial<JourneyFormData>;
   sectors: [Sector, Sector];
@@ -164,9 +231,6 @@ export const JOURNEY_MOCK: Record<string, {
   },
 };
 
-/* 
-   DEFAULTS
- */
 const EMPTY_SECTOR: Sector = {
   flight_num: "", sector_from: "", sector_to: "",
   on_chock_dep_date: "", on_chock_dep_time: "", on_chock_arr_date: "", on_chock_arr_time: "", on_chock_duration: "",
@@ -193,9 +257,7 @@ const EMPTY_FORM: JourneyFormData = {
   daily_inspection_sign: "No", sign_stamp: "No",
 };
 
-/* 
-   UI HELPERS
- */
+
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="space-y-4">
     <div className="flex items-center gap-3">
@@ -252,9 +314,7 @@ const CAT_COLORS: Record<string, string> = {
   CABIN: "bg-cyan-100 text-cyan-700 border-cyan-300",
 };
 
-/* 
-   SECTOR CARD
- */
+
 const SectorCard = ({ index, sector, onChange }: {
   index: number;
   sector: Sector;
@@ -294,22 +354,202 @@ const SectorCard = ({ index, sector, onChange }: {
   </div>
 );
 
-/* 
-   MAIN COMPONENT
- */
+
 const JourneyLogForm = () => {
   const { id, logId } = useParams<{ id: string; logId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const isEdit = !!logId && logId !== "new";
-  const prefill = isEdit && logId && JOURNEY_MOCK[logId] ? JOURNEY_MOCK[logId] : null;
 
-  const [form, setForm] = useState<JourneyFormData>({ ...EMPTY_FORM, ...(prefill?.form ?? {}) });
+  const prefill = !isEdit ? (location.state as { prefill?: { form?: Partial<JourneyFormData>; sectors?: Sector[]; defects?: DefectRow[] } } | null)?.prefill : undefined;
+
+  const [form, setForm] = useState<JourneyFormData>(prefill?.form ? { ...EMPTY_FORM, ...prefill.form } : { ...EMPTY_FORM });
   const [sectors, setSectors] = useState<[Sector, Sector]>(
-    prefill?.sectors ?? [{ ...EMPTY_SECTOR }, { ...EMPTY_SECTOR }]
+    prefill?.sectors && prefill.sectors.length >= 2
+      ? [{ ...EMPTY_SECTOR, ...prefill.sectors[0] }, { ...EMPTY_SECTOR, ...prefill.sectors[1] }]
+      : [{ ...EMPTY_SECTOR }, { ...EMPTY_SECTOR }]
   );
   const [defects, setDefects] = useState<DefectRow[]>(prefill?.defects ?? []);
   const [saving, setSaving] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(isEdit);
   const [errors, setErrors] = useState<Partial<Record<keyof JourneyFormData, string>>>({});
+
+  // ── Upload modal state ─────────────────────────────────
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFileName, setUploadFileName] = useState("No file chosen");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-open upload modal 500 ms after mounting (new entry only, matching reference)
+  useEffect(() => {
+    if (isEdit) return;
+    const t = setTimeout(() => setShowUploadModal(true), 500);
+    return () => clearTimeout(t);
+  }, [isEdit]);
+
+  // ── Upload helpers ────────────────────────────────────
+  const fmtExcelDate = (val: unknown): string => {
+    if (!val) return "";
+    if (val instanceof Date) return val.toISOString().split("T")[0];
+    const s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split("T")[0];
+    return s;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setUploadFile(file);
+    setUploadFileName(file ? file.name : "No file chosen");
+    setUploadError(null);
+  };
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, TEMPLATE_SAMPLE_ROW]);
+    ws["!cols"] = TEMPLATE_HEADERS.map(() => ({ wch: 22 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Journey Log");
+    XLSX.writeFile(wb, "journey_log_template.xlsx");
+  };
+
+  const handleExcelUpload = () => {
+    if (!uploadFile) { setUploadError("Please choose a file first."); return; }
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const wb = XLSX.read(data, { type: "array", cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
+        if (rows.length === 0) { setUploadError("File is empty or has no data rows."); setUploading(false); return; }
+        const r = rows[0];
+        const str = (v: unknown) => v != null ? String(v).trim() : "";
+
+        // Fill main form fields
+        const parsed: Partial<JourneyFormData> = {};
+        for (const [col, field] of Object.entries(COL_MAP)) {
+          const val = r[col];
+          const k = field as keyof JourneyFormData;
+          if (field.endsWith("_date") || ["date", "next_due_maintenance", "due_at_date", "daily_inspection"].includes(field)) {
+            (parsed as Record<string, string>)[k] = fmtExcelDate(val);
+          } else if (["pic_sign", "commander_sign", "daily_inspection_sign", "sign_stamp"].includes(field)) {
+            (parsed as Record<string, string>)[k] = str(val) || "No";
+          } else {
+            (parsed as Record<string, string>)[k] = str(val);
+          }
+        }
+        setForm({ ...EMPTY_FORM, ...parsed });
+
+        // Fill sectors
+        const buildSector = (prefix: string): Sector => {
+          const s: Partial<Sector> = {};
+          for (const [col, field] of Object.entries(SECTOR_COL_MAP)) {
+            const val = r[`${prefix} ${col}`];
+            (s as Record<string, string>)[field] = field.endsWith("_date") ? fmtExcelDate(val) : str(val);
+          }
+          return { ...EMPTY_SECTOR, ...s };
+        };
+        setSectors([buildSector("S1"), buildSector("S2")]);
+        setDefects([]);
+
+        setShowUploadModal(false);
+        toast.success("Form pre-filled from Excel file.");
+      } catch {
+        setUploadError("Failed to parse file. Ensure it is a valid .xlsx or .csv.");
+      } finally {
+        setUploading(false);
+      }
+    };
+    reader.readAsArrayBuffer(uploadFile);
+  };
+
+  // Load entry data when editing
+  useEffect(() => {
+    if (!isEdit || !logId) return;
+    setLoadingEdit(true);
+    api.journeyLogs.get(logId)
+      .then((data: any) => {
+        const fmt = (v: string | null | undefined) =>
+          v ? new Date(v).toISOString().split("T")[0] : "";
+        setForm({
+          company_name: data.company_name ?? "",
+          date: fmt(data.date),
+          registration: data.registration ?? "",
+          aircraft_type: data.aircraft_type ?? "",
+          log_sl_no: data.log_sl_no ?? "",
+          pic_name: data.pic_name ?? "",
+          pic_license_no: data.pic_license_no ?? "",
+          pic_sign: data.pic_sign ?? "No",
+          commander_sign: data.commander_sign ?? "No",
+          fuel_arrival: data.fuel_arrival?.toString() ?? "",
+          fuel_departure: data.fuel_departure?.toString() ?? "",
+          remaining_fuel_onboard: data.remaining_fuel_onboard?.toString() ?? "",
+          fuel_uplift: data.fuel_uplift?.toString() ?? "",
+          calculate_total_fuel: data.calculate_total_fuel?.toString() ?? "",
+          fuel_discrepancy: data.fuel_discrepancy?.toString() ?? "",
+          aircraft_total_hrs: data.aircraft_total_hrs?.toString() ?? "",
+          aircraft_total_cyc: data.aircraft_total_cyc?.toString() ?? "",
+          fuel_flight_deck_gauge: data.fuel_flight_deck_gauge?.toString() ?? "",
+          next_due_maintenance: fmt(data.next_due_maintenance),
+          due_at_date: fmt(data.due_at_date),
+          due_at_hours: data.due_at_hours?.toString() ?? "",
+          total_flight_hrs: data.total_flight_hrs?.toString() ?? "",
+          total_flight_cyc: data.total_flight_cyc?.toString() ?? "",
+          daily_inspection: fmt(data.daily_inspection),
+          type_of_maintenance: data.type_of_maintenance ?? "",
+          apu_hrs: data.apu_hrs?.toString() ?? "",
+          apu_cyc: data.apu_cyc?.toString() ?? "",
+          oil_uplift_eng1: data.oil_uplift_eng1?.toString() ?? "",
+          oil_uplift_eng2: data.oil_uplift_eng2?.toString() ?? "",
+          oil_uplift_apu: data.oil_uplift_apu?.toString() ?? "",
+          daily_inspection_sign: data.daily_inspection_sign ?? "No",
+          sign_stamp: data.sign_stamp ?? "No",
+        });
+        const mappedSectors: Sector[] = (data.sectors ?? []).slice(0, 2).map((s: any) => ({
+          flight_num: s.flight_num ?? "",
+          sector_from: s.sector_from ?? "",
+          sector_to: s.sector_to ?? "",
+          on_chock_dep_date: s.on_chock_dep_date ?? "",
+          on_chock_dep_time: s.on_chock_dep_time ?? "",
+          on_chock_arr_date: s.on_chock_arr_date ?? "",
+          on_chock_arr_time: s.on_chock_arr_time ?? "",
+          on_chock_duration: s.on_chock_duration ?? "",
+          off_chock_dep_date: s.off_chock_dep_date ?? "",
+          off_chock_dep_time: s.off_chock_dep_time ?? "",
+          off_chock_arr_date: s.off_chock_arr_date ?? "",
+          off_chock_arr_time: s.off_chock_arr_time ?? "",
+          off_chock_duration: s.off_chock_duration ?? "",
+        }));
+        while (mappedSectors.length < 2) mappedSectors.push({ ...EMPTY_SECTOR });
+        setSectors(mappedSectors as [Sector, Sector]);
+        setDefects((data.defects ?? []).map((d: any, idx: number) => ({
+          id: idx + 1,
+          category: d.category ?? "PIREP",
+          defect_description: d.defect_description ?? "",
+          action_taken: d.action_taken ?? "",
+          mel_expiry_date: d.mel_expiry_date ?? "",
+          mel_reference: d.mel_reference ?? "",
+          mel_repair_cat: d.mel_repair_cat ?? "",
+          lic_no: d.lic_no ?? "",
+          part1_description: d.part1_description ?? "",
+          part1_number_on: d.part1_number_on ?? "",
+          part1_number_off: d.part1_number_off ?? "",
+          part1_serial_on: d.part1_serial_on ?? "",
+          part1_serial_off: d.part1_serial_off ?? "",
+          part1_cert_num: d.part1_cert_num ?? "",
+          part2_description: d.part2_description ?? "",
+          part2_number_on: d.part2_number_on ?? "",
+          part2_number_off: d.part2_number_off ?? "",
+          part2_serial_on: d.part2_serial_on ?? "",
+          part2_serial_off: d.part2_serial_off ?? "",
+          part2_cert_num: d.part2_cert_num ?? "",
+        })));
+      })
+      .catch(console.error)
+      .finally(() => setLoadingEdit(false));
+  }, [isEdit, logId]);
 
   const set = (key: keyof JourneyFormData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -338,39 +578,113 @@ const JourneyLogForm = () => {
     e.preventDefault();
     if (!validate()) return;
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 700));
-    //  Uncomment when backend is ready 
-    // const payload = { ...form, sectors, defects, aircraft_id: id };
-    // if (isEdit && logId) {
-    //   await api.journeyLogs.update(logId, payload);
-    // } else {
-    //   await api.journeyLogs.create(payload);
-    // }
-    toast.success(isEdit ? "Journey log updated." : "Journey log entry created.");
-    setSaving(false);
-    navigate(`/aircraft/${id}/journey`);
+    try {
+      const payload = { ...form, aircraft_id: id, sectors, defects };
+      if (isEdit && logId) {
+        await api.journeyLogs.update(logId, payload);
+      } else {
+        await api.journeyLogs.create(payload);
+      }
+      toast.success(isEdit ? "Journey log updated." : "Journey log entry created.");
+      navigate(`/aircraft/${id}/journey`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save journey log.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loadingEdit) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-muted-foreground">Loading entry…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">
+      {/* ── Upload Modal (auto-opens 500ms after navigating here for new entries) ── */}
+      <Dialog
+        open={showUploadModal}
+        onOpenChange={(o) => { if (!o) { setShowUploadModal(false); setUploadFile(null); setUploadFileName("No file chosen"); setUploadError(null); } }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#556ee6]">
+              <Upload className="h-5 w-5" /> Upload Journey Log
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {uploading ? (
+              <div className="space-y-3 text-center py-4">
+                <p className="text-sm font-medium text-[#556ee6]">Processing…</p>
+                <p className="text-xs text-muted-foreground">Please do not close this window.</p>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div className="h-full w-full animate-pulse rounded-full bg-[#556ee6]" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div
+                  className="flex items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 cursor-pointer hover:border-[#556ee6] transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 text-[#556ee6] shrink-0" />
+                  <span className="flex-1 text-sm text-gray-500 truncate">{uploadFileName}</span>
+                  <span className="rounded-md bg-[#556ee6]/10 px-2.5 py-1 text-xs font-medium text-[#556ee6]">
+                    Choose File
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+                {uploadError && (
+                  <p className="text-xs text-rose-500 flex items-center gap-1">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />
+                    {uploadError}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="flex justify-center pt-2">
+            <Button
+              size="sm"
+              disabled={!uploadFile || uploading}
+              onClick={handleExcelUpload}
+              className="bg-[#3b58e9] hover:bg-[#3d59d4] text-white px-8"
+            >
+              Submit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Page Header */}
-      <div className="rounded-xl bg-[#556ee6] px-6 py-5 shadow-sm">
+      <div className="rounded-xl bg-[#ffffff] px-6 py-5 shadow-sm">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => navigate(`/aircraft/${id}/journey`)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors">
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-black hover:bg-white/20 transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-white/55 font-medium mb-0.5">S2 — Journey Log Panel</p>
-              <h1 className="text-lg font-bold text-white leading-none">
+              <p className="text-[11px] uppercase tracking-widest text-black/55 font-medium mb-0.5">S2 — Journey Log Panel</p>
+              <h1 className="text-lg font-bold text-black leading-none">
                 {isEdit ? "Edit Journey Log Entry" : "New Journey Log Entry"}
               </h1>
             </div>
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" size="sm"
-              className="h-8 border-white/30 bg-white/10 text-white hover:bg-white/20 text-xs"
+              className="h-8 border-white/30 bg-white/10 text-black hover:bg-red-50 hover:text-red-600 font-semibold text-xs"
               onClick={() => navigate(`/aircraft/${id}/journey`)}>Cancel</Button>
             <Button type="button" size="sm" disabled={saving}
               className="h-8 gap-1.5 bg-white text-[#556ee6] hover:bg-white/90 font-semibold text-xs"
