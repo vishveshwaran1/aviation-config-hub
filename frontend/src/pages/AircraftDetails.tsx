@@ -146,12 +146,17 @@ const AircraftDetails = () => {
                     <DetailItem label="APU Model" value={apu.model} />
                     <DetailItem label="APU Serial No" value={apu.serial_number} />
                     <DetailItem label="APU Part Number" value={apu.part_number} />
+                    <DetailItem label="APU Status" value={apu.status} />
+                    <DetailItem
+                        label="Manufactured Date"
+                        value={apu.manufacture_date ? format(new Date(apu.manufacture_date), "dd/MM/yyyy") : "-"}
+                    />
+                    <DetailItem label="APU Total Hours" value={apu.hours_since_new} />
+                    <DetailItem label="APU Total Cycles" value={apu.cycles_since_new} />
                     <DetailItem
                         label="Last Shop Visit"
                         value={apu.last_shop_visit_date ? format(new Date(apu.last_shop_visit_date), "dd/MM/yyyy") : "-"}
                     />
-                    <DetailItem label="APU Total Hours" value={apu.hours_since_new} />
-                    <DetailItem label="APU Total Cycles" value={apu.cycles_since_new} />
                 </DetailSection>
 
                 {/* Main Landing Gear Left */}
@@ -160,12 +165,17 @@ const AircraftDetails = () => {
                     <DetailItem label="Model" value={mlgLeft.model} />
                     <DetailItem label="Serial No" value={mlgLeft.serial_number} />
                     <DetailItem label="Part Number" value={mlgLeft.part_number} />
+                    <DetailItem label="Status" value={mlgLeft.status} />
+                    <DetailItem
+                        label="Manufactured Date"
+                        value={mlgLeft.manufacture_date ? format(new Date(mlgLeft.manufacture_date), "dd/MM/yyyy") : "-"}
+                    />
+                    <DetailItem label="Total Hours" value={mlgLeft.hours_since_new} />
+                    <DetailItem label="Total Cycles" value={mlgLeft.cycles_since_new} />
                     <DetailItem
                         label="Last Shop Visit"
                         value={mlgLeft.last_shop_visit_date ? format(new Date(mlgLeft.last_shop_visit_date), "dd/MM/yyyy") : "-"}
                     />
-                    <DetailItem label="Total Hours" value={mlgLeft.hours_since_new} />
-                    <DetailItem label="Total Cycles" value={mlgLeft.cycles_since_new} />
                 </DetailSection>
 
                 {/* Main Landing Gear Right */}
@@ -174,12 +184,17 @@ const AircraftDetails = () => {
                     <DetailItem label="Model" value={mlgRight.model} />
                     <DetailItem label="Serial No" value={mlgRight.serial_number} />
                     <DetailItem label="Part Number" value={mlgRight.part_number} />
+                    <DetailItem label="Status" value={mlgRight.status} />
+                    <DetailItem
+                        label="Manufactured Date"
+                        value={mlgRight.manufacture_date ? format(new Date(mlgRight.manufacture_date), "dd/MM/yyyy") : "-"}
+                    />
+                    <DetailItem label="Total Hours" value={mlgRight.hours_since_new} />
+                    <DetailItem label="Total Cycles" value={mlgRight.cycles_since_new} />
                     <DetailItem
                         label="Last Shop Visit"
                         value={mlgRight.last_shop_visit_date ? format(new Date(mlgRight.last_shop_visit_date), "dd/MM/yyyy") : "-"}
                     />
-                    <DetailItem label="Total Hours" value={mlgRight.hours_since_new} />
-                    <DetailItem label="Total Cycles" value={mlgRight.cycles_since_new} />
                 </DetailSection>
 
                 {/* Nose Landing Gear */}
@@ -188,12 +203,17 @@ const AircraftDetails = () => {
                     <DetailItem label="Model" value={nlg.model} />
                     <DetailItem label="Serial No" value={nlg.serial_number} />
                     <DetailItem label="Part Number" value={nlg.part_number} />
+                    <DetailItem label="Status" value={nlg.status} />
+                    <DetailItem
+                        label="Manufactured Date"
+                        value={nlg.manufacture_date ? format(new Date(nlg.manufacture_date), "dd/MM/yyyy") : "-"}
+                    />
+                    <DetailItem label="Total Hours" value={nlg.hours_since_new} />
+                    <DetailItem label="Total Cycles" value={nlg.cycles_since_new} />
                     <DetailItem
                         label="Last Shop Visit"
                         value={nlg.last_shop_visit_date ? format(new Date(nlg.last_shop_visit_date), "dd/MM/yyyy") : "-"}
                     />
-                    <DetailItem label="Total Hours" value={nlg.hours_since_new} />
-                    <DetailItem label="Total Cycles" value={nlg.cycles_since_new} />
                 </DetailSection>
             </div>
         </div>

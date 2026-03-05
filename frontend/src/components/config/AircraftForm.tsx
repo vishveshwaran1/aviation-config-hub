@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,10 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             aircraft_received_status: "New",
             engine1_status: "New",
             engine2_status: "New",
+            apu_status: "Used",
+            mlg_left_status: "Used",
+            mlg_right_status: "Used",
+            nlg_status: "Used",
             ...defaultValues,
         },
     });
@@ -118,7 +122,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "APU",
                         manufacturer: data.apu_manufacturer, model: data.apu_model,
                         serial_number: data.apu_serial_number, part_number: data.apu_part_number,
-                        status: "N/A", manufacture_date: null,
+                        status: data.apu_status, manufacture_date: data.apu_manufacture_date || null,
                         last_shop_visit_date: data.apu_last_shop_visit || null,
                         hours_since_new: data.apu_hours || 0, cycles_since_new: data.apu_cycles || 0
                     },
@@ -126,7 +130,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Main Landing Gear Left",
                         manufacturer: data.mlg_left_manufacturer, model: data.mlg_left_model,
                         serial_number: data.mlg_left_serial_number, part_number: data.mlg_left_part_number,
-                        status: "N/A", manufacture_date: null,
+                        status: data.mlg_left_status, manufacture_date: data.mlg_left_manufacture_date || null,
                         last_shop_visit_date: data.mlg_left_shop_visit || null,
                         hours_since_new: data.mlg_left_hours || 0, cycles_since_new: data.mlg_left_cycles || 0
                     },
@@ -134,7 +138,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Main Landing Gear Right",
                         manufacturer: data.mlg_right_manufacturer, model: data.mlg_right_model,
                         serial_number: data.mlg_right_serial_number, part_number: data.mlg_right_part_number,
-                        status: "N/A", manufacture_date: null,
+                        status: data.mlg_right_status, manufacture_date: data.mlg_right_manufacture_date || null,
                         last_shop_visit_date: data.mlg_right_shop_visit || null,
                         hours_since_new: data.mlg_right_hours || 0, cycles_since_new: data.mlg_right_cycles || 0
                     },
@@ -142,7 +146,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Nose Landing Gear",
                         manufacturer: data.nlg_manufacturer, model: data.nlg_model,
                         serial_number: data.nlg_serial_number, part_number: data.nlg_part_number,
-                        status: "N/A", manufacture_date: null,
+                        status: data.nlg_status, manufacture_date: data.nlg_manufacture_date || null,
                         last_shop_visit_date: data.nlg_shop_visit || null,
                         hours_since_new: data.nlg_hours || 0, cycles_since_new: data.nlg_cycles || 0
                     },
@@ -209,6 +213,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
         placeholder = "",
         type: React.HTMLInputTypeAttribute = "text",
         step?: string,
+        disabled?: boolean,
     ) => (
         <FormField control={form.control} name={name} render={({ field, fieldState }) => (
             <FormItem className="flex flex-col gap-0.5">
@@ -222,7 +227,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                                 type={type}
                                 step={step}
                                 placeholder={placeholder}
-                                className={`h-9 text-sm ${fieldState.error ? 'border-red-500 focus-visible:ring-red-300 pr-7' : 'border-gray-300'}`}
+                                disabled={disabled}
+                                className={`h-9 text-sm ${fieldState.error ? 'border-red-500 focus-visible:ring-red-300 pr-7' : 'border-gray-300'} ${disabled ? 'bg-gray-100' : ''}`}
                                 {...field}
                                 value={field.value as string ?? ""}
                             />
@@ -238,6 +244,34 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             </FormItem>
         )} />
     );
+
+    // Auto-sync Shop Visit with Manufacture Date if status is "New"
+    const watchAll = form.watch();
+
+    useEffect(() => {
+        const components = [
+            { status: watchAll.engine1_status, mfg: watchAll.engine1_manufacture_date, field: "engine1_last_shop_visit" },
+            { status: watchAll.engine2_status, mfg: watchAll.engine2_manufacture_date, field: "engine2_last_shop_visit" },
+            { status: watchAll.apu_status, mfg: watchAll.apu_manufacture_date, field: "apu_last_shop_visit" },
+            { status: watchAll.mlg_left_status, mfg: watchAll.mlg_left_manufacture_date, field: "mlg_left_shop_visit" },
+            { status: watchAll.mlg_right_status, mfg: watchAll.mlg_right_manufacture_date, field: "mlg_right_shop_visit" },
+            { status: watchAll.nlg_status, mfg: watchAll.nlg_manufacture_date, field: "nlg_shop_visit" },
+        ];
+
+        components.forEach(comp => {
+            if (comp.status === "New" && comp.mfg) {
+                form.setValue(comp.field as any, comp.mfg);
+            }
+        });
+    }, [
+        watchAll.engine1_status, watchAll.engine1_manufacture_date,
+        watchAll.engine2_status, watchAll.engine2_manufacture_date,
+        watchAll.apu_status, watchAll.apu_manufacture_date,
+        watchAll.mlg_left_status, watchAll.mlg_left_manufacture_date,
+        watchAll.mlg_right_status, watchAll.mlg_right_manufacture_date,
+        watchAll.nlg_status, watchAll.nlg_manufacture_date,
+        form.setValue
+    ]);
 
     return (
         <Form {...form}>
@@ -296,7 +330,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("engine1_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("engine1_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
                     {TextField("engine1_cycles", "Total Cycles", "", "number")}
-                    <div className="col-span-2">{TextField("engine1_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date")}</div>
+                    <div className="col-span-2">{TextField("engine1_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.engine1_status === "New")}</div>
 
                     {/* ── Engine 2 Details ───────────────────────────────── */}
                     <SectionTitle title="Engine 2" />
@@ -310,7 +344,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("engine2_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("engine2_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
                     {TextField("engine2_cycles", "Total Cycles", "", "number")}
-                    <div className="col-span-2">{TextField("engine2_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date")}</div>
+                    <div className="col-span-2">{TextField("engine2_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.engine2_status === "New")}</div>
 
                     {/* ── APU Details ───────────────────────────────── */}
                     <SectionTitle title="APU Details" />
@@ -349,11 +383,9 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         </FormItem>
                     )} />
 
-                    {TextField("apu_serial_number", "APU Serial No")}
-                    {TextField("confirm_apu_serial_number", "Re-Enter APU Serial No")}
-                    {TextField("apu_part_number", "APU Part Number")}
-                    {TextField("confirm_apu_part_number", "Re-Enter Part Number")}
-                    {TextField("apu_last_shop_visit", "APU Last Shop Visit", "DD/MM/YYYY", "date")}
+                    {SelectField("apu_status", "APU Status", ENGINE_STATUS)}
+                    {TextField("apu_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
+                    {TextField("apu_last_shop_visit", "APU Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.apu_status === "New")}
                     {TextField("apu_hours", "APU Total Hours", "HHHH-MM", "number", "0.01")}
                     <div className="col-span-2">{TextField("apu_cycles", "APU Total Cycles", "", "number")}</div>
 
@@ -395,7 +427,9 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("confirm_mlg_left_serial_number", "Re-Enter Serial No")}
                     {TextField("mlg_left_part_number", "Part Number")}
                     {TextField("confirm_mlg_left_part_number", "Re-Enter Part Number")}
-                    {TextField("mlg_left_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date")}
+                    {SelectField("mlg_left_status", "Status", ENGINE_STATUS)}
+                    {TextField("mlg_left_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
+                    {TextField("mlg_left_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.mlg_left_status === "New")}
                     {TextField("mlg_left_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
                     <div className="col-span-2">{TextField("mlg_left_cycles", "Total Cycles", "", "number")}</div>
 
@@ -437,7 +471,9 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("confirm_mlg_right_serial_number", "Re-Enter Serial No")}
                     {TextField("mlg_right_part_number", "Part Number")}
                     {TextField("confirm_mlg_right_part_number", "Re-Enter Part Number")}
-                    {TextField("mlg_right_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date")}
+                    {SelectField("mlg_right_status", "Status", ENGINE_STATUS)}
+                    {TextField("mlg_right_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
+                    {TextField("mlg_right_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.mlg_right_status === "New")}
                     {TextField("mlg_right_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
                     <div className="col-span-2">{TextField("mlg_right_cycles", "Total Cycles", "", "number")}</div>
 
@@ -479,7 +515,9 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("confirm_nlg_serial_number", "Re-Enter Serial No")}
                     {TextField("nlg_part_number", "Part Number")}
                     {TextField("confirm_nlg_part_number", "Re-Enter Part Number")}
-                    {TextField("nlg_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date")}
+                    {SelectField("nlg_status", "Status", ENGINE_STATUS)}
+                    {TextField("nlg_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
+                    {TextField("nlg_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.nlg_status === "New")}
                     {TextField("nlg_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
                     <div className="col-span-2">{TextField("nlg_cycles", "Total Cycles", "", "number")}</div>
 
