@@ -112,13 +112,13 @@ export function AircraftTable() {
                             <TableHead className="w-[50px]">
                                 <Checkbox />
                             </TableHead>
-                            <TableHead>Manufacturer & Model</TableHead>
+                            <TableHead>Aircraft Model</TableHead>
                             <TableHead>MSN</TableHead>
-                            <TableHead>Registration ID</TableHead>
-                            <TableHead>Engines</TableHead>
+                            <TableHead>National Reg ID</TableHead>
+                            <TableHead>No of Engines</TableHead>
                             <TableHead>Flight Hours</TableHead>
                             <TableHead>Flight Cycles</TableHead>
-                            <TableHead>Status</TableHead>
+                            {/* <TableHead>Status</TableHead> */}
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -141,7 +141,7 @@ export function AircraftTable() {
                                     <TableCell>{aircraft.engines_count}</TableCell>
                                     <TableCell>{aircraft.flight_hours}</TableCell>
                                     <TableCell>{aircraft.flight_cycles}</TableCell>
-                                    <TableCell>
+                                    {/* <TableCell>
                                         <span
                                             className={`px-2 py-1 rounded-full text-xs font-semibold ${aircraft.status === "Active"
                                                 ? "bg-green-100 text-green-800"
@@ -150,7 +150,7 @@ export function AircraftTable() {
                                         >
                                             {aircraft.status}
                                         </span>
-                                    </TableCell>
+                                    </TableCell> */}
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
