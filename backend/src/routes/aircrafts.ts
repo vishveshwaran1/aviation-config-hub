@@ -6,7 +6,7 @@ const router = Router();
 import prisma from '../lib/prisma';
 
 // Get all aircrafts for the authenticated user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, (async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
         const aircrafts = await prisma.aircraft.findMany({
@@ -20,13 +20,12 @@ router.get('/', authenticateToken, async (req, res) => {
         res.json(aircrafts);
     } catch (error) {
         console.error("Error fetching aircrafts:", error);
-        console.error("Error fetching aircrafts:", error);
         res.status(500).json({ error: 'Failed to fetch aircrafts', details: (error as Error).message });
     }
-});
+}) as any);
 
 // Get aircraft by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, (async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const userId = (req as any).user.userId;
@@ -50,15 +49,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
         console.error("Error fetching aircraft:", error);
         res.status(500).json({ error: 'Failed to fetch aircraft', details: (error as Error).message });
     }
-});
-router.post('/', authenticateToken, async (req, res) => {
+}) as any);
+router.post('/', authenticateToken, (async (req: Request, res: Response) => {
     try {
         const {
             model, msn, registration_number, manufacture_date, delivery_date,
             flight_hours, flight_cycles, engines_count, status, country
         } = req.body;
 
-        // Get user id from verified token
         const user_id = (req as any).user.userId;
 
         const aircraft = await prisma.aircraft.create({
@@ -81,10 +79,10 @@ router.post('/', authenticateToken, async (req, res) => {
         console.error("Error creating aircraft:", error);
         res.status(500).json({ error: 'Failed to create aircraft', details: (error as Error).message });
     }
-});
+}) as any);
 
 // Update aircraft
-router.patch('/:id', authenticateToken, async (req, res) => {
+router.patch('/:id', authenticateToken, (async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const {
@@ -114,15 +112,14 @@ router.patch('/:id', authenticateToken, async (req, res) => {
         console.error("Error updating aircraft:", error);
         res.status(500).json({ error: 'Failed to update aircraft', details: (error as Error).message });
     }
-});
+}) as any);
 
 // Delete aircraft
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, (async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const userId = (req as any).user.userId;
 
-        // Verify aircraft belongs to this user
         const existing = await prisma.aircraft.findFirst({
             where: { id, user_id: userId }
         });
@@ -130,13 +127,9 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Aircraft not found' });
         }
 
-        // Delete related records first (FK cascade safety)
         await prisma.aircraftComponent.deleteMany({ where: { aircraft_id: id } });
         await (prisma as any).forecast.deleteMany({ where: { aircraft_id: id } });
         await (prisma as any).scheduler.deleteMany({ where: { aircraft_id: id } });
-
-        // JourneyLog records also need their sectors/defects deleted or depend on cascade
-        // Since JourneyLogSector/Defect have onDelete: Cascade in Prisma, deleting JourneyLog is enough
         await (prisma as any).journeyLog.deleteMany({ where: { aircraft_id: id } });
 
         await prisma.aircraft.delete({ where: { id } });
@@ -146,6 +139,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         console.error("Error deleting aircraft:", error);
         res.status(500).json({ error: 'Failed to delete aircraft', details: (error as Error).message });
     }
-});
+}) as any);
 
 export default router;

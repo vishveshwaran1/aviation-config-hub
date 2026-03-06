@@ -74,12 +74,21 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
 
     // Helper to flatten components from defaultValues if they exist
     const getInitialValues = () => {
+        // Format date for <input type="date"> (YYYY-MM-DD)
+        const formatDate = (d: any) => {
+            if (!d) return "";
+            const date = new Date(d);
+            if (isNaN(date.getTime())) return "";
+            return date.toISOString().split('T')[0];
+        };
+
         const baseValues = {
             status: "Pending",
             engines_count: 2,
             flight_hours: 0,
             flight_cycles: 0,
             aircraft_received_status: "New",
+            country: "N/A", // Default to N/A since field is hidden
             engine1_status: "New",
             engine2_status: "New",
             apu_status: "Used",
@@ -87,6 +96,11 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             mlg_right_status: "Used",
             nlg_status: "Used",
             ...defaultValues,
+            // Re-populate re-entry fields for aircraft
+            confirm_msn: (defaultValues as any)?.msn || "",
+            confirm_registration_number: (defaultValues as any)?.registration_number || "",
+            manufacture_date: formatDate(defaultValues?.manufacture_date),
+            delivery_date: formatDate(defaultValues?.delivery_date),
         };
 
         // Flatten nested components if they exist (from backend include)
@@ -100,14 +114,6 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             const ml = findComp("Main Landing Gear Left");
             const mr = findComp("Main Landing Gear Right");
             const nl = findComp("Nose Landing Gear");
-
-            // Format date for <input type="date"> (YYYY-MM-DD)
-            const formatDate = (d: any) => {
-                if (!d) return "";
-                const date = new Date(d);
-                if (isNaN(date.getTime())) return "";
-                return date.toISOString().split('T')[0];
-            };
 
             return {
                 ...baseValues,
@@ -182,9 +188,6 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 nlg_hours: nl.hours_since_new || 0,
                 nlg_cycles: nl.cycles_since_new || 0,
                 nlg_shop_visit: formatDate(nl.last_shop_visit_date),
-
-                manufacture_date: formatDate(baseValues.manufacture_date),
-                delivery_date: formatDate(baseValues.delivery_date),
             };
         }
         return baseValues;
@@ -199,15 +202,15 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
     async function onSubmit(data: AircraftFormData) {
         setLoading(true);
         try {
-            if (defaultValues?.id) {
-                await api.aircrafts.update(defaultValues.id, data);
+            const aircraftId = defaultValues?.id;
 
-                // Update components individually or via a custom endpoint
-                // Since there's no bulk-update endpoint, we update them if they have IDs
+            if (aircraftId) {
+                await api.aircrafts.update(aircraftId, data);
+
                 const existingComponents = (defaultValues as any).components || [];
                 const updatePromises = [];
+                const createList: any[] = [];
 
-                // Mapping section names to form data fields
                 const componentMappings = [
                     { section: "Engine 1", prefix: "engine1_", lastShopVisit: "last_shop_visit" },
                     { section: "Engine 2", prefix: "engine2_", lastShopVisit: "last_shop_visit" },
@@ -219,10 +222,22 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
 
                 for (const mapping of componentMappings) {
                     const comp = existingComponents.find((c: any) => c.section === mapping.section);
-                    if (comp && comp.id) {
-                        const p = mapping.prefix;
-                        const lastShopVisitVal = (data as any)[`${p}${mapping.lastShopVisit}`];
+                    const p = mapping.prefix;
+                    const compData = {
+                        aircraft_id: aircraftId,
+                        section: mapping.section,
+                        manufacturer: (data as any)[`${p}manufacturer`],
+                        model: (data as any)[`${p}model`],
+                        serial_number: (data as any)[`${p}serial_number`],
+                        part_number: (data as any)[`${p}part_number`],
+                        status: (data as any)[`${p}status`],
+                        manufacture_date: (data as any)[`${p}manufacture_date`] || null,
+                        last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
+                        hours_since_new: Number((data as any)[`${p}hours`] || 0),
+                        cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
+                    };
 
+                    if (comp && comp.id) {
                         updatePromises.push(api.aircraftComponents.update(comp.id, {
                             manufacturer: (data as any)[`${p}manufacturer`],
                             model: (data as any)[`${p}model`],
@@ -230,70 +245,83 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             part_number: (data as any)[`${p}part_number`],
                             status: (data as any)[`${p}status`],
                             manufacture_date: (data as any)[`${p}manufacture_date`] || null,
-                            last_shop_visit_date: lastShopVisitVal || null,
-                            hours_since_new: (data as any)[`${p}hours`] || 0,
-                            cycles_since_new: (data as any)[`${p}cycles`] || 0
+                            last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
+                            hours_since_new: Number((data as any)[`${p}hours`] || 0),
+                            cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                         }));
+                    } else {
+                        createList.push({
+                            aircraft_id: aircraftId,
+                            section: mapping.section,
+                            manufacturer: (data as any)[`${p}manufacturer`],
+                            model: (data as any)[`${p}model`],
+                            serial_number: (data as any)[`${p}serial_number`],
+                            part_number: (data as any)[`${p}part_number`],
+                            status: (data as any)[`${p}status`],
+                            manufacture_date: (data as any)[`${p}manufacture_date`] || null,
+                            last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
+                            hours_since_new: Number((data as any)[`${p}hours`] || 0),
+                            cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
+                        });
                     }
                 }
 
-                if (updatePromises.length > 0) {
-                    await Promise.all(updatePromises);
-                }
+                if (updatePromises.length > 0) await Promise.all(updatePromises);
+                if (createList.length > 0) await api.aircraftComponents.create(createList);
 
                 toast.success("Aircraft and components updated successfully");
             } else {
                 const aircraftData = await api.aircrafts.create(data);
-                const aircraftId = aircraftData.id;
+                const newId = aircraftData.id;
 
                 const componentsToInsert = [
                     {
-                        aircraft_id: aircraftId, section: "Engine 1",
+                        aircraft_id: newId, section: "Engine 1",
                         manufacturer: data.engine1_manufacturer, model: data.engine1_model,
                         serial_number: data.engine1_serial_number, part_number: data.engine1_part_number,
                         status: data.engine1_status, manufacture_date: data.engine1_manufacture_date,
                         last_shop_visit_date: data.engine1_last_shop_visit || null,
-                        hours_since_new: data.engine1_hours || 0, cycles_since_new: data.engine1_cycles || 0
+                        hours_since_new: Number(data.engine1_hours || 0), cycles_since_new: Number(data.engine1_cycles || 0)
                     },
                     {
-                        aircraft_id: aircraftId, section: "Engine 2",
+                        aircraft_id: newId, section: "Engine 2",
                         manufacturer: data.engine2_manufacturer, model: data.engine2_model,
                         serial_number: data.engine2_serial_number, part_number: data.engine2_part_number,
                         status: data.engine2_status, manufacture_date: data.engine2_manufacture_date,
                         last_shop_visit_date: data.engine2_last_shop_visit || null,
-                        hours_since_new: data.engine2_hours || 0, cycles_since_new: data.engine2_cycles || 0
+                        hours_since_new: Number(data.engine2_hours || 0), cycles_since_new: Number(data.engine2_cycles || 0)
                     },
                     {
-                        aircraft_id: aircraftId, section: "APU",
+                        aircraft_id: newId, section: "APU",
                         manufacturer: data.apu_manufacturer, model: data.apu_model,
                         serial_number: data.apu_serial_number, part_number: data.apu_part_number,
                         status: data.apu_status, manufacture_date: data.apu_manufacture_date,
                         last_shop_visit_date: data.apu_last_shop_visit || null,
-                        hours_since_new: data.apu_hours || 0, cycles_since_new: data.apu_cycles || 0
+                        hours_since_new: Number(data.apu_hours || 0), cycles_since_new: Number(data.apu_cycles || 0)
                     },
                     {
-                        aircraft_id: aircraftId, section: "Main Landing Gear Left",
+                        aircraft_id: newId, section: "Main Landing Gear Left",
                         manufacturer: data.mlg_left_manufacturer, model: data.mlg_left_model,
                         serial_number: data.mlg_left_serial_number, part_number: data.mlg_left_part_number,
                         status: data.mlg_left_status, manufacture_date: data.mlg_left_manufacture_date,
                         last_shop_visit_date: data.mlg_left_shop_visit || null,
-                        hours_since_new: data.mlg_left_hours || 0, cycles_since_new: data.mlg_left_cycles || 0
+                        hours_since_new: Number(data.mlg_left_hours || 0), cycles_since_new: Number(data.mlg_left_cycles || 0)
                     },
                     {
-                        aircraft_id: aircraftId, section: "Main Landing Gear Right",
+                        aircraft_id: newId, section: "Main Landing Gear Right",
                         manufacturer: data.mlg_right_manufacturer, model: data.mlg_right_model,
                         serial_number: data.mlg_right_serial_number, part_number: data.mlg_right_part_number,
                         status: data.mlg_right_status, manufacture_date: data.mlg_right_manufacture_date,
                         last_shop_visit_date: data.mlg_right_shop_visit || null,
-                        hours_since_new: data.mlg_right_hours || 0, cycles_since_new: data.mlg_right_cycles || 0
+                        hours_since_new: Number(data.mlg_right_hours || 0), cycles_since_new: Number(data.mlg_right_cycles || 0)
                     },
                     {
-                        aircraft_id: aircraftId, section: "Nose Landing Gear",
+                        aircraft_id: newId, section: "Nose Landing Gear",
                         manufacturer: data.nlg_manufacturer, model: data.nlg_model,
                         serial_number: data.nlg_serial_number, part_number: data.nlg_part_number,
                         status: data.nlg_status, manufacture_date: data.nlg_manufacture_date,
                         last_shop_visit_date: data.nlg_shop_visit || null,
-                        hours_since_new: data.nlg_hours || 0, cycles_since_new: data.nlg_cycles || 0
+                        hours_since_new: Number(data.nlg_hours || 0), cycles_since_new: Number(data.nlg_cycles || 0)
                     },
                 ];
                 await api.aircraftComponents.create(componentsToInsert);
@@ -418,9 +446,16 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
         form.setValue
     ]);
 
+    const onValidationError = (errors: any) => {
+        console.error("Validation errors:", errors);
+        const firstErrorField = Object.keys(errors)[0];
+        const readableField = firstErrorField.replace(/_/g, ' ').replace(/\d/g, ' $&');
+        toast.error(`Please check the ${readableField} field`);
+    };
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} >
+            <form onSubmit={form.handleSubmit(onSubmit, onValidationError)} >
                 {/* 2-column responsive grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
 
@@ -448,16 +483,20 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     <FormField control={form.control} name="engines_count" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>No of Engines</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>No of Engines</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value ?? 2)}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select
+                                        onValueChange={(v) => field.onChange(Number(v))}
+                                        defaultValue={String(field.value ?? 2)}
+                                        value={String(field.value ?? 2)}
+                                    >
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{[1, 2, 3, 4].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter No of Engines</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter No of Engines</p>}
                         </FormItem>
                     )} />
                     {/* spacer — keeps grid even */}
@@ -498,16 +537,16 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     <FormField control={form.control} name="apu_manufacturer" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>APU Manufacturer</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>APU Manufacturer</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={(v) => { field.onChange(v); setApuMfr(v); }} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={(v) => { field.onChange(v); setApuMfr(v); }} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{APU_MANUFACTURERS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter APU Manufacturer</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter APU Manufacturer</p>}
                         </FormItem>
                     )} />
 
@@ -515,24 +554,34 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     <FormField control={form.control} name="apu_model" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>APU Model</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>APU Model</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{(apuMfr && APU_MODELS_MAP[apuMfr]?.length ? APU_MODELS_MAP[apuMfr] : ALL_APU_MODELS).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter APU Model</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter APU Model</p>}
                         </FormItem>
                     )} />
 
+                    {/* Serial & Confirm Serial */}
+                    {TextField("apu_serial_number", "Serial No")}
+                    {TextField("confirm_apu_serial_number", "Confirm Serial No")}
+
+                    {/* Part & Confirm Part */}
+                    {TextField("apu_part_number", "Part No")}
+                    {TextField("confirm_apu_part_number", "Confirm Part No")}
+
                     {SelectField("apu_status", "APU Status", ENGINE_STATUS)}
                     {TextField("apu_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
-                    {TextField("apu_last_shop_visit", "APU Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.apu_status === "New")}
-                    {TextField("apu_hours", "APU Total Hours", "HHHH-MM", "number", "0.01")}
-                    <div className="col-span-2">{TextField("apu_cycles", "APU Total Cycles", "", "number")}</div>
+
+                    <div className="col-span-2">{TextField("apu_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.apu_status === "New")}</div>
+
+                    {TextField("apu_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("apu_cycles", "Total Cycles", "", "number")}
 
                     {/* ── Main Landing Gear — Left ──────────────────── */}
                     <SectionTitle title="Main Landing Gear — Left" />
@@ -540,31 +589,31 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     <FormField control={form.control} name="mlg_left_manufacturer" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Manufacturer</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Manufacturer</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{LG_MANUFACTURERS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter Manufacturer</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
                     <FormField control={form.control} name="mlg_left_model" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{LG_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter Model</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Model</p>}
                         </FormItem>
                     )} />
 
@@ -584,31 +633,31 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     <FormField control={form.control} name="mlg_right_manufacturer" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Manufacturer</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Manufacturer</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{LG_MANUFACTURERS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter Manufacturer</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
                     <FormField control={form.control} name="mlg_right_model" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{LG_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter Model</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Model</p>}
                         </FormItem>
                     )} />
 
@@ -628,31 +677,31 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     <FormField control={form.control} name="nlg_manufacturer" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Manufacturer</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Manufacturer</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{LG_MANUFACTURERS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter Manufacturer</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
                     <FormField control={form.control} name="nlg_model" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-xs font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger className={`h-8 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
                                         <SelectContent>{LG_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                     </Select>
                                     {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-[11px] text-red-500 ml-[11rem]">Enter Model</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Model</p>}
                         </FormItem>
                     )} />
 

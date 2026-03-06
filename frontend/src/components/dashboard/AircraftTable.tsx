@@ -17,11 +17,10 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, Settings, MoreHorizontal, Search, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Eye, Settings, MoreHorizontal, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Aircraft {
     id: string;
@@ -40,7 +39,6 @@ export function AircraftTable() {
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemPerPage] = useState(5);
-    const [deleteTarget, setDeleteTarget] = useState<{ id: string; model: string } | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -84,24 +82,6 @@ export function AircraftTable() {
 
     const handlePrevPage = () => {
         if (currentPage > 1) setCurrentPage(currentPage - 1);
-    };
-
-    const handleDelete = async (id: string, model: string) => {
-        setDeleteTarget({ id, model });
-    };
-
-    const confirmDelete = async () => {
-        if (!deleteTarget) return;
-        try {
-            await api.aircrafts.delete(deleteTarget.id);
-            setData(prev => prev.filter(item => item.id !== deleteTarget.id));
-            toast.success("Aircraft deleted successfully");
-        } catch (error) {
-            console.error("Failed to delete aircraft:", error);
-            toast.error("Failed to delete aircraft");
-        } finally {
-            setDeleteTarget(null);
-        }
     };
 
     if (loading) {
@@ -193,13 +173,6 @@ export function AircraftTable() {
                                                     <Settings className="mr-2 h-4 w-4" />
                                                     Settings
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-red-500 focus:text-red-500"
-                                                    onClick={() => handleDelete(aircraft.id, aircraft.model)}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -233,15 +206,6 @@ export function AircraftTable() {
                     <ChevronRight className="h-4 w-4" />
                 </Button>
             </div>
-
-            <ConfirmDialog
-                open={!!deleteTarget}
-                title="Delete Aircraft"
-                description={`Are you sure you want to delete "${deleteTarget?.model}"? This action cannot be undone.`}
-                confirmLabel="Delete"
-                onConfirm={confirmDelete}
-                onCancel={() => setDeleteTarget(null)}
-            />
         </div>
     );
 }

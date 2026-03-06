@@ -21,6 +21,9 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
+// Health Check
+app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
 // Main Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/aircrafts', aircraftRoutes);
