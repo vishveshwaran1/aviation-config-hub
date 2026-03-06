@@ -72,10 +72,9 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
     const [loading, setLoading] = useState(false);
     const [apuMfr, setApuMfr] = useState(defaultValues?.apu_manufacturer ?? "");
 
-    const form = useForm<AircraftFormData>({
-        resolver: zodResolver(aircraftSchema),
-        mode: "onBlur",
-        defaultValues: {
+    // Helper to flatten components from defaultValues if they exist
+    const getInitialValues = () => {
+        const baseValues = {
             status: "Pending",
             engines_count: 2,
             flight_hours: 0,
@@ -88,7 +87,113 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             mlg_right_status: "Used",
             nlg_status: "Used",
             ...defaultValues,
-        },
+        };
+
+        // Flatten nested components if they exist (from backend include)
+        const components = (defaultValues as any)?.components || [];
+        if (components.length > 0) {
+            const findComp = (s: string) => components.find((c: any) => c.section === s) || {};
+
+            const e1 = findComp("Engine 1");
+            const e2 = findComp("Engine 2");
+            const apu = findComp("APU");
+            const ml = findComp("Main Landing Gear Left");
+            const mr = findComp("Main Landing Gear Right");
+            const nl = findComp("Nose Landing Gear");
+
+            // Format date for <input type="date"> (YYYY-MM-DD)
+            const formatDate = (d: any) => {
+                if (!d) return "";
+                const date = new Date(d);
+                if (isNaN(date.getTime())) return "";
+                return date.toISOString().split('T')[0];
+            };
+
+            return {
+                ...baseValues,
+                engine1_manufacturer: e1.manufacturer || "",
+                engine1_model: e1.model || "",
+                engine1_serial_number: e1.serial_number || "",
+                confirm_engine1_serial_number: e1.serial_number || "",
+                engine1_part_number: e1.part_number || "",
+                confirm_engine1_part_number: e1.part_number || "",
+                engine1_status: e1.status || "New",
+                engine1_manufacture_date: formatDate(e1.manufacture_date),
+                engine1_hours: e1.hours_since_new || 0,
+                engine1_cycles: e1.cycles_since_new || 0,
+                engine1_last_shop_visit: formatDate(e1.last_shop_visit_date),
+
+                engine2_manufacturer: e2.manufacturer || "",
+                engine2_model: e2.model || "",
+                engine2_serial_number: e2.serial_number || "",
+                confirm_engine2_serial_number: e2.serial_number || "",
+                engine2_part_number: e2.part_number || "",
+                confirm_engine2_part_number: e2.part_number || "",
+                engine2_status: e2.status || "New",
+                engine2_manufacture_date: formatDate(e2.manufacture_date),
+                engine2_hours: e2.hours_since_new || 0,
+                engine2_cycles: e2.cycles_since_new || 0,
+                engine2_last_shop_visit: formatDate(e2.last_shop_visit_date),
+
+                apu_manufacturer: apu.manufacturer || "",
+                apu_model: apu.model || "",
+                apu_serial_number: apu.serial_number || "",
+                confirm_apu_serial_number: apu.serial_number || "",
+                apu_part_number: apu.part_number || "",
+                confirm_apu_part_number: apu.part_number || "",
+                apu_status: apu.status || "Used",
+                apu_manufacture_date: formatDate(apu.manufacture_date),
+                apu_hours: apu.hours_since_new || 0,
+                apu_cycles: apu.cycles_since_new || 0,
+                apu_last_shop_visit: formatDate(apu.last_shop_visit_date),
+
+                mlg_left_manufacturer: ml.manufacturer || "",
+                mlg_left_model: ml.model || "",
+                mlg_left_serial_number: ml.serial_number || "",
+                confirm_mlg_left_serial_number: ml.serial_number || "",
+                mlg_left_part_number: ml.part_number || "",
+                confirm_mlg_left_part_number: ml.part_number || "",
+                mlg_left_status: ml.status || "Used",
+                mlg_left_manufacture_date: formatDate(ml.manufacture_date),
+                mlg_left_hours: ml.hours_since_new || 0,
+                mlg_left_cycles: ml.cycles_since_new || 0,
+                mlg_left_shop_visit: formatDate(ml.last_shop_visit_date),
+
+                mlg_right_manufacturer: mr.manufacturer || "",
+                mlg_right_model: mr.model || "",
+                mlg_right_serial_number: mr.serial_number || "",
+                confirm_mlg_right_serial_number: mr.serial_number || "",
+                mlg_right_part_number: mr.part_number || "",
+                confirm_mlg_right_part_number: mr.part_number || "",
+                mlg_right_status: mr.status || "Used",
+                mlg_right_manufacture_date: formatDate(mr.manufacture_date),
+                mlg_right_hours: mr.hours_since_new || 0,
+                mlg_right_cycles: mr.cycles_since_new || 0,
+                mlg_right_shop_visit: formatDate(mr.last_shop_visit_date),
+
+                nlg_manufacturer: nl.manufacturer || "",
+                nlg_model: nl.model || "",
+                nlg_serial_number: nl.serial_number || "",
+                confirm_nlg_serial_number: nl.serial_number || "",
+                nlg_part_number: nl.part_number || "",
+                confirm_nlg_part_number: nl.part_number || "",
+                nlg_status: nl.status || "Used",
+                nlg_manufacture_date: formatDate(nl.manufacture_date),
+                nlg_hours: nl.hours_since_new || 0,
+                nlg_cycles: nl.cycles_since_new || 0,
+                nlg_shop_visit: formatDate(nl.last_shop_visit_date),
+
+                manufacture_date: formatDate(baseValues.manufacture_date),
+                delivery_date: formatDate(baseValues.delivery_date),
+            };
+        }
+        return baseValues;
+    };
+
+    const form = useForm<AircraftFormData>({
+        resolver: zodResolver(aircraftSchema),
+        mode: "onBlur",
+        defaultValues: getInitialValues() as any,
     });
 
     async function onSubmit(data: AircraftFormData) {
@@ -96,7 +201,47 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
         try {
             if (defaultValues?.id) {
                 await api.aircrafts.update(defaultValues.id, data);
-                toast.success("Aircraft updated successfully");
+
+                // Update components individually or via a custom endpoint
+                // Since there's no bulk-update endpoint, we update them if they have IDs
+                const existingComponents = (defaultValues as any).components || [];
+                const updatePromises = [];
+
+                // Mapping section names to form data fields
+                const componentMappings = [
+                    { section: "Engine 1", prefix: "engine1_", lastShopVisit: "last_shop_visit" },
+                    { section: "Engine 2", prefix: "engine2_", lastShopVisit: "last_shop_visit" },
+                    { section: "APU", prefix: "apu_", lastShopVisit: "last_shop_visit" },
+                    { section: "Main Landing Gear Left", prefix: "mlg_left_", lastShopVisit: "shop_visit" },
+                    { section: "Main Landing Gear Right", prefix: "mlg_right_", lastShopVisit: "shop_visit" },
+                    { section: "Nose Landing Gear", prefix: "nlg_", lastShopVisit: "shop_visit" },
+                ];
+
+                for (const mapping of componentMappings) {
+                    const comp = existingComponents.find((c: any) => c.section === mapping.section);
+                    if (comp && comp.id) {
+                        const p = mapping.prefix;
+                        const lastShopVisitVal = (data as any)[`${p}${mapping.lastShopVisit}`];
+
+                        updatePromises.push(api.aircraftComponents.update(comp.id, {
+                            manufacturer: (data as any)[`${p}manufacturer`],
+                            model: (data as any)[`${p}model`],
+                            serial_number: (data as any)[`${p}serial_number`],
+                            part_number: (data as any)[`${p}part_number`],
+                            status: (data as any)[`${p}status`],
+                            manufacture_date: (data as any)[`${p}manufacture_date`] || null,
+                            last_shop_visit_date: lastShopVisitVal || null,
+                            hours_since_new: (data as any)[`${p}hours`] || 0,
+                            cycles_since_new: (data as any)[`${p}cycles`] || 0
+                        }));
+                    }
+                }
+
+                if (updatePromises.length > 0) {
+                    await Promise.all(updatePromises);
+                }
+
+                toast.success("Aircraft and components updated successfully");
             } else {
                 const aircraftData = await api.aircrafts.create(data);
                 const aircraftId = aircraftData.id;
@@ -106,7 +251,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Engine 1",
                         manufacturer: data.engine1_manufacturer, model: data.engine1_model,
                         serial_number: data.engine1_serial_number, part_number: data.engine1_part_number,
-                        status: data.engine1_status, manufacture_date: data.engine1_manufacture_date || null,
+                        status: data.engine1_status, manufacture_date: data.engine1_manufacture_date,
                         last_shop_visit_date: data.engine1_last_shop_visit || null,
                         hours_since_new: data.engine1_hours || 0, cycles_since_new: data.engine1_cycles || 0
                     },
@@ -114,7 +259,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Engine 2",
                         manufacturer: data.engine2_manufacturer, model: data.engine2_model,
                         serial_number: data.engine2_serial_number, part_number: data.engine2_part_number,
-                        status: data.engine2_status, manufacture_date: data.engine2_manufacture_date || null,
+                        status: data.engine2_status, manufacture_date: data.engine2_manufacture_date,
                         last_shop_visit_date: data.engine2_last_shop_visit || null,
                         hours_since_new: data.engine2_hours || 0, cycles_since_new: data.engine2_cycles || 0
                     },
@@ -122,7 +267,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "APU",
                         manufacturer: data.apu_manufacturer, model: data.apu_model,
                         serial_number: data.apu_serial_number, part_number: data.apu_part_number,
-                        status: data.apu_status, manufacture_date: data.apu_manufacture_date || null,
+                        status: data.apu_status, manufacture_date: data.apu_manufacture_date,
                         last_shop_visit_date: data.apu_last_shop_visit || null,
                         hours_since_new: data.apu_hours || 0, cycles_since_new: data.apu_cycles || 0
                     },
@@ -130,7 +275,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Main Landing Gear Left",
                         manufacturer: data.mlg_left_manufacturer, model: data.mlg_left_model,
                         serial_number: data.mlg_left_serial_number, part_number: data.mlg_left_part_number,
-                        status: data.mlg_left_status, manufacture_date: data.mlg_left_manufacture_date || null,
+                        status: data.mlg_left_status, manufacture_date: data.mlg_left_manufacture_date,
                         last_shop_visit_date: data.mlg_left_shop_visit || null,
                         hours_since_new: data.mlg_left_hours || 0, cycles_since_new: data.mlg_left_cycles || 0
                     },
@@ -138,7 +283,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Main Landing Gear Right",
                         manufacturer: data.mlg_right_manufacturer, model: data.mlg_right_model,
                         serial_number: data.mlg_right_serial_number, part_number: data.mlg_right_part_number,
-                        status: data.mlg_right_status, manufacture_date: data.mlg_right_manufacture_date || null,
+                        status: data.mlg_right_status, manufacture_date: data.mlg_right_manufacture_date,
                         last_shop_visit_date: data.mlg_right_shop_visit || null,
                         hours_since_new: data.mlg_right_hours || 0, cycles_since_new: data.mlg_right_cycles || 0
                     },
@@ -146,7 +291,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         aircraft_id: aircraftId, section: "Nose Landing Gear",
                         manufacturer: data.nlg_manufacturer, model: data.nlg_model,
                         serial_number: data.nlg_serial_number, part_number: data.nlg_part_number,
-                        status: data.nlg_status, manufacture_date: data.nlg_manufacture_date || null,
+                        status: data.nlg_status, manufacture_date: data.nlg_manufacture_date,
                         last_shop_visit_date: data.nlg_shop_visit || null,
                         hours_since_new: data.nlg_hours || 0, cycles_since_new: data.nlg_cycles || 0
                     },

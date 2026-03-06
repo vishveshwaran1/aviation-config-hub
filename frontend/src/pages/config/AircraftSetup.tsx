@@ -56,7 +56,23 @@ const AircraftSetup = () => {
   };
 
   useEffect(() => {
-    if (!isCreating && !editingAircraft) {
+    // Check for editId in URL (e.g., from Dashboard)
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get("editId");
+
+    if (editId && !editingAircraft && !isCreating) {
+      const fetchEdit = async () => {
+        try {
+          const result = await api.aircrafts.get(editId);
+          if (result) setEditingAircraft(result);
+          // Remove param after loading
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (err) {
+          console.error("Failed to fetch aircraft for edit:", err);
+        }
+      };
+      fetchEdit();
+    } else if (!isCreating && !editingAircraft) {
       fetchData();
     }
   }, [isCreating, editingAircraft]);

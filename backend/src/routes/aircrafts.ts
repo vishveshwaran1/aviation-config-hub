@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 
@@ -130,8 +130,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Aircraft not found' });
         }
 
-        // Delete related components first (FK cascade safety)
+        // Delete related records first (FK cascade safety)
         await prisma.aircraftComponent.deleteMany({ where: { aircraft_id: id } });
+        await (prisma as any).forecast.deleteMany({ where: { aircraft_id: id } });
+        await (prisma as any).scheduler.deleteMany({ where: { aircraft_id: id } });
+
+        // JourneyLog records also need their sectors/defects deleted or depend on cascade
+        // Since JourneyLogSector/Defect have onDelete: Cascade in Prisma, deleting JourneyLog is enough
+        await (prisma as any).journeyLog.deleteMany({ where: { aircraft_id: id } });
 
         await prisma.aircraft.delete({ where: { id } });
 
