@@ -9,7 +9,7 @@ export const serviceSchema = z.object({
     amm_id: requiredString,
     task_card_ref: requiredString,
     description: requiredString.max(999, "Description must be less than 1000 characters"),
-    assigned_component_ids: z.array(z.string()).min(1, "Select at least one component"),
+    assigned_component_text: requiredString,
     zones: z.array(z.string()).min(1, "Select at least one zone"),
     estimated_manhours: z.coerce.number().min(0, "Manhours must be 0 or more"),
     estimated_currency: z.string().default("MYR"),

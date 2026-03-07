@@ -61,7 +61,6 @@ interface ServiceFormProps {
 
 export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
     const [loading, setLoading] = useState(false);
-    const [components, setComponents] = useState<{ id: string; name: string; compatible_aircraft_models: string[] }[]>([]);
     const [descriptionCount, setDescriptionCount] = useState(0);
     const navigate = useNavigate();
 
@@ -70,7 +69,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
         mode: "onBlur",
         defaultValues: {
             zones: [],
-            assigned_component_ids: [],
+            assigned_component_text: defaultValues?.assigned_component_id || "",
             estimated_currency: "MYR",
             quotation_currency: "MYR",
             interval_threshold_unit: "Hours",
@@ -82,26 +81,11 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
     // Watch aircraft model to filter components
     const watchedAircraftModel = useWatch({ control: form.control, name: "aircraft_model" });
 
-    useEffect(() => { fetchFormData(); }, []);
+    useEffect(() => {
+        // Any initial data fetching if needed
+    }, []);
 
-    const fetchFormData = async () => {
-        try {
-            const componentsData = await api.components.list();
-            if (componentsData) setComponents(componentsData);
-        } catch (error) {
-            console.error("Error fetching form data:", error);
-        }
-    };
 
-    // Filter components by selected aircraft model (using compatible_aircraft_models)
-    const filteredComponents = watchedAircraftModel
-        ? components.filter(
-            (c) =>
-                !c.compatible_aircraft_models ||
-                c.compatible_aircraft_models.length === 0 ||
-                c.compatible_aircraft_models.includes(watchedAircraftModel)
-        )
-        : components;
 
     async function onSubmit(data: ServiceFormData) {
         setLoading(true);
@@ -110,7 +94,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
             const {
                 estimated_currency,
                 quotation_currency,
-                assigned_component_ids,
+                assigned_component_text,
                 interval_threshold_unit,
                 repeat_interval_unit,
                 ...rest
@@ -120,7 +104,8 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
             const payload = {
                 ...rest,
                 // Backend expects a single assigned_component_id (string | null)
-                assigned_component_id: assigned_component_ids?.[0] || null,
+                // We map our text area content here
+                assigned_component_id: assigned_component_text || null,
                 // Backend stores a single interval_unit; use threshold unit as the primary
                 interval_unit: interval_threshold_unit || "Hours",
                 // Nullable optional fields
@@ -319,23 +304,23 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
-                    {/* Assigned Component — multi-select, filtered by selected aircraft model */}
-                    <FormField control={form.control} name="assigned_component_ids" render={({ field, fieldState }) => (
+                    {/* Assigned Component — Changed to text enter area (Textarea) */}
+                    <FormField control={form.control} name="assigned_component_text" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Service Assigned Component</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl>
-                                        <MultiSelect
-                                            options={filteredComponents.map(c => ({ label: c.name, value: c.id }))}
-                                            selected={field.value || []}
-                                            onChange={field.onChange}
-                                            placeholder={watchedAircraftModel ? "Select components" : "Select aircraft model first"}
+                                        <Textarea
+                                            className="min-h-[60px] text-sm border-gray-300"
+                                            placeholder="Enter assigned component(s)"
+                                            {...field}
                                         />
                                     </FormControl>
+                                    {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Select at least one component</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Assigned Component</p>}
                         </FormItem>
                     )} />
 
@@ -431,34 +416,34 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         const unit = form.watch("interval_threshold_unit");
                         const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Threshold in Cycles" : "Enter Threshold";
                         return (
-                        <FormItem className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Interval Threshold</FormLabel>
-                                <div className="flex gap-2 flex-1">
-                                    <FormField control={form.control} name="interval_threshold_unit" render={({ field: uf }) => (
-                                        <Select onValueChange={uf.onChange} value={uf.value as string}>
-                                            <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
-                                                <SelectValue placeholder="Unit" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {UNIT_OPTIONS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    )} />
-                                    <div className="relative flex-1">
-                                        <FormControl><Input
-                                            type="number"
-                                            maxLength={4}
-                                            placeholder={placeholder}
-                                            className={inputCls(!!fieldState.error)}
-                                            {...field}
-                                        /></FormControl>
-                                        {fieldState.error && <ErrorBadge />}
+                            <FormItem className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-3">
+                                    <FormLabel className={labelCls(!!fieldState.error)}>Interval Threshold</FormLabel>
+                                    <div className="flex gap-2 flex-1">
+                                        <FormField control={form.control} name="interval_threshold_unit" render={({ field: uf }) => (
+                                            <Select onValueChange={uf.onChange} value={uf.value as string}>
+                                                <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
+                                                    <SelectValue placeholder="Unit" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {UNIT_OPTIONS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        )} />
+                                        <div className="relative flex-1">
+                                            <FormControl><Input
+                                                type="number"
+                                                maxLength={4}
+                                                placeholder={placeholder}
+                                                className={inputCls(!!fieldState.error)}
+                                                {...field}
+                                            /></FormControl>
+                                            {fieldState.error && <ErrorBadge />}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Interval Threshold</p>}
-                        </FormItem>
+                                {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Interval Threshold</p>}
+                            </FormItem>
                         );
                     }} />
 
@@ -467,34 +452,34 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         const unit = form.watch("repeat_interval_unit");
                         const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Interval Repeat in Cycles" : "Enter Interval Repeat";
                         return (
-                        <FormItem className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Interval Repeat</FormLabel>
-                                <div className="flex gap-2 flex-1">
-                                    <FormField control={form.control} name="repeat_interval_unit" render={({ field: uf }) => (
-                                        <Select onValueChange={uf.onChange} value={uf.value as string}>
-                                            <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
-                                                <SelectValue placeholder="Unit" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {UNIT_OPTIONS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    )} />
-                                    <div className="relative flex-1">
-                                        <FormControl><Input
-                                            type="number"
-                                            maxLength={4}
-                                            placeholder={placeholder}
-                                            className={inputCls(!!fieldState.error)}
-                                            {...field}
-                                        /></FormControl>
-                                        {fieldState.error && <ErrorBadge />}
+                            <FormItem className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-3">
+                                    <FormLabel className={labelCls(!!fieldState.error)}>Interval Repeat</FormLabel>
+                                    <div className="flex gap-2 flex-1">
+                                        <FormField control={form.control} name="repeat_interval_unit" render={({ field: uf }) => (
+                                            <Select onValueChange={uf.onChange} value={uf.value as string}>
+                                                <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
+                                                    <SelectValue placeholder="Unit" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {UNIT_OPTIONS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        )} />
+                                        <div className="relative flex-1">
+                                            <FormControl><Input
+                                                type="number"
+                                                maxLength={4}
+                                                placeholder={placeholder}
+                                                className={inputCls(!!fieldState.error)}
+                                                {...field}
+                                            /></FormControl>
+                                            {fieldState.error && <ErrorBadge />}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Repeat Interval</p>}
-                        </FormItem>
+                                {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Repeat Interval</p>}
+                            </FormItem>
                         );
                     }} />
 
