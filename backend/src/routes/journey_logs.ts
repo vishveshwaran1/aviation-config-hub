@@ -89,91 +89,103 @@ router.post('/', async (req, res) => {
       defects = [],
     } = req.body;
 
-    const log = await prisma.journeyLog.create({
-      data: {
-        aircraft_id,
-        company_name,
-        date: toDate(date) ?? new Date(),
-        registration,
-        aircraft_type,
-        log_sl_no,
-        pic_name,
-        pic_license_no,
-        pic_sign: pic_sign ?? 'No',
-        commander_sign: commander_sign ?? 'No',
-        fuel_arrival: toFloat(fuel_arrival),
-        fuel_departure: toFloat(fuel_departure),
-        remaining_fuel_onboard: toFloat(remaining_fuel_onboard),
-        fuel_uplift: toFloat(fuel_uplift),
-        calculate_total_fuel: toFloat(calculate_total_fuel),
-        fuel_discrepancy: toFloat(fuel_discrepancy),
-        aircraft_total_hrs: toFloat(aircraft_total_hrs),
-        aircraft_total_cyc: toFloat(aircraft_total_cyc),
-        fuel_flight_deck_gauge: toFloat(fuel_flight_deck_gauge),
-        next_due_maintenance: toDate(next_due_maintenance),
-        due_at_date: toDate(due_at_date),
-        due_at_hours: toFloat(due_at_hours),
-        total_flight_hrs: toFloat(total_flight_hrs),
-        total_flight_cyc: toFloat(total_flight_cyc),
-        daily_inspection: toDate(daily_inspection),
-        type_of_maintenance,
-        apu_hrs: toFloat(apu_hrs),
-        apu_cyc: toFloat(apu_cyc),
-        oil_uplift_eng1: toFloat(oil_uplift_eng1),
-        oil_uplift_eng2: toFloat(oil_uplift_eng2),
-        oil_uplift_apu: toFloat(oil_uplift_apu),
-        daily_inspection_sign: daily_inspection_sign ?? 'No',
-        sign_stamp: sign_stamp ?? 'No',
-        sectors: {
-          create: (sectors as any[]).map((s: any, idx: number) => ({
-            sl_no: idx + 1,
-            flight_num: s.flight_num,
-            sector_from: s.sector_from,
-            sector_to: s.sector_to,
-            on_chock_dep_date: s.on_chock_dep_date,
-            on_chock_dep_time: s.on_chock_dep_time,
-            on_chock_arr_date: s.on_chock_arr_date,
-            on_chock_arr_time: s.on_chock_arr_time,
-            on_chock_duration: s.on_chock_duration,
-            off_chock_dep_date: s.off_chock_dep_date,
-            off_chock_dep_time: s.off_chock_dep_time,
-            off_chock_arr_date: s.off_chock_arr_date,
-            off_chock_arr_time: s.off_chock_arr_time,
-            off_chock_duration: s.off_chock_duration,
-          })),
+    const result = await prisma.$transaction(async (tx) => {
+      const log = await tx.journeyLog.create({
+        data: {
+          aircraft_id,
+          company_name,
+          date: toDate(date) ?? new Date(),
+          registration,
+          aircraft_type,
+          log_sl_no,
+          pic_name,
+          pic_license_no,
+          pic_sign: pic_sign ?? 'No',
+          commander_sign: commander_sign ?? 'No',
+          fuel_arrival: toFloat(fuel_arrival),
+          fuel_departure: toFloat(fuel_departure),
+          remaining_fuel_onboard: toFloat(remaining_fuel_onboard),
+          fuel_uplift: toFloat(fuel_uplift),
+          calculate_total_fuel: toFloat(calculate_total_fuel),
+          fuel_discrepancy: toFloat(fuel_discrepancy),
+          aircraft_total_hrs: toFloat(aircraft_total_hrs),
+          aircraft_total_cyc: toFloat(aircraft_total_cyc),
+          fuel_flight_deck_gauge: toFloat(fuel_flight_deck_gauge),
+          next_due_maintenance: toDate(next_due_maintenance),
+          due_at_date: toDate(due_at_date),
+          due_at_hours: toFloat(due_at_hours),
+          total_flight_hrs: toFloat(total_flight_hrs),
+          total_flight_cyc: toFloat(total_flight_cyc),
+          daily_inspection: toDate(daily_inspection),
+          type_of_maintenance,
+          apu_hrs: toFloat(apu_hrs),
+          apu_cyc: toFloat(apu_cyc),
+          oil_uplift_eng1: toFloat(oil_uplift_eng1),
+          oil_uplift_eng2: toFloat(oil_uplift_eng2),
+          oil_uplift_apu: toFloat(oil_uplift_apu),
+          daily_inspection_sign: daily_inspection_sign ?? 'No',
+          sign_stamp: sign_stamp ?? 'No',
+          sectors: {
+            create: (sectors as any[]).map((s: any, idx: number) => ({
+              sl_no: idx + 1,
+              flight_num: s.flight_num,
+              sector_from: s.sector_from,
+              sector_to: s.sector_to,
+              on_chock_dep_date: s.on_chock_dep_date,
+              on_chock_dep_time: s.on_chock_dep_time,
+              on_chock_arr_date: s.on_chock_arr_date,
+              on_chock_arr_time: s.on_chock_arr_time,
+              on_chock_duration: s.on_chock_duration,
+              off_chock_dep_date: s.off_chock_dep_date,
+              off_chock_dep_time: s.off_chock_dep_time,
+              off_chock_arr_date: s.off_chock_arr_date,
+              off_chock_arr_time: s.off_chock_arr_time,
+              off_chock_duration: s.off_chock_duration,
+            })),
+          },
+          defects: {
+            create: (defects as any[]).map((d: any, idx: number) => ({
+              sl_no: idx + 1,
+              category: d.category ?? 'PIREP',
+              defect_description: d.defect_description,
+              action_taken: d.action_taken,
+              mel_expiry_date: d.mel_expiry_date,
+              mel_reference: d.mel_reference,
+              mel_repair_cat: d.mel_repair_cat,
+              lic_no: d.lic_no,
+              part1_description: d.part1_description,
+              part1_number_on: d.part1_number_on,
+              part1_number_off: d.part1_number_off,
+              part1_serial_on: d.part1_serial_on,
+              part1_serial_off: d.part1_serial_off,
+              part1_cert_num: d.part1_cert_num,
+              part2_description: d.part2_description,
+              part2_number_on: d.part2_number_on,
+              part2_number_off: d.part2_number_off,
+              part2_serial_on: d.part2_serial_on,
+              part2_serial_off: d.part2_serial_off,
+              part2_cert_num: d.part2_cert_num,
+            })),
+          },
         },
-        defects: {
-          create: (defects as any[]).map((d: any, idx: number) => ({
-            sl_no: idx + 1,
-            category: d.category ?? 'PIREP',
-            defect_description: d.defect_description,
-            action_taken: d.action_taken,
-            mel_expiry_date: d.mel_expiry_date,
-            mel_reference: d.mel_reference,
-            mel_repair_cat: d.mel_repair_cat,
-            lic_no: d.lic_no,
-            part1_description: d.part1_description,
-            part1_number_on: d.part1_number_on,
-            part1_number_off: d.part1_number_off,
-            part1_serial_on: d.part1_serial_on,
-            part1_serial_off: d.part1_serial_off,
-            part1_cert_num: d.part1_cert_num,
-            part2_description: d.part2_description,
-            part2_number_on: d.part2_number_on,
-            part2_number_off: d.part2_number_off,
-            part2_serial_on: d.part2_serial_on,
-            part2_serial_off: d.part2_serial_off,
-            part2_cert_num: d.part2_cert_num,
-          })),
+        include: {
+          sectors: { orderBy: { sl_no: 'asc' } },
+          defects: { orderBy: { sl_no: 'asc' } },
         },
-      },
-      include: {
-        sectors: { orderBy: { sl_no: 'asc' } },
-        defects: { orderBy: { sl_no: 'asc' } },
-      },
+      });
+
+      await tx.aircraft.update({
+        where: { id: aircraft_id },
+        data: {
+          flight_hours: { increment: toFloat(total_flight_hrs) ?? 0 },
+          flight_cycles: { increment: toFloat(total_flight_cyc) ?? 0 },
+        },
+      });
+
+      return log;
     });
 
-    res.status(201).json(log);
+    res.status(201).json(result);
   } catch (error) {
     console.error('Error creating journey log:', error);
     res.status(500).json({ error: 'Failed to create journey log', details: (error as Error).message });
@@ -208,6 +220,12 @@ router.patch('/:id', async (req, res) => {
 
     // Run in a transaction: update header, replace sectors & defects
     const log = await prisma.$transaction(async (tx) => {
+      const oldLog = await tx.journeyLog.findUnique({ where: { id } });
+      if (!oldLog) throw new Error('Journey log not found');
+
+      const oldFH = oldLog.total_flight_hrs ?? 0;
+      const oldFC = oldLog.total_flight_cyc ?? 0;
+
       const updated = await tx.journeyLog.update({ where: { id }, data });
 
       if (sectors !== undefined) {
@@ -266,6 +284,16 @@ router.patch('/:id', async (req, res) => {
         }
       }
 
+      const newFH = data.total_flight_hrs ?? oldFH;
+      const newFC = data.total_flight_cyc ?? oldFC;
+      await tx.aircraft.update({
+        where: { id: oldLog.aircraft_id },
+        data: {
+          flight_hours: { increment: newFH - oldFH },
+          flight_cycles: { increment: newFC - oldFC },
+        },
+      });
+
       return tx.journeyLog.findUnique({
         where: { id },
         include: {
@@ -285,7 +313,22 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.journeyLog.delete({ where: { id } });
+
+    await prisma.$transaction(async (tx) => {
+      const log = await tx.journeyLog.findUnique({ where: { id } });
+      if (!log) return;
+
+      await tx.journeyLog.delete({ where: { id } });
+
+      await tx.aircraft.update({
+        where: { id: log.aircraft_id },
+        data: {
+          flight_hours: { decrement: log.total_flight_hrs ?? 0 },
+          flight_cycles: { decrement: log.total_flight_cyc ?? 0 },
+        },
+      });
+    });
+
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting journey log:', error);
