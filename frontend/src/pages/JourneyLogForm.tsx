@@ -374,6 +374,18 @@ const JourneyLogForm = () => {
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
   const [errors, setErrors] = useState<Partial<Record<keyof JourneyFormData, string>>>({});
 
+  // Auto-populate registration and aircraft model from aircraft setup
+  useEffect(() => {
+    if (!id) return;
+    api.aircrafts.get(id).then((aircraft: any) => {
+      setForm((p) => ({
+        ...p,
+        registration: aircraft.registration_number ?? p.registration,
+        aircraft_type: aircraft.model ?? p.aircraft_type,
+      }));
+    }).catch(console.error);
+  }, [id]);
+
   // ── Upload modal state ─────────────────────────────────
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -703,17 +715,14 @@ const JourneyLogForm = () => {
             {/* 1. Journey Log Header */}
             <Section title="Journey Log Panel">
               <Grid cols={3}>
-                <F label="Company Name">
-                  <Input className={inp} placeholder="Company Name" value={form.company_name} onChange={set("company_name")} />
-                </F>
                 <F label="Date" required error={errors.date}>
                   <Input type="date" className={ec("date")} value={form.date} onChange={set("date")} />
                 </F>
                 <F label="Aircraft Registration" required error={errors.registration}>
-                  <Input className={cn(ec("registration"), "uppercase")} placeholder="e.g. 9M-XXA" value={form.registration} onChange={set("registration")} />
+                  <Input className={cn(ec("registration"), "uppercase bg-gray-50")} placeholder="e.g. 9M-XXA" value={form.registration} readOnly />
                 </F>
-                <F label="Aircraft Type">
-                  <Input className={inp} placeholder="e.g. Boeing 737-800" value={form.aircraft_type} onChange={set("aircraft_type")} />
+                <F label="Aircraft Model">
+                  <Input className={cn(inp, "bg-gray-50")} placeholder="e.g. B737-800" value={form.aircraft_type} readOnly />
                 </F>
                 <F label="Log Serial No.">
                   <Input className={inp} placeholder="e.g. 9MXXA-001" value={form.log_sl_no} onChange={set("log_sl_no")} />
