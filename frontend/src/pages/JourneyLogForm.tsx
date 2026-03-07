@@ -315,44 +315,152 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 
-const SectorCard = ({ index, sector, onChange }: {
+const calcDuration = (
+  depDate: string, depTime: string,
+  arrDate: string, arrTime: string,
+): { value: string; error: string | null } => {
+  if (!depDate || !depTime || !arrDate || !arrTime) return { value: "", error: null };
+  const norm = (t: string) => { const s = t.replace(":", "").padEnd(4, "0"); return `${s.slice(0, 2)}:${s.slice(2, 4)}`; };
+  const dep = new Date(`${depDate}T${norm(depTime)}:00`);
+  const arr = new Date(`${arrDate}T${norm(arrTime)}:00`);
+  if (isNaN(dep.getTime()) || isNaN(arr.getTime())) return { value: "", error: null };
+  if (arr <= dep) return { value: "", error: "Arr before dep" };
+  const diffMs = arr.getTime() - dep.getTime();
+  if (diffMs > 86400000) return { value: "", error: ">24 hr" };
+  const totalMins = Math.floor(diffMs / 60000);
+  return { value: `${Math.floor(totalMins / 60)}:${String(totalMins % 60).padStart(2, "0")}`, error: null };
+};
+
+function SectorCard({ index, sector, onChange }: {
   index: number;
   sector: Sector;
   onChange: (f: keyof Sector, v: string) => void;
-}) => (
-  <div className="rounded-xl border border-dashed border-[#556ee6]/30 bg-blue-50/30 p-4 space-y-4">
-    <span className="text-[11px] font-bold uppercase tracking-widest text-[#556ee6]">Sl.No: {index + 1}</span>
-    <Grid cols={3}>
-      <F label="Flight Number"><Input className={inp} placeholder="e.g. AK101" value={sector.flight_num} onChange={(e) => onChange("flight_num", e.target.value)} /></F>
-      <F label="Sector From"><Input className={cn(inp, "uppercase")} placeholder="KUL" maxLength={4} value={sector.sector_from} onChange={(e) => onChange("sector_from", e.target.value.toUpperCase())} /></F>
-      <F label="Sector To"><Input className={cn(inp, "uppercase")} placeholder="SIN" maxLength={4} value={sector.sector_to} onChange={(e) => onChange("sector_to", e.target.value.toUpperCase())} /></F>
-    </Grid>
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {/* On-Chock */}
-      <div className="rounded-lg border bg-white p-3 space-y-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">On-Chock</span>
-        <Grid cols={2}>
-          <F label="Departure Date"><Input className={inp} type="date" value={sector.on_chock_dep_date} onChange={(e) => onChange("on_chock_dep_date", e.target.value)} /></F>
-          <F label="Departure Time"><Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_dep_time} onChange={(e) => onChange("on_chock_dep_time", e.target.value)} /></F>
-          <F label="Arrival Date"><Input className={inp} type="date" value={sector.on_chock_arr_date} onChange={(e) => onChange("on_chock_arr_date", e.target.value)} /></F>
-          <F label="Arrival Time"><Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_arr_time} onChange={(e) => onChange("on_chock_arr_time", e.target.value)} /></F>
-        </Grid>
-        <F label="Sector Duration"><Input className={inp} placeholder="H:MM" value={sector.on_chock_duration} onChange={(e) => onChange("on_chock_duration", e.target.value)} /></F>
+}) {
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; });
+
+  // Auto-calculate Block Hrs (Block Off → Block On)
+  useEffect(() => {
+    const { value } = calcDuration(
+      sector.on_chock_dep_date, sector.on_chock_dep_time,
+      sector.on_chock_arr_date, sector.on_chock_arr_time,
+    );
+    if (value !== sector.on_chock_duration) onChangeRef.current("on_chock_duration", value);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sector.on_chock_dep_date, sector.on_chock_dep_time, sector.on_chock_arr_date, sector.on_chock_arr_time]);
+
+  // Auto-calculate Flight Hrs (Take Off → Landing), sharing the same dep/arr dates
+  useEffect(() => {
+    const { value } = calcDuration(
+      sector.on_chock_dep_date, sector.off_chock_dep_time,
+      sector.on_chock_arr_date, sector.off_chock_arr_time,
+    );
+    if (value !== sector.off_chock_duration) onChangeRef.current("off_chock_duration", value);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sector.on_chock_dep_date, sector.off_chock_dep_time, sector.on_chock_arr_date, sector.off_chock_arr_time]);
+
+  const blockCalc = calcDuration(
+    sector.on_chock_dep_date, sector.on_chock_dep_time,
+    sector.on_chock_arr_date, sector.on_chock_arr_time,
+  );
+  const flightCalc = calcDuration(
+    sector.on_chock_dep_date, sector.off_chock_dep_time,
+    sector.on_chock_arr_date, sector.off_chock_arr_time,
+  );
+
+  return (
+    <div className="rounded-xl border border-dashed border-[#556ee6]/30 bg-blue-50/30 p-4 space-y-4">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-[#556ee6]">Sl.No: {index + 1}</span>
+
+      {/* Top row: flight info + dates */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <F label="Flight Number"><Input className={inp} placeholder="e.g. AK101" value={sector.flight_num} onChange={(e) => onChange("flight_num", e.target.value)} /></F>
+        <F label="Sector From"><Input className={cn(inp, "uppercase")} placeholder="KUL" maxLength={4} value={sector.sector_from} onChange={(e) => onChange("sector_from", e.target.value.toUpperCase())} /></F>
+        <F label="Sector To"><Input className={cn(inp, "uppercase")} placeholder="SIN" maxLength={4} value={sector.sector_to} onChange={(e) => onChange("sector_to", e.target.value.toUpperCase())} /></F>
+        <F label="Departure Date">
+          <Input className={inp} type="date" value={sector.on_chock_dep_date}
+            onChange={(e) => { onChange("on_chock_dep_date", e.target.value); onChange("off_chock_dep_date", e.target.value); }} />
+        </F>
+        <F label="Arrival Date">
+          <Input className={inp} type="date" value={sector.on_chock_arr_date}
+            onChange={(e) => { onChange("on_chock_arr_date", e.target.value); onChange("off_chock_arr_date", e.target.value); }} />
+        </F>
       </div>
-      {/* Off-Chock */}
-      <div className="rounded-lg border bg-white p-3 space-y-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Off-Chock</span>
-        <Grid cols={2}>
-          <F label="Departure Date"><Input className={inp} type="date" value={sector.off_chock_dep_date} onChange={(e) => onChange("off_chock_dep_date", e.target.value)} /></F>
-          <F label="Departure Time"><Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_dep_time} onChange={(e) => onChange("off_chock_dep_time", e.target.value)} /></F>
-          <F label="Arrival Date"><Input className={inp} type="date" value={sector.off_chock_arr_date} onChange={(e) => onChange("off_chock_arr_date", e.target.value)} /></F>
-          <F label="Arrival Time"><Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_arr_time} onChange={(e) => onChange("off_chock_arr_time", e.target.value)} /></F>
-        </Grid>
-        <F label="Sector Duration"><Input className={inp} placeholder="H:MM" value={sector.off_chock_duration} onChange={(e) => onChange("off_chock_duration", e.target.value)} /></F>
+
+      {/* Time Log (UTC) */}
+      <div>
+        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-2">Time Log (UTC)</p>
+        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+          <table className="w-full text-sm border-collapse">
+            <colgroup>
+              <col className="w-1/2" />
+              <col className="w-1/2" />
+            </colgroup>
+            <tbody>
+              {/* Row 1: Block Off | Take Off */}
+              <tr className="border-b border-gray-200">
+                <td className="border-r border-gray-200 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Block Off</span>
+                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_dep_time} onChange={(e) => onChange("on_chock_dep_time", e.target.value)} />
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Take Off</span>
+                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_dep_time} onChange={(e) => onChange("off_chock_dep_time", e.target.value)} />
+                  </div>
+                </td>
+              </tr>
+              {/* Row 2: Block On | Landing */}
+              <tr className="border-b border-gray-200">
+                <td className="border-r border-gray-200 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Block On</span>
+                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_arr_time} onChange={(e) => onChange("on_chock_arr_time", e.target.value)} />
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Landing</span>
+                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_arr_time} onChange={(e) => onChange("off_chock_arr_time", e.target.value)} />
+                  </div>
+                </td>
+              </tr>
+              {/* Row 3: Block Hrs | Flight Hrs | Total Cycles (colspan split) */}
+              <tr className="bg-[#556ee6]/5">
+                <td className="border-r border-gray-200 px-3 py-2" colSpan={1}>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-[#556ee6] whitespace-nowrap shrink-0">Block Hrs</span>
+                      {blockCalc.error
+                        ? <span className="text-xs text-rose-500">{blockCalc.error}</span>
+                        : <span className="text-sm font-semibold text-gray-800">{blockCalc.value || "—"}</span>}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-[#556ee6] whitespace-nowrap shrink-0">Flight Hrs</span>
+                      {flightCalc.error
+                        ? <span className="text-xs text-rose-500">{flightCalc.error}</span>
+                        : <span className="text-sm font-semibold text-gray-800">{flightCalc.value || "—"}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500 whitespace-nowrap shrink-0">Total Cycles</span>
+                      <span className="text-sm font-semibold text-gray-800">1</span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+}
 
 
 const JourneyLogForm = () => {
