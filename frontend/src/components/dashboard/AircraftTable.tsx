@@ -109,9 +109,7 @@ export function AircraftTable() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[50px]">
-                                <Checkbox />
-                            </TableHead>
+                            <TableHead>#</TableHead>
                             <TableHead>Aircraft Model</TableHead>
                             <TableHead>MSN</TableHead>
                             <TableHead>National Reg ID</TableHead>
@@ -130,11 +128,9 @@ export function AircraftTable() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            currentData.map((aircraft) => (
+                            currentData.map((aircraft, index) => (
                                 <TableRow key={aircraft.id}>
-                                    <TableCell>
-                                        <Checkbox />
-                                    </TableCell>
+                                    <TableCell>{index + 1}</TableCell>
                                     <TableCell className="font-medium">{aircraft.model}</TableCell>
                                     <TableCell>{aircraft.msn}</TableCell>
                                     <TableCell>{aircraft.registration_number}</TableCell>

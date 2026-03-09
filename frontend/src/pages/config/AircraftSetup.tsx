@@ -192,9 +192,6 @@ const AircraftSetup = () => {
           <Table>
             <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead className="w-[40px]">
-                  <input type="checkbox" className="translate-y-[2px]" />
-                </TableHead>
                 <TableHead className="w-[40px]">#</TableHead>
                 <TableHead>Aircraft Model</TableHead>
                 <TableHead>MSN</TableHead>
@@ -221,9 +218,6 @@ const AircraftSetup = () => {
               ) : (
                 filteredData.map((item, index) => (
                   <TableRow key={item.id ?? index}>
-                    <TableCell>
-                      <input type="checkbox" className="translate-y-[2px]" />
-                    </TableCell>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell className="font-medium">{item.model}</TableCell>
                     <TableCell>{item.msn}</TableCell>
