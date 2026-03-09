@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
-import {
-  ArrowLeft,
-  Search,
-  Plus,
-  Pencil,
-  Trash2,
-  Plane,
-  Info,
-  Eye,
-} from "lucide-react";
+import {ArrowLeft,Search,Plus,Pencil,Trash2,Plane,Info,Eye,Download} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 interface JourneyLogSector {
   id: string;
@@ -29,6 +21,7 @@ interface JourneyLogSector {
   flight_num?: string;
   sector_from?: string;
   sector_to?: string;
+  off_chock_duration?: string;
 }
 
 interface JourneyLogEntry {
@@ -93,6 +86,31 @@ const JourneyLog = () => {
     }
   };
 
+  const handleExport = () =>{
+    const rows = filtered.map((log,idx)=>{
+      const s0 = log.sectors?.[0];
+      return{
+        "S.No": idx + 1,
+        "Date": fmtDate(log.date),
+        "Log Serial No": log.log_sl_no ?? "",
+        "Flight No.": s0?.flight_num ?? "",
+        "From": s0?.sector_from ?? "",
+        "To": s0?.sector_to ?? "",
+        "Aircraft Type": log.aircraft_type ?? "",
+        "Registration": log.registration,
+        "Flight Hrs": s0?.off_chock_duration ?? "",
+        "Cycles": s0?.off_chock_duration ? 1 : "",
+        "PIC Name": log.pic_name,
+        "Company": log.company_name ?? "",
+      }
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = Object.keys(rows[0] ?? {}).map(() => ({ wch: 20 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Journey Log");
+    XLSX.writeFile(wb, "Journey Log.xlsx");
+  }
+
 
   const filtered = logs.filter((l) => {
     const q = search.toLowerCase();
@@ -137,6 +155,19 @@ const JourneyLog = () => {
             <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-black">
               {loading ? "…" : `${logs.length} entries`}
             </span>
+
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 font-semibold text-xs"
+              onClick={handleExport}
+              disabled={filtered.length === 0}
+              title="Export to Excel"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </Button>
+
             <Button
               size="sm"
               className="h-8 gap-1.5 bg-white text-[#556ee6] hover:bg-white/90 font-semibold text-xs"
@@ -258,10 +289,10 @@ const JourneyLog = () => {
                         {log.registration}
                       </td>
                       <td className="px-4 py-3 tabular-nums text-xs font-medium text-gray-700 whitespace-nowrap">
-                        {log.total_flight_hrs != null ? Number(log.total_flight_hrs).toFixed(2) + " hrs" : "—"}
+                        {s0?.off_chock_duration ? s0.off_chock_duration + " hrs" : "—"}
                       </td>
                       <td className="px-4 py-3 tabular-nums text-xs text-gray-700 whitespace-nowrap">
-                        {log.total_flight_cyc ?? "—"}
+                        {s0?.off_chock_duration ? "1" : "—"}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                         <span className="font-medium text-gray-700">{log.pic_name}</span>
