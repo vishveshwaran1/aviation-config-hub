@@ -38,7 +38,7 @@ const Login = () => {
       <div className="absolute inset-0  " />
 
       <div className="relative w-full max-w-md p-4">
-        <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="overflow-hidden rounded-sm bg-white shadow-2xl">
           {/* Header Section */}
           <div className="relative h-32 bg-[#dbeafe] p-6">
             <div className="relative z-10">
