@@ -47,7 +47,6 @@ const LG_MANUFACTURERS = [
     "Safran Landing Systems", "Messier-Bugatti", "UTC Aerospace Systems",
     "Goodrich", "Heroux-Devtek", "Liebherr", "Dowty",
 ];
-const LG_MODELS = ["Model-100A", "Model-200B", "MLG-300", "NLG-150", "Standard", "N/A"];
 
 /* ── Shared sub-components ──────────────────────────────────────── */
 
@@ -601,21 +600,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
-                    <FormField control={form.control} name="mlg_left_model" render={({ field, fieldState }) => (
-                        <FormItem className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
-                                <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
-                                        <SelectContent>{LG_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
-                                </div>
-                            </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Model</p>}
-                        </FormItem>
-                    )} />
+                    {TextField("mlg_left_model", "Model")}
 
                     {TextField("mlg_left_serial_number", "Serial No")}
                     {TextField("confirm_mlg_left_serial_number", "Re-Enter Serial No")}
@@ -645,21 +630,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
-                    <FormField control={form.control} name="mlg_right_model" render={({ field, fieldState }) => (
-                        <FormItem className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
-                                <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
-                                        <SelectContent>{LG_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
-                                </div>
-                            </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Model</p>}
-                        </FormItem>
-                    )} />
+                    {TextField("mlg_right_model", "Model")}
 
                     {TextField("mlg_right_serial_number", "Serial No")}
                     {TextField("confirm_mlg_right_serial_number", "Re-Enter Serial No")}
@@ -689,21 +660,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
-                    <FormField control={form.control} name="nlg_model" render={({ field, fieldState }) => (
-                        <FormItem className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-3">
-                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
-                                <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                        <FormControl><SelectTrigger className={`h-9 text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}><SelectValue placeholder="Select..." /></SelectTrigger></FormControl>
-                                        <SelectContent>{LG_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    {fieldState.error && <span className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
-                                </div>
-                            </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Model</p>}
-                        </FormItem>
-                    )} />
+                    {TextField("nlg_model", "Model")}
 
                     {TextField("nlg_serial_number", "Serial No")}
                     {TextField("confirm_nlg_serial_number", "Re-Enter Serial No")}
