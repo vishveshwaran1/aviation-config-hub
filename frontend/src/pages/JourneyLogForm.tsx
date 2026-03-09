@@ -1,13 +1,12 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Save, Plus, Trash2, Upload, Download } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -132,9 +131,6 @@ const TEMPLATE_HEADERS = [
   "S1 Flight Num", "S1 Sector From", "S1 Sector To",
   "S1 On Chock Dep Date", "S1 On Chock Dep Time", "S1 On Chock Arr Date", "S1 On Chock Arr Time", "S1 On Chock Duration",
   "S1 Off Chock Dep Date", "S1 Off Chock Dep Time", "S1 Off Chock Arr Date", "S1 Off Chock Arr Time", "S1 Off Chock Duration",
-  "S2 Flight Num", "S2 Sector From", "S2 Sector To",
-  "S2 On Chock Dep Date", "S2 On Chock Dep Time", "S2 On Chock Arr Date", "S2 On Chock Arr Time", "S2 On Chock Duration",
-  "S2 Off Chock Dep Date", "S2 Off Chock Dep Time", "S2 Off Chock Arr Date", "S2 Off Chock Arr Time", "S2 Off Chock Duration",
 ];
 
 const TEMPLATE_SAMPLE_ROW = [
@@ -147,89 +143,10 @@ const TEMPLATE_SAMPLE_ROW = [
   "AK101", "KUL", "SIN",
   "2026-02-24", "0800", "2026-02-24", "0915", "1:15",
   "2026-02-24", "0755", "2026-02-24", "0920", "1:25",
-  "AK102", "SIN", "KUL",
-  "2026-02-24", "1030", "2026-02-24", "1148", "1:18",
-  "2026-02-24", "1025", "2026-02-24", "1153", "1:28",
 ];
 
 
-export const JOURNEY_MOCK: Record<string, {
-  form: Partial<JourneyFormData>;
-  sectors: [Sector, Sector];
-  defects: DefectRow[];
-}> = {
-  JL001: {
-    form: {
-      company_name: "AeroTrend MRO Sdn Bhd", date: "2026-02-01",
-      registration: "9M-XXA", aircraft_type: "Boeing 737-800", log_sl_no: "9MXXA-001",
-      pic_name: "Capt. Ahmad Fadzil", pic_license_no: "ATPL-MY-00142",
-      pic_sign: "Yes", commander_sign: "Yes",
-      fuel_arrival: "6800", fuel_departure: "9200", remaining_fuel_onboard: "6800",
-      fuel_uplift: "8500", calculate_total_fuel: "15300", fuel_discrepancy: "0",
-      aircraft_total_hrs: "18502", aircraft_total_cyc: "4201",
-      fuel_flight_deck_gauge: "6750",
-      next_due_maintenance: "2026-03-01", due_at_date: "2026-03-01", due_at_hours: "18600",
-      total_flight_hrs: "1.25", total_flight_cyc: "1",
-      daily_inspection: "2026-02-01", type_of_maintenance: "Daily Check",
-      apu_hrs: "0.5", apu_cyc: "2",
-      oil_uplift_eng1: "0.5", oil_uplift_eng2: "0.5", oil_uplift_apu: "0",
-      daily_inspection_sign: "Yes", sign_stamp: "Yes",
-    },
-    sectors: [
-      { flight_num: "AK101", sector_from: "KUL", sector_to: "SIN", on_chock_dep_date: "2026-02-01", on_chock_dep_time: "0800", on_chock_arr_date: "2026-02-01", on_chock_arr_time: "0915", on_chock_duration: "1:15", off_chock_dep_date: "2026-02-01", off_chock_dep_time: "0755", off_chock_arr_date: "2026-02-01", off_chock_arr_time: "0920", off_chock_duration: "1:25" },
-      { flight_num: "", sector_from: "", sector_to: "", on_chock_dep_date: "", on_chock_dep_time: "", on_chock_arr_date: "", on_chock_arr_time: "", on_chock_duration: "", off_chock_dep_date: "", off_chock_dep_time: "", off_chock_arr_date: "", off_chock_arr_time: "", off_chock_duration: "" },
-    ],
-    defects: [],
-  },
-  JL002: {
-    form: {
-      company_name: "AeroTrend MRO Sdn Bhd", date: "2026-02-01",
-      registration: "9M-XXA", aircraft_type: "Boeing 737-800", log_sl_no: "9MXXA-002",
-      pic_name: "Capt. Ahmad Fadzil", pic_license_no: "ATPL-MY-00142",
-      pic_sign: "Yes", commander_sign: "Yes",
-      fuel_arrival: "6700", fuel_departure: "9000", remaining_fuel_onboard: "6700",
-      fuel_uplift: "9000", calculate_total_fuel: "15700", fuel_discrepancy: "0",
-      aircraft_total_hrs: "18503", aircraft_total_cyc: "4202",
-      fuel_flight_deck_gauge: "6680",
-      next_due_maintenance: "2026-03-01", due_at_date: "2026-03-01", due_at_hours: "18600",
-      total_flight_hrs: "1.3", total_flight_cyc: "1",
-      daily_inspection: "2026-02-01", type_of_maintenance: "Daily Check",
-      apu_hrs: "0.7", apu_cyc: "2",
-      oil_uplift_eng1: "0", oil_uplift_eng2: "0.5", oil_uplift_apu: "0",
-      daily_inspection_sign: "Yes", sign_stamp: "Yes",
-    },
-    sectors: [
-      { flight_num: "AK102", sector_from: "SIN", sector_to: "KUL", on_chock_dep_date: "2026-02-01", on_chock_dep_time: "1030", on_chock_arr_date: "2026-02-01", on_chock_arr_time: "1148", on_chock_duration: "1:18", off_chock_dep_date: "2026-02-01", off_chock_dep_time: "1025", off_chock_arr_date: "2026-02-01", off_chock_arr_time: "1153", off_chock_duration: "1:28" },
-      { flight_num: "", sector_from: "", sector_to: "", on_chock_dep_date: "", on_chock_dep_time: "", on_chock_arr_date: "", on_chock_arr_time: "", on_chock_duration: "", off_chock_dep_date: "", off_chock_dep_time: "", off_chock_arr_date: "", off_chock_arr_time: "", off_chock_duration: "" },
-    ],
-    defects: [
-      { id: 1, category: "PIREP", defect_description: "Seat 12A recline inoperative", action_taken: "Seat locked upright per MEL", mel_expiry_date: "2026-03-01", mel_reference: "MEL-25-001", mel_repair_cat: "B", lic_no: "AME-MY-00321", part1_description: "Seat Recline Mechanism", part1_number_on: "", part1_number_off: "737-25-001A", part1_serial_on: "", part1_serial_off: "SN-2204", part1_cert_num: "", part2_description: "", part2_number_on: "", part2_number_off: "", part2_serial_on: "", part2_serial_off: "", part2_cert_num: "" },
-    ],
-  },
-  JL003: {
-    form: {
-      company_name: "AeroTrend MRO Sdn Bhd", date: "2026-02-03",
-      registration: "9M-XXA", aircraft_type: "Boeing 737-800", log_sl_no: "9MXXA-003",
-      pic_name: "Capt. Zulkifli", pic_license_no: "ATPL-MY-00199",
-      pic_sign: "Yes", commander_sign: "Yes",
-      fuel_arrival: "8200", fuel_departure: "12500", remaining_fuel_onboard: "8200",
-      fuel_uplift: "12000", calculate_total_fuel: "20200", fuel_discrepancy: "0",
-      aircraft_total_hrs: "18505", aircraft_total_cyc: "4203",
-      fuel_flight_deck_gauge: "8150",
-      next_due_maintenance: "2026-03-01", due_at_date: "2026-03-01", due_at_hours: "18600",
-      total_flight_hrs: "2.1", total_flight_cyc: "1",
-      daily_inspection: "2026-02-03", type_of_maintenance: "Daily Check",
-      apu_hrs: "0.8", apu_cyc: "2",
-      oil_uplift_eng1: "0", oil_uplift_eng2: "0", oil_uplift_apu: "0",
-      daily_inspection_sign: "Yes", sign_stamp: "Yes",
-    },
-    sectors: [
-      { flight_num: "AK201", sector_from: "KUL", sector_to: "BKK", on_chock_dep_date: "2026-02-03", on_chock_dep_time: "0900", on_chock_arr_date: "2026-02-03", on_chock_arr_time: "1106", on_chock_duration: "2:06", off_chock_dep_date: "2026-02-03", off_chock_dep_time: "0855", off_chock_arr_date: "2026-02-03", off_chock_arr_time: "1112", off_chock_duration: "2:17" },
-      { flight_num: "", sector_from: "", sector_to: "", on_chock_dep_date: "", on_chock_dep_time: "", on_chock_arr_date: "", on_chock_arr_time: "", on_chock_duration: "", off_chock_dep_date: "", off_chock_dep_time: "", off_chock_arr_date: "", off_chock_arr_time: "", off_chock_duration: "" },
-    ],
-    defects: [],
-  },
-};
+
 
 const EMPTY_SECTOR: Sector = {
   flight_num: "", sector_from: "", sector_to: "",
@@ -324,7 +241,7 @@ const calcDuration = (
   const dep = new Date(`${depDate}T${norm(depTime)}:00`);
   const arr = new Date(`${arrDate}T${norm(arrTime)}:00`);
   if (isNaN(dep.getTime()) || isNaN(arr.getTime())) return { value: "", error: null };
-  if (arr <= dep) return { value: "", error: "Arr before dep" };
+  if (arr <= dep) return { value: "", error: "Arrival before departure" };
   const diffMs = arr.getTime() - dep.getTime();
   if (diffMs > 86400000) return { value: "", error: ">24 hr" };
   const totalMins = Math.floor(diffMs / 60000);
@@ -346,7 +263,6 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.on_chock_arr_time,
     );
     if (value !== sector.on_chock_duration) onChangeRef.current("on_chock_duration", value);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sector.on_chock_dep_date, sector.on_chock_dep_time, sector.on_chock_arr_date, sector.on_chock_arr_time]);
 
   // Auto-calculate Flight Hrs (Take Off → Landing), sharing the same dep/arr dates
@@ -356,7 +272,6 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.off_chock_arr_time,
     );
     if (value !== sector.off_chock_duration) onChangeRef.current("off_chock_duration", value);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sector.on_chock_dep_date, sector.off_chock_dep_time, sector.on_chock_arr_date, sector.off_chock_arr_time]);
 
   const blockCalc = calcDuration(
@@ -472,17 +387,16 @@ const JourneyLogForm = () => {
   const prefill = !isEdit ? (location.state as { prefill?: { form?: Partial<JourneyFormData>; sectors?: Sector[]; defects?: DefectRow[] } } | null)?.prefill : undefined;
 
   const [form, setForm] = useState<JourneyFormData>(prefill?.form ? { ...EMPTY_FORM, ...prefill.form } : { ...EMPTY_FORM });
-  const [sectors, setSectors] = useState<[Sector, Sector]>(
-    prefill?.sectors && prefill.sectors.length >= 2
-      ? [{ ...EMPTY_SECTOR, ...prefill.sectors[0] }, { ...EMPTY_SECTOR, ...prefill.sectors[1] }]
-      : [{ ...EMPTY_SECTOR }, { ...EMPTY_SECTOR }]
+  const [sectors, setSectors] = useState<[Sector]>(
+    prefill?.sectors && prefill.sectors.length >= 1
+      ? [{ ...EMPTY_SECTOR, ...prefill.sectors[0] }]
+      : [{ ...EMPTY_SECTOR }]
   );
   const [defects, setDefects] = useState<DefectRow[]>(prefill?.defects ?? []);
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
   const [errors, setErrors] = useState<Partial<Record<keyof JourneyFormData, string>>>({});
 
-  // Auto-populate registration and aircraft model from aircraft setup
   useEffect(() => {
     if (!id) return;
     api.aircrafts.get(id).then((aircraft: any) => {
@@ -490,11 +404,14 @@ const JourneyLogForm = () => {
         ...p,
         registration: aircraft.registration_number ?? p.registration,
         aircraft_type: aircraft.model ?? p.aircraft_type,
+        ...(isEdit ? {} : {
+          aircraft_total_hrs: String(aircraft.flight_hours ?? 0),
+          aircraft_total_cyc: String(aircraft.flight_cycles ?? 0),
+        }),
       }));
     }).catch(console.error);
-  }, [id]);
+  }, [id, isEdit]);
 
-  // ── Upload modal state ─────────────────────────────────
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadFileName, setUploadFileName] = useState("No file chosen");
@@ -502,14 +419,13 @@ const JourneyLogForm = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-open upload modal 500 ms after mounting (new entry only, matching reference)
+
   useEffect(() => {
     if (isEdit) return;
     const t = setTimeout(() => setShowUploadModal(true), 500);
     return () => clearTimeout(t);
   }, [isEdit]);
 
-  // ── Upload helpers ────────────────────────────────────
   const fmtExcelDate = (val: unknown): string => {
     if (!val) return "";
     if (val instanceof Date) return val.toISOString().split("T")[0];
@@ -523,14 +439,6 @@ const JourneyLogForm = () => {
     setUploadFile(file);
     setUploadFileName(file ? file.name : "No file chosen");
     setUploadError(null);
-  };
-
-  const downloadTemplate = () => {
-    const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, TEMPLATE_SAMPLE_ROW]);
-    ws["!cols"] = TEMPLATE_HEADERS.map(() => ({ wch: 22 }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Journey Log");
-    XLSX.writeFile(wb, "journey_log_template.xlsx");
   };
 
   const handleExcelUpload = () => {
@@ -571,7 +479,7 @@ const JourneyLogForm = () => {
           }
           return { ...EMPTY_SECTOR, ...s };
         };
-        setSectors([buildSector("S1"), buildSector("S2")]);
+        setSectors([buildSector("S1")]);
         setDefects([]);
 
         setShowUploadModal(false);
@@ -627,7 +535,7 @@ const JourneyLogForm = () => {
           daily_inspection_sign: data.daily_inspection_sign ?? "No",
           sign_stamp: data.sign_stamp ?? "No",
         });
-        const mappedSectors: Sector[] = (data.sectors ?? []).slice(0, 2).map((s: any) => ({
+        const mappedSectors: Sector[] = (data.sectors ?? []).slice(0, 1).map((s: any) => ({
           flight_num: s.flight_num ?? "",
           sector_from: s.sector_from ?? "",
           sector_to: s.sector_to ?? "",
@@ -642,8 +550,8 @@ const JourneyLogForm = () => {
           off_chock_arr_time: s.off_chock_arr_time ?? "",
           off_chock_duration: s.off_chock_duration ?? "",
         }));
-        while (mappedSectors.length < 2) mappedSectors.push({ ...EMPTY_SECTOR });
-        setSectors(mappedSectors as [Sector, Sector]);
+        while (mappedSectors.length < 1) mappedSectors.push({ ...EMPTY_SECTOR });
+        setSectors(mappedSectors as [Sector]);
         setDefects((data.defects ?? []).map((d: any, idx: number) => ({
           id: idx + 1,
           category: d.category ?? "PIREP",
@@ -677,8 +585,34 @@ const JourneyLogForm = () => {
   const setSign = (key: keyof JourneyFormData) => (v: string) => setForm((p) => ({ ...p, [key]: v }));
   const ec = (key: keyof JourneyFormData) => cn(inp, errors[key] && inpErr);
 
-  const updateSector = (i: 0 | 1, field: keyof Sector, val: string) =>
-    setSectors((p) => { const s = [...p] as [Sector, Sector]; s[i] = { ...s[i], [field]: val }; return s; });
+  const updateSector = (i: 0, field: keyof Sector, val: string) =>
+    setSectors((p) => { const s = [...p] as [Sector]; s[i] = { ...s[i], [field]: val }; return s; });
+
+  // Take off time and landing time use panni total_flight_hrs auto calculate pannum
+  // Idhu create and edit rendu case-layum work aagum
+  // Running total store pannaadhu, indha sector-ku varra hours difference (delta) mattum save pannum
+  useEffect(() => {
+    const dur = sectors[0]?.off_chock_duration ?? "";
+    if (dur) {
+      const parts = dur.split(":");
+      if (parts.length === 2) {
+        const hrs = parseInt(parts[0], 10);
+        const mins = parseInt(parts[1], 10);
+        if (!isNaN(hrs) && !isNaN(mins)) {
+          const sectorFlightHrs = hrs + mins / 60;
+          setForm((p) => ({
+            ...p,
+            total_flight_hrs: sectorFlightHrs.toFixed(2),
+            total_flight_cyc: "1",
+          }));
+          return;
+        }
+      }
+    }
+    if (!isEdit) {
+      setForm((p) => ({ ...p, total_flight_hrs: "0", total_flight_cyc: "1" }));
+    }
+  }, [sectors[0]?.off_chock_duration, isEdit]);
 
   const addDefect = () => setDefects((p) => [...p, { id: Date.now(), ...EMPTY_DEFECT }]);
   const updateDefect = (i: number, field: keyof Omit<DefectRow, "id">, val: string) =>
@@ -725,7 +659,6 @@ const JourneyLogForm = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Upload Modal (auto-opens 500ms after navigating here for new entries) ── */}
       <Dialog
         open={showUploadModal}
         onOpenChange={(o) => { if (!o) { setShowUploadModal(false); setUploadFile(null); setUploadFileName("No file chosen"); setUploadError(null); } }}
@@ -835,6 +768,12 @@ const JourneyLogForm = () => {
                 <F label="Log Serial No.">
                   <Input className={inp} placeholder="e.g. 9MXXA-001" value={form.log_sl_no} onChange={set("log_sl_no")} />
                 </F>
+                <F label="Total Flight Hrs">
+                  <Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} readOnly />
+                </F>
+                <F label="Total Flight Cyc">
+                  <Input className={inp} type="number" min="0" placeholder="0" value={form.total_flight_cyc} onChange={set("total_flight_cyc")} readOnly/>
+                </F>
               </Grid>
               <Grid cols={3}>
                 <F label="PIC Name" required error={errors.pic_name}>
@@ -850,10 +789,10 @@ const JourneyLogForm = () => {
               </Grid>
             </Section>
 
-            {/* 2. Sectors (fixed 2) */}
+            {/* 2. Sectors  */}
             <Section title="Flight Sectors">
               <div className="space-y-4">
-                {([0, 1] as const).map((i) => (
+                {([0] as const).map((i) => (
                   <SectorCard key={i} index={i} sector={sectors[i]}
                     onChange={(f, v) => updateSector(i, f, v)} />
                 ))}
@@ -881,8 +820,6 @@ const JourneyLogForm = () => {
                 <F label="Next Due Maintenance"><Input className={inp} type="date" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
                 <F label="Due @ Date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
                 <F label="Due @ Hours"><Input className={inp} type="number" step="0.1" min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
-                <F label="Total Flight Hrs"><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} /></F>
-                <F label="Total Flight Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.total_flight_cyc} onChange={set("total_flight_cyc")} /></F>
                 <F label="Daily Inspection"><Input className={inp} type="date" value={form.daily_inspection} onChange={set("daily_inspection")} /></F>
                 <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
                 <F label="APU Hrs"><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>

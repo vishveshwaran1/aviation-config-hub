@@ -173,12 +173,14 @@ router.post('/', async (req, res) => {
           defects: { orderBy: { sl_no: 'asc' } },
         },
       });
+      
+      const sectorFH = toFloat(total_flight_hrs) ?? 0;
 
       await tx.aircraft.update({
         where: { id: aircraft_id },
         data: {
-          flight_hours: { increment: toFloat(total_flight_hrs) ?? 0 },
-          flight_cycles: { increment: toFloat(total_flight_cyc) ?? 0 },
+          flight_hours: { increment: sectorFH },
+          flight_cycles: { increment: 1 },
         },
       });
 
@@ -224,9 +226,6 @@ router.patch('/:id', async (req, res) => {
       if (!oldLog) throw new Error('Journey log not found');
 
       const oldFH = oldLog.total_flight_hrs ?? 0;
-      const oldFC = oldLog.total_flight_cyc ?? 0;
-
-      const updated = await tx.journeyLog.update({ where: { id }, data });
 
       if (sectors !== undefined) {
         await tx.journeyLogSector.deleteMany({ where: { journey_log_id: id } });
@@ -285,12 +284,10 @@ router.patch('/:id', async (req, res) => {
       }
 
       const newFH = data.total_flight_hrs ?? oldFH;
-      const newFC = data.total_flight_cyc ?? oldFC;
       await tx.aircraft.update({
         where: { id: oldLog.aircraft_id },
         data: {
           flight_hours: { increment: newFH - oldFH },
-          flight_cycles: { increment: newFC - oldFC },
         },
       });
 
@@ -324,7 +321,7 @@ router.delete('/:id', async (req, res) => {
         where: { id: log.aircraft_id },
         data: {
           flight_hours: { decrement: log.total_flight_hrs ?? 0 },
-          flight_cycles: { decrement: log.total_flight_cyc ?? 0 },
+          flight_cycles: { decrement: 1 },
         },
       });
     });
