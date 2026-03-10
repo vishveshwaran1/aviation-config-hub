@@ -109,6 +109,15 @@ export const api = {
             await throwIfError(res);
             return res.json();
         },
+        update: async (id: string, data: any) => {
+            const res = await fetch(`${API_URL}/components/${id}`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            await throwIfError(res);
+            return res.json();
+        },
         delete: async (id: string) => {
             const res = await fetch(`${API_URL}/components/${id}`, {
                 method: 'DELETE',

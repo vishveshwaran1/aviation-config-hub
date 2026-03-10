@@ -60,4 +60,37 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// Update component
+router.patch('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            manufacturer, name, part_number, cmm_number, classification,
+            classification_date, class_linkage, compatible_aircraft_models,
+            estimated_price, quotation_price
+        } = req.body;
+
+        const component = await prisma.component.update({
+            where: { id },
+            data: {
+                manufacturer,
+                name,
+                part_number,
+                cmm_number,
+                classification,
+                classification_date: classification_date ? new Date(classification_date) : undefined,
+                class_linkage,
+                compatible_aircraft_models: compatible_aircraft_models || undefined,
+                estimated_price: estimated_price !== undefined ? Number(estimated_price) : undefined,
+                quotation_price: quotation_price !== undefined ? Number(quotation_price) : undefined,
+            }
+        });
+
+        res.json(component);
+    } catch (error) {
+        console.error("Error updating component:", error);
+        res.status(500).json({ error: 'Failed to update component', details: (error as Error).message });
+    }
+});
+
 export default router;

@@ -53,22 +53,33 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
         resolver: zodResolver(componentSchema),
         mode: "onBlur",
         defaultValues: {
-            compatible_aircraft_models: [],
-            currency: "MYR",
-            ...defaultValues,
+            manufacturer: defaultValues?.manufacturer || "",
+            name: defaultValues?.name || "",
+            confirm_name: defaultValues?.name || "",
+            part_number: defaultValues?.part_number || "",
+            confirm_part_number: defaultValues?.part_number || "",
+            cmm_number: defaultValues?.cmm_number || "",
+            confirm_cmm_number: defaultValues?.cmm_number || "",
+            classification: defaultValues?.classification || "",
+            classification_date: defaultValues?.classification_date ? new Date(defaultValues.classification_date).toISOString().split('T')[0] : "",
+            class_linkage: defaultValues?.class_linkage || "",
+            compatible_aircraft_models: defaultValues?.compatible_aircraft_models || [],
+            currency: defaultValues?.currency || "MYR",
+            estimated_price: defaultValues?.estimated_price || 0,
+            quotation_price: defaultValues?.quotation_price || 0,
         },
     });
+
+    const onFormError = (errors: any) => {
+        console.error("Form Validation Errors:", errors);
+        toast.error("Please fill in all required fields correctly.");
+    };
 
     async function onSubmit(data: ComponentFormData) {
         setLoading(true);
         try {
             if (defaultValues?.id) {
-                const res = await fetch(`http://localhost:3000/api/components/${defaultValues.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
-                    body: JSON.stringify(data),
-                });
-                if (!res.ok) throw await res.json();
+                await api.components.update(defaultValues.id, data);
                 toast.success("Component updated successfully");
             } else {
                 await api.components.create(data);
@@ -103,7 +114,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit, onFormError)}>
                 <div className="flex flex-col gap-5">
 
                     {/* Component Manufacturer */}
@@ -112,7 +123,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Component Manufacturer</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className={selectCls(!!fieldState.error)}>
                                                 <SelectValue placeholder="Select manufacturer" />
@@ -219,7 +230,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Component Classification</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className={selectCls(!!fieldState.error)}>
                                                 <SelectValue placeholder="Select classification" />
@@ -259,7 +270,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Component Class Linkage</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className={selectCls(!!fieldState.error)}>
                                                 <SelectValue placeholder="Select class linkage" />
