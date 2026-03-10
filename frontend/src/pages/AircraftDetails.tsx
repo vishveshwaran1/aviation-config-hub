@@ -87,7 +87,7 @@ const AircraftDetails = () => {
                     <DetailItem label="Aircraft Model" value={aircraft.model} />
                     <DetailItem label="Country" value={aircraft.country} />
                     <DetailItem label="MSN" value={aircraft.msn} />
-                    <DetailItem label="National Registration ID" value={aircraft.registration_number} />
+                    <DetailItem label="Aircraft Registration ID" value={aircraft.registration_number} />
                     <DetailItem
                         label="Manufactured Date"
                         value={aircraft.manufacture_date ? format(new Date(aircraft.manufacture_date), "dd/MM/yyyy") : "-"}

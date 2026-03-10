@@ -195,7 +195,7 @@ const AircraftSetup = () => {
                 <TableHead className="w-[40px]">#</TableHead>
                 <TableHead>Aircraft Model</TableHead>
                 <TableHead>MSN</TableHead>
-                <TableHead>National Reg ID</TableHead>
+                <TableHead>Aircraft Reg ID</TableHead>
                 <TableHead>No of Engines</TableHead>
                 <TableHead>Aircraft Received Status</TableHead>
                 <TableHead>Approval Status</TableHead>

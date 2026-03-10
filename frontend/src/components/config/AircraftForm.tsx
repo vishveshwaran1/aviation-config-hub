@@ -484,8 +484,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("country", "Country")} */}
 
 
-                    {TextField("registration_number", "National Registration ID")}
-                    {TextField("confirm_registration_number", "Re-Enter National Registration ID")}
+                    {TextField("registration_number", "Aircraft Registration ID")}
+                    {TextField("confirm_registration_number", "Re-Enter Aircraft Registration ID")}
 
                     {TextField("manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("delivery_date", "Date Received", "DD/MM/YYYY", "date")}

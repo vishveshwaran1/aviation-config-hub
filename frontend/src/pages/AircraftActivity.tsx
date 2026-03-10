@@ -132,7 +132,7 @@ const AircraftActivity = () => {
 
           {!loading && aircraft && (
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3 sm:justify-end">
-              <StatBadge label="National Reg ID" value={aircraft.registration_number} />
+              <StatBadge label="Aircraft Reg ID" value={aircraft.registration_number} />
               <div className="hidden sm:block w-px h-8 bg-white/20" />
               <StatBadge label="Aircraft FH" value={aircraft.flight_hours} />
               <div className="hidden sm:block w-px h-8 bg-white/20" />

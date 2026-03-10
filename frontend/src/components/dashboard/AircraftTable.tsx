@@ -113,7 +113,7 @@ export function AircraftTable() {
                             <TableHead>#</TableHead>
                             <TableHead>Aircraft Model</TableHead>
                             <TableHead>MSN</TableHead>
-                            <TableHead>National Reg ID</TableHead>
+                            <TableHead>Aircraft Reg ID</TableHead>
                             <TableHead>No of Engines</TableHead>
                             <TableHead>Flight Hours</TableHead>
                             <TableHead>Flight Cycles</TableHead>
