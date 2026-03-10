@@ -264,10 +264,7 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.on_chock_arr_time,
     );
     if (value !== sector.on_chock_duration) onChangeRef.current("on_chock_duration", value);
-<<<<<<< HEAD
     // eslint-disable-next-line react-hooks/exhaustive-deps
-=======
->>>>>>> 0cf0e966c369420e4ce0dc76df6d6e47da2217de
   }, [sector.on_chock_dep_date, sector.on_chock_dep_time, sector.on_chock_arr_date, sector.on_chock_arr_time]);
 
   // Auto-calculate Flight Hrs (Take Off → Landing), sharing the same dep/arr dates
@@ -277,10 +274,7 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.off_chock_arr_time,
     );
     if (value !== sector.off_chock_duration) onChangeRef.current("off_chock_duration", value);
-<<<<<<< HEAD
     // eslint-disable-next-line react-hooks/exhaustive-deps
-=======
->>>>>>> 0cf0e966c369420e4ce0dc76df6d6e47da2217de
   }, [sector.on_chock_dep_date, sector.off_chock_dep_time, sector.on_chock_arr_date, sector.off_chock_arr_time]);
 
   const blockCalc = calcDuration(
@@ -414,7 +408,7 @@ const JourneyLogForm = () => {
         registration: aircraft.registration_number ?? p.registration,
         aircraft_type: aircraft.model ?? p.aircraft_type,
         ...(isEdit ? {} : {
-          aircraft_total_hrs: String(aircraft.flight_hours ?? 0),
+          aircraft_total_hrs: decimalToHoursMinutes(aircraft.flight_hours ?? 0),
           aircraft_total_cyc: String(aircraft.flight_cycles ?? 0),
         }),
       }));
@@ -602,24 +596,14 @@ const JourneyLogForm = () => {
   // Running total store pannaadhu, indha sector-ku varra hours difference (delta) mattum save pannum
   useEffect(() => {
     const dur = sectors[0]?.off_chock_duration ?? "";
-    if (dur) {
-      const parts = dur.split(":");
-      if (parts.length === 2) {
-        const hrs = parseInt(parts[0], 10);
-        const mins = parseInt(parts[1], 10);
-        if (!isNaN(hrs) && !isNaN(mins)) {
-          const sectorFlightHrs = hrs + mins / 60;
-          setForm((p) => ({
-            ...p,
-            total_flight_hrs: sectorFlightHrs.toFixed(2),
-            total_flight_cyc: "1",
-          }));
-          return;
-        }
-      }
-    }
-    if (!isEdit) {
-      setForm((p) => ({ ...p, total_flight_hrs: "0", total_flight_cyc: "1" }));
+    if (dur && /^\d+:[0-5]\d$/.test(dur)) {
+      setForm((p) => ({
+        ...p,
+        total_flight_hrs: dur,
+        total_flight_cyc: "1",
+      }));
+    } else if (!isEdit) {
+      setForm((p) => ({ ...p, total_flight_hrs: "0:00", total_flight_cyc: "1" }));
     }
   }, [sectors[0]?.off_chock_duration, isEdit]);
 
@@ -800,10 +784,10 @@ const JourneyLogForm = () => {
                   <Input className={inp} placeholder="e.g. 9MXXA-001" value={form.log_sl_no} onChange={set("log_sl_no")} />
                 </F>
                 <F label="Total Flight Hrs">
-                  <Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} readOnly />
+                  <Input className={inp} type="text" placeholder="HHHH:MM" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} readOnly />
                 </F>
                 <F label="Total Flight Cyc">
-                  <Input className={inp} type="number" min="0" placeholder="0" value={form.total_flight_cyc} onChange={set("total_flight_cyc")} readOnly/>
+                  <Input className={inp} type="number" min="0" placeholder="0" value={form.total_flight_cyc} onChange={set("total_flight_cyc")} readOnly />
                 </F>
               </Grid>
               <Grid cols={3}>
@@ -850,13 +834,7 @@ const JourneyLogForm = () => {
               <Grid cols={3}>
                 <F label="Next Due Maintenance"><Input className={inp} type="date" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
                 <F label="Due @ Date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
-<<<<<<< HEAD
                 <F label="Due @ Hours"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
-                <F label="Total Flight Hrs"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} /></F>
-                <F label="Total Flight Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.total_flight_cyc} onChange={set("total_flight_cyc")} /></F>
-=======
-                <F label="Due @ Hours"><Input className={inp} type="number" step="0.1" min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
->>>>>>> 0cf0e966c369420e4ce0dc76df6d6e47da2217de
                 <F label="Daily Inspection"><Input className={inp} type="date" value={form.daily_inspection} onChange={set("daily_inspection")} /></F>
                 <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
                 <F label="APU Hrs"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>
