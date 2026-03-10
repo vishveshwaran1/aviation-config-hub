@@ -109,8 +109,23 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
         if (components.length > 0) {
             const findComp = (s: string) => components.find((c: any) => c.section === s) || {};
 
-            const e1 = findComp("Engine 1");
-            const e2 = findComp("Engine 2");
+            const engineData: any = {};
+            for (let i = 1; i <= 4; i++) {
+                const e = findComp(`Engine ${i}`);
+                const p = `engine${i}_`;
+                engineData[`${p}manufacturer`] = e.manufacturer || "";
+                engineData[`${p}model`] = e.model || "";
+                engineData[`${p}serial_number`] = e.serial_number || "";
+                engineData[`confirm_${p}serial_number`] = e.serial_number || "";
+                engineData[`${p}part_number`] = e.part_number || "";
+                engineData[`confirm_${p}part_number`] = e.part_number || "";
+                engineData[`${p}status`] = e.status || (i <= (defaultValues?.engines_count || 2) ? "New" : "N/A");
+                engineData[`${p}manufacture_date`] = formatDate(e.manufacture_date);
+                engineData[`${p}hours`] = decimalToHoursMinutes(e.hours_since_new);
+                engineData[`${p}cycles`] = e.cycles_since_new || 0;
+                engineData[`${p}last_shop_visit`] = formatDate(e.last_shop_visit_date);
+            }
+
             const apu = findComp("APU");
             const ml = findComp("Main Landing Gear Left");
             const mr = findComp("Main Landing Gear Right");
@@ -118,30 +133,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
 
             return {
                 ...baseValues,
-                engine1_manufacturer: e1.manufacturer || "",
-                engine1_model: e1.model || "",
-                engine1_serial_number: e1.serial_number || "",
-                confirm_engine1_serial_number: e1.serial_number || "",
-                engine1_part_number: e1.part_number || "",
-                confirm_engine1_part_number: e1.part_number || "",
-                engine1_status: e1.status || "New",
-                engine1_manufacture_date: formatDate(e1.manufacture_date),
-                engine1_hours: decimalToHoursMinutes(e1.hours_since_new),
-                engine1_cycles: e1.cycles_since_new || 0,
-                engine1_last_shop_visit: formatDate(e1.last_shop_visit_date),
-
-                engine2_manufacturer: e2.manufacturer || "",
-                engine2_model: e2.model || "",
-                engine2_serial_number: e2.serial_number || "",
-                confirm_engine2_serial_number: e2.serial_number || "",
-                engine2_part_number: e2.part_number || "",
-                confirm_engine2_part_number: e2.part_number || "",
-                engine2_status: e2.status || "New",
-                engine2_manufacture_date: formatDate(e2.manufacture_date),
-                engine2_hours: decimalToHoursMinutes(e2.hours_since_new),
-                engine2_cycles: e2.cycles_since_new || 0,
-                engine2_last_shop_visit: formatDate(e2.last_shop_visit_date),
-
+                ...engineData,
                 apu_manufacturer: apu.manufacturer || "",
                 apu_model: apu.model || "",
                 apu_serial_number: apu.serial_number || "",
@@ -216,14 +208,16 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 const updatePromises = [];
                 const createList: any[] = [];
 
-                const componentMappings = [
-                    { section: "Engine 1", prefix: "engine1_", lastShopVisit: "last_shop_visit" },
-                    { section: "Engine 2", prefix: "engine2_", lastShopVisit: "last_shop_visit" },
+                const componentMappings = [];
+                for (let i = 1; i <= data.engines_count; i++) {
+                    componentMappings.push({ section: `Engine ${i}`, prefix: `engine${i}_`, lastShopVisit: "last_shop_visit" });
+                }
+                componentMappings.push(
                     { section: "APU", prefix: "apu_", lastShopVisit: "last_shop_visit" },
                     { section: "Main Landing Gear Left", prefix: "mlg_left_", lastShopVisit: "shop_visit" },
                     { section: "Main Landing Gear Right", prefix: "mlg_right_", lastShopVisit: "shop_visit" },
                     { section: "Nose Landing Gear", prefix: "nlg_", lastShopVisit: "shop_visit" },
-                ];
+                );
 
                 for (const mapping of componentMappings) {
                     const comp = existingComponents.find((c: any) => c.section === mapping.section);
@@ -283,23 +277,24 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 const aircraftData = await api.aircrafts.create(aircraftPayload);
                 const newId = aircraftData.id;
 
-                const componentsToInsert = [
-                    {
-                        aircraft_id: newId, section: "Engine 1",
-                        manufacturer: data.engine1_manufacturer, model: data.engine1_model,
-                        serial_number: data.engine1_serial_number, part_number: data.engine1_part_number,
-                        status: data.engine1_status, manufacture_date: data.engine1_manufacture_date,
-                        last_shop_visit_date: data.engine1_last_shop_visit || null,
-                        hours_since_new: hoursMinutesToDecimal(data.engine1_hours), cycles_since_new: Number(data.engine1_hours || 0)
-                    },
-                    {
-                        aircraft_id: newId, section: "Engine 2",
-                        manufacturer: data.engine2_manufacturer, model: data.engine2_model,
-                        serial_number: data.engine2_serial_number, part_number: data.engine2_part_number,
-                        status: data.engine2_status, manufacture_date: data.engine2_manufacture_date,
-                        last_shop_visit_date: data.engine2_last_shop_visit || null,
-                        hours_since_new: hoursMinutesToDecimal(data.engine2_hours), cycles_since_new: Number(data.engine2_cycles || 0)
-                    },
+                const componentsToInsert = [];
+                for (let i = 1; i <= data.engines_count; i++) {
+                    const p = `engine${i}_` as any;
+                    componentsToInsert.push({
+                        aircraft_id: newId, section: `Engine ${i}`,
+                        manufacturer: (data as any)[`${p}manufacturer`],
+                        model: (data as any)[`${p}model`],
+                        serial_number: (data as any)[`${p}serial_number`],
+                        part_number: (data as any)[`${p}part_number`],
+                        status: (data as any)[`${p}status`],
+                        manufacture_date: (data as any)[`${p}manufacture_date`],
+                        last_shop_visit_date: (data as any)[`${p}last_shop_visit`] || null,
+                        hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
+                        cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
+                    });
+                }
+
+                componentsToInsert.push(
                     {
                         aircraft_id: newId, section: "APU",
                         manufacturer: data.apu_manufacturer, model: data.apu_model,
@@ -332,7 +327,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         last_shop_visit_date: data.nlg_shop_visit || null,
                         hours_since_new: hoursMinutesToDecimal(data.nlg_hours), cycles_since_new: Number(data.nlg_cycles || 0)
                     },
-                ];
+                );
                 await api.aircraftComponents.create(componentsToInsert);
                 toast.success("Aircraft configuration saved successfully");
             }
@@ -431,14 +426,21 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
     const watchAll = form.watch();
 
     useEffect(() => {
-        const components = [
-            { status: watchAll.engine1_status, mfg: watchAll.engine1_manufacture_date, field: "engine1_last_shop_visit" },
-            { status: watchAll.engine2_status, mfg: watchAll.engine2_manufacture_date, field: "engine2_last_shop_visit" },
+        const components: any[] = [];
+        for (let i = 1; i <= watchAll.engines_count; i++) {
+            const p = `engine${i}_`;
+            components.push({
+                status: (watchAll as any)[`${p}status`],
+                mfg: (watchAll as any)[`${p}manufacture_date`],
+                field: `${p}last_shop_visit`
+            });
+        }
+        components.push(
             { status: watchAll.apu_status, mfg: watchAll.apu_manufacture_date, field: "apu_last_shop_visit" },
             { status: watchAll.mlg_left_status, mfg: watchAll.mlg_left_manufacture_date, field: "mlg_left_shop_visit" },
             { status: watchAll.mlg_right_status, mfg: watchAll.mlg_right_manufacture_date, field: "mlg_right_shop_visit" },
             { status: watchAll.nlg_status, mfg: watchAll.nlg_manufacture_date, field: "nlg_shop_visit" },
-        ];
+        );
 
         components.forEach(comp => {
             if (comp.status === "New" && comp.mfg) {
@@ -446,8 +448,11 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             }
         });
     }, [
+        watchAll.engines_count,
         watchAll.engine1_status, watchAll.engine1_manufacture_date,
         watchAll.engine2_status, watchAll.engine2_manufacture_date,
+        watchAll.engine3_status, watchAll.engine3_manufacture_date,
+        watchAll.engine4_status, watchAll.engine4_manufacture_date,
         watchAll.apu_status, watchAll.apu_manufacture_date,
         watchAll.mlg_left_status, watchAll.mlg_left_manufacture_date,
         watchAll.mlg_right_status, watchAll.mlg_right_manufacture_date,
@@ -511,33 +516,30 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {/* spacer — keeps grid even */}
                     <div />
 
-                    {/* ── Engine 1 Details ───────────────────────────────── */}
-                    <SectionTitle title="Engine 1" />
-                    {SelectField("engine1_manufacturer", "Engine Manufacturer", ENGINE_MANUFACTURERS)}
-                    {TextField("engine1_model", "Engine Model")}
-                    {TextField("engine1_serial_number", "Serial No")}
-                    {TextField("confirm_engine1_serial_number", "Confirm Serial No")}
-                    {TextField("engine1_part_number", "Part No")}
-                    {TextField("confirm_engine1_part_number", "Confirm Part No")}
-                    {SelectField("engine1_status", "Engine Status", ENGINE_STATUS)}
-                    {TextField("engine1_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
-                    {TextField("engine1_hours", "Total Hours", "HHHH:MM", "text")}
-                    {TextField("engine1_cycles", "Total Cycles", "", "number")}
-                    <div className="col-span-2">{TextField("engine1_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.engine1_status === "New")}</div>
-
-                    {/* ── Engine 2 Details ───────────────────────────────── */}
-                    <SectionTitle title="Engine 2" />
-                    {SelectField("engine2_manufacturer", "Engine Manufacturer", ENGINE_MANUFACTURERS)}
-                    {TextField("engine2_model", "Engine Model")}
-                    {TextField("engine2_serial_number", "Serial No")}
-                    {TextField("confirm_engine2_serial_number", "Confirm Serial No")}
-                    {TextField("engine2_part_number", "Part No")}
-                    {TextField("confirm_engine2_part_number", "Confirm Part No")}
-                    {SelectField("engine2_status", "Engine Status", ENGINE_STATUS)}
-                    {TextField("engine2_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
-                    {TextField("engine2_hours", "Total Hours", "HHHH:MM", "text")}
-                    {TextField("engine2_cycles", "Total Cycles", "", "number")}
-                    <div className="col-span-2">{TextField("engine2_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.engine2_status === "New")}</div>
+                    {/* ── Dynamic Engine Details ────────────────────────── */}
+                    {[...Array(watchAll.engines_count || 2)].map((_, i) => {
+                        const idx = i + 1;
+                        const p = `engine${idx}_` as any;
+                        const status = (watchAll as any)[`${p}status`];
+                        return (
+                            <div key={idx} className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                                <SectionTitle title={`Engine ${idx}`} />
+                                {SelectField(`${p}manufacturer` as any, "Engine Manufacturer", ENGINE_MANUFACTURERS)}
+                                {TextField(`${p}model` as any, "Engine Model")}
+                                {TextField(`${p}serial_number` as any, "Serial No")}
+                                {TextField(`confirm_${p}serial_number` as any, "Confirm Serial No")}
+                                {TextField(`${p}part_number` as any, "Part No")}
+                                {TextField(`confirm_${p}part_number` as any, "Confirm Part No")}
+                                {SelectField(`${p}status` as any, "Engine Status", ENGINE_STATUS)}
+                                {TextField(`${p}manufacture_date` as any, "Manufactured Date", "DD/MM/YYYY", "date")}
+                                {TextField(`${p}hours` as any, "Total Hours", "HHHH:MM", "text")}
+                                {TextField(`${p}cycles` as any, "Total Cycles", "", "number")}
+                                <div className="col-span-2">
+                                    {TextField(`${p}last_shop_visit` as any, "Last Shop Visit", "DD/MM/YYYY", "date", undefined, status === "New")}
+                                </div>
+                            </div>
+                        );
+                    })}
 
                     {/* ── APU Details ───────────────────────────────── */}
                     <SectionTitle title="APU Details" />
