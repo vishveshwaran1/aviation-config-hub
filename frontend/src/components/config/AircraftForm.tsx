@@ -86,7 +86,6 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
         const baseValues = {
             status: "Pending",
             engines_count: 2,
-            flight_hours: 0,
             flight_cycles: 0,
             aircraft_received_status: "New",
             country: "N/A", // Default to N/A since field is hidden
@@ -102,6 +101,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             confirm_registration_number: (defaultValues as any)?.registration_number || "",
             manufacture_date: formatDate(defaultValues?.manufacture_date),
             delivery_date: formatDate(defaultValues?.delivery_date),
+            flight_hours: decimalToHoursMinutes(defaultValues?.flight_hours as any),
         };
 
         // Flatten nested components if they exist (from backend include)

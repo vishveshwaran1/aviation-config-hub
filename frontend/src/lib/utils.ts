@@ -12,10 +12,13 @@ export function decimalToHoursMinutes(decimal: number | null | undefined): strin
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
-export function hoursMinutesToDecimal(timeStr: string | null | undefined): number {
-  if (!timeStr) return 0;
-  const parts = timeStr.split(':');
-  if (parts.length !== 2) return 0;
+export function hoursMinutesToDecimal(timeStr: string | number | null | undefined): number {
+  if (timeStr === null || timeStr === undefined || timeStr === "") return 0;
+  if (typeof timeStr === 'number') return timeStr;
+
+  const parts = String(timeStr).split(':');
+  if (parts.length !== 2) return isNaN(Number(timeStr)) ? 0 : Number(timeStr);
+
   const hours = parseInt(parts[0], 10);
   const minutes = parseInt(parts[1], 10);
   if (isNaN(hours) || isNaN(minutes)) return 0;
