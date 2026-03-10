@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { decimalToHoursMinutes, hoursMinutesToDecimal } from "@/lib/utils";
 
 
 
@@ -197,24 +198,26 @@ function InlineEdit({
   value,
   onSave,
   label,
+  isTime = false,
 }: {
   value: number;
   onSave: (v: number) => void;
   label: string;
+  isTime?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value));
+  const [draft, setDraft] = useState(isTime ? decimalToHoursMinutes(value) : String(value));
 
   const commit = () => {
-    const n = parseFloat(draft);
-    if (!isNaN(n) && n > 0) {
+    const n = isTime ? hoursMinutesToDecimal(draft) : parseFloat(draft);
+    if (!isNaN(n) && n >= 0) {
       onSave(n);
     }
     setEditing(false);
   };
 
   const cancel = () => {
-    setDraft(String(value));
+    setDraft(isTime ? decimalToHoursMinutes(value) : String(value));
     setEditing(false);
   };
 
@@ -256,6 +259,67 @@ function InlineEdit({
       }}
     >
       {value}
+    </button>
+  );
+}
+
+
+function DailyRateInlineEdit({ value, onSave, label }: { value: number, onSave: (v: number) => void, label: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(decimalToHoursMinutes(value));
+
+  const commit = () => {
+    const n = hoursMinutesToDecimal(draft);
+    if (!isNaN(n) && n >= 0) {
+      onSave(n);
+    }
+    setEditing(false);
+  };
+
+  const cancel = () => {
+    setDraft(decimalToHoursMinutes(value));
+    setEditing(false);
+  };
+
+  if (editing)
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          autoFocus
+          className="h-7 w-20 text-xs px-2"
+          value={draft}
+          placeholder="HHH:MM"
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") cancel();
+          }}
+        />
+        <button
+          onClick={commit}
+          className="flex h-6 w-6 items-center justify-center rounded bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
+        >
+          <Check className="h-3 w-3" />
+        </button>
+        <button
+          onClick={cancel}
+          className="flex h-6 w-6 items-center justify-center rounded bg-red-100 text-red-500 hover:bg-red-200"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    );
+
+  return (
+    <button
+      className="text-sm font-semibold text-[#556ee6] hover:underline underline-offset-2"
+      title={`Click to edit ${label}`}
+      onClick={() => {
+        setDraft(decimalToHoursMinutes(value));
+        setEditing(true);
+      }}
+    >
+      {decimalToHoursMinutes(value)}
     </button>
   );
 }
@@ -466,7 +530,7 @@ const Forecast = () => {
     setEditTarget(row);
     setEditForm({
       last_date: row.lastDate ? format(row.lastDate, "yyyy-MM-dd") : "",
-      last_hours: row.lastHours !== null ? String(row.lastHours) : "",
+      last_hours: decimalToHoursMinutes(row.lastHours),
       last_cycles: row.lastCycles !== null ? String(row.lastCycles) : "",
       interval_unit: row.intervalUnit,
     });
@@ -541,7 +605,7 @@ const Forecast = () => {
     if (!editTarget || !aircraft || !id) return;
     setSaving(true);
     try {
-      const lastHours = editForm.last_hours ? parseFloat(editForm.last_hours) : null;
+      const lastHours = hoursMinutesToDecimal(editForm.last_hours);
       const lastCycles = editForm.last_cycles ? parseFloat(editForm.last_cycles) : null;
       const unit = editForm.interval_unit;
       const repeat = editTarget.repeatInterval ?? 0;
@@ -667,7 +731,7 @@ const Forecast = () => {
           </div>
         </div>
       </div>
-  {!loadingAc && aircraft && (
+      {!loadingAc && aircraft && (
         <div className="rounded-xl border bg-white shadow-sm">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-0 divide-x divide-gray-100">
             {/* Aircraft Model */}
@@ -695,7 +759,7 @@ const Forecast = () => {
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
                 Avg FH / day
               </p>
-              <InlineEdit value={avgHours} label="Avg FH/day" onSave={handleAvgHoursChange} />
+              <DailyRateInlineEdit value={avgHours} label="Avg FH/day" onSave={handleAvgHoursChange} />
             </div>
             {/* Avg FC — editable */}
             <div className="px-5 py-4">
@@ -1164,11 +1228,9 @@ const Forecast = () => {
               <div className="flex items-center gap-3">
                 <label className="w-16 shrink-0 text-sm font-medium text-gray-700">Hours</label>
                 <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
+                  type="text"
                   className="h-9 text-sm flex-1"
-                  placeholder="e.g. 12500.5"
+                  placeholder="HHHH:MM"
                   value={editForm.last_hours}
                   onChange={(e) => setEditForm((f) => ({ ...f, last_hours: e.target.value }))}
                 />

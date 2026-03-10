@@ -14,6 +14,8 @@ const createReEntrySchema = (fieldName: string, label: string) => {
     });
 };
 
+const timeString = z.string().regex(/^\d+:[0-5]\d$/, "Format must be HHHH:MM");
+
 export const aircraftSchema = z.object({
     // Optional id for edit mode
     id: z.string().optional(),
@@ -26,7 +28,7 @@ export const aircraftSchema = z.object({
     confirm_registration_number: requiredString,
     manufacture_date: requiredString,
     delivery_date: requiredString,
-    flight_hours: z.coerce.number().min(0, "Flight hours must be 0 or more"),
+    flight_hours: timeString,
     flight_cycles: z.coerce.number().min(0, "Flight cycles must be 0 or more"),
     engines_count: z.coerce.number().min(1),
     aircraft_received_status: z.enum(["New", "Used"]).default("New"),
@@ -41,7 +43,7 @@ export const aircraftSchema = z.object({
     confirm_engine1_part_number: requiredString,
     engine1_status: z.enum(["New", "Used", "N/A"]),
     engine1_manufacture_date: requiredString,
-    engine1_hours: z.coerce.number().min(0, "Engine hours must be 0 or more"),
+    engine1_hours: timeString,
     engine1_cycles: z.coerce.number().min(0, "Engine cycles must be 0 or more"),
     engine1_last_shop_visit: optionalString,
 
@@ -54,7 +56,7 @@ export const aircraftSchema = z.object({
     confirm_engine2_part_number: requiredString,
     engine2_status: z.enum(["New", "Used", "N/A"]),
     engine2_manufacture_date: requiredString,
-    engine2_hours: z.coerce.number().min(0, "Engine hours must be 0 or more"),
+    engine2_hours: timeString,
     engine2_cycles: z.coerce.number().min(0, "Engine cycles must be 0 or more"),
     engine2_last_shop_visit: optionalString,
 
@@ -68,7 +70,7 @@ export const aircraftSchema = z.object({
     apu_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     apu_manufacture_date: requiredString,
     apu_last_shop_visit: optionalString,
-    apu_hours: z.coerce.number().min(0, "APU hours must be 0 or more"),
+    apu_hours: timeString,
     apu_cycles: z.coerce.number().min(0, "APU cycles must be 0 or more"),
 
     // Section C: Main Landing Gear Left
@@ -81,7 +83,7 @@ export const aircraftSchema = z.object({
     mlg_left_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     mlg_left_manufacture_date: requiredString,
     mlg_left_shop_visit: optionalString,
-    mlg_left_hours: z.coerce.number().min(0, "MLG hours must be 0 or more"),
+    mlg_left_hours: timeString,
     mlg_left_cycles: z.coerce.number().min(0, "MLG cycles must be 0 or more"),
 
     // Section D: Main Landing Gear Right
@@ -94,7 +96,7 @@ export const aircraftSchema = z.object({
     mlg_right_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     mlg_right_manufacture_date: requiredString,
     mlg_right_shop_visit: optionalString,
-    mlg_right_hours: z.coerce.number().min(0, "MLG hours must be 0 or more"),
+    mlg_right_hours: timeString,
     mlg_right_cycles: z.coerce.number().min(0, "MLG cycles must be 0 or more"),
 
     // Section E: Nose Landing Gear
@@ -107,7 +109,7 @@ export const aircraftSchema = z.object({
     nlg_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     nlg_manufacture_date: requiredString,
     nlg_shop_visit: optionalString,
-    nlg_hours: z.coerce.number().min(0, "NLG hours must be 0 or more"),
+    nlg_hours: timeString,
     nlg_cycles: z.coerce.number().min(0, "NLG cycles must be 0 or more"),
 })
     .refine((data) => data.msn === data.confirm_msn, {

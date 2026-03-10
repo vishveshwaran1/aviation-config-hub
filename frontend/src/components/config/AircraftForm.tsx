@@ -10,6 +10,7 @@ import {
     FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -20,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { aircraftSchema, AircraftFormData } from "./AircraftFormSchema";
+import { decimalToHoursMinutes, hoursMinutesToDecimal } from "@/lib/utils";
 
 /* ── Dropdown option lists ─────────────────────────────────────── */
 const AIRCRAFT_MODELS = ["B737-700", "B737-800", "B737-900", "B737-900ER", "A320-200", "ATR72-500", "ATR72-600"];
@@ -124,7 +126,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 confirm_engine1_part_number: e1.part_number || "",
                 engine1_status: e1.status || "New",
                 engine1_manufacture_date: formatDate(e1.manufacture_date),
-                engine1_hours: e1.hours_since_new || 0,
+                engine1_hours: decimalToHoursMinutes(e1.hours_since_new),
                 engine1_cycles: e1.cycles_since_new || 0,
                 engine1_last_shop_visit: formatDate(e1.last_shop_visit_date),
 
@@ -136,7 +138,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 confirm_engine2_part_number: e2.part_number || "",
                 engine2_status: e2.status || "New",
                 engine2_manufacture_date: formatDate(e2.manufacture_date),
-                engine2_hours: e2.hours_since_new || 0,
+                engine2_hours: decimalToHoursMinutes(e2.hours_since_new),
                 engine2_cycles: e2.cycles_since_new || 0,
                 engine2_last_shop_visit: formatDate(e2.last_shop_visit_date),
 
@@ -148,7 +150,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 confirm_apu_part_number: apu.part_number || "",
                 apu_status: apu.status || "Used",
                 apu_manufacture_date: formatDate(apu.manufacture_date),
-                apu_hours: apu.hours_since_new || 0,
+                apu_hours: decimalToHoursMinutes(apu.hours_since_new),
                 apu_cycles: apu.cycles_since_new || 0,
                 apu_last_shop_visit: formatDate(apu.last_shop_visit_date),
 
@@ -160,7 +162,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 confirm_mlg_left_part_number: ml.part_number || "",
                 mlg_left_status: ml.status || "Used",
                 mlg_left_manufacture_date: formatDate(ml.manufacture_date),
-                mlg_left_hours: ml.hours_since_new || 0,
+                mlg_left_hours: decimalToHoursMinutes(ml.hours_since_new),
                 mlg_left_cycles: ml.cycles_since_new || 0,
                 mlg_left_shop_visit: formatDate(ml.last_shop_visit_date),
 
@@ -172,7 +174,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 confirm_mlg_right_part_number: mr.part_number || "",
                 mlg_right_status: mr.status || "Used",
                 mlg_right_manufacture_date: formatDate(mr.manufacture_date),
-                mlg_right_hours: mr.hours_since_new || 0,
+                mlg_right_hours: decimalToHoursMinutes(mr.hours_since_new),
                 mlg_right_cycles: mr.cycles_since_new || 0,
                 mlg_right_shop_visit: formatDate(mr.last_shop_visit_date),
 
@@ -184,7 +186,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 confirm_nlg_part_number: nl.part_number || "",
                 nlg_status: nl.status || "Used",
                 nlg_manufacture_date: formatDate(nl.manufacture_date),
-                nlg_hours: nl.hours_since_new || 0,
+                nlg_hours: decimalToHoursMinutes(nl.hours_since_new),
                 nlg_cycles: nl.cycles_since_new || 0,
                 nlg_shop_visit: formatDate(nl.last_shop_visit_date),
             };
@@ -204,7 +206,11 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
             const aircraftId = defaultValues?.id;
 
             if (aircraftId) {
-                await api.aircrafts.update(aircraftId, data);
+                const payload = {
+                    ...data,
+                    flight_hours: hoursMinutesToDecimal(data.flight_hours)
+                };
+                await api.aircrafts.update(aircraftId, payload);
 
                 const existingComponents = (defaultValues as any).components || [];
                 const updatePromises = [];
@@ -232,7 +238,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         status: (data as any)[`${p}status`],
                         manufacture_date: (data as any)[`${p}manufacture_date`] || null,
                         last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
-                        hours_since_new: Number((data as any)[`${p}hours`] || 0),
+                        hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
                         cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                     };
 
@@ -245,7 +251,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             status: (data as any)[`${p}status`],
                             manufacture_date: (data as any)[`${p}manufacture_date`] || null,
                             last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
-                            hours_since_new: Number((data as any)[`${p}hours`] || 0),
+                            hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
                             cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                         }));
                     } else {
@@ -259,7 +265,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             status: (data as any)[`${p}status`],
                             manufacture_date: (data as any)[`${p}manufacture_date`] || null,
                             last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
-                            hours_since_new: Number((data as any)[`${p}hours`] || 0),
+                            hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
                             cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                         });
                     }
@@ -270,7 +276,11 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
 
                 toast.success("Aircraft and components updated successfully");
             } else {
-                const aircraftData = await api.aircrafts.create(data);
+                const aircraftPayload = {
+                    ...data,
+                    flight_hours: hoursMinutesToDecimal(data.flight_hours)
+                };
+                const aircraftData = await api.aircrafts.create(aircraftPayload);
                 const newId = aircraftData.id;
 
                 const componentsToInsert = [
@@ -280,7 +290,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.engine1_serial_number, part_number: data.engine1_part_number,
                         status: data.engine1_status, manufacture_date: data.engine1_manufacture_date,
                         last_shop_visit_date: data.engine1_last_shop_visit || null,
-                        hours_since_new: Number(data.engine1_hours || 0), cycles_since_new: Number(data.engine1_cycles || 0)
+                        hours_since_new: hoursMinutesToDecimal(data.engine1_hours), cycles_since_new: Number(data.engine1_hours || 0)
                     },
                     {
                         aircraft_id: newId, section: "Engine 2",
@@ -288,7 +298,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.engine2_serial_number, part_number: data.engine2_part_number,
                         status: data.engine2_status, manufacture_date: data.engine2_manufacture_date,
                         last_shop_visit_date: data.engine2_last_shop_visit || null,
-                        hours_since_new: Number(data.engine2_hours || 0), cycles_since_new: Number(data.engine2_cycles || 0)
+                        hours_since_new: hoursMinutesToDecimal(data.engine2_hours), cycles_since_new: Number(data.engine2_cycles || 0)
                     },
                     {
                         aircraft_id: newId, section: "APU",
@@ -296,7 +306,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.apu_serial_number, part_number: data.apu_part_number,
                         status: data.apu_status, manufacture_date: data.apu_manufacture_date,
                         last_shop_visit_date: data.apu_last_shop_visit || null,
-                        hours_since_new: Number(data.apu_hours || 0), cycles_since_new: Number(data.apu_cycles || 0)
+                        hours_since_new: hoursMinutesToDecimal(data.apu_hours), cycles_since_new: Number(data.apu_cycles || 0)
                     },
                     {
                         aircraft_id: newId, section: "Main Landing Gear Left",
@@ -304,7 +314,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.mlg_left_serial_number, part_number: data.mlg_left_part_number,
                         status: data.mlg_left_status, manufacture_date: data.mlg_left_manufacture_date,
                         last_shop_visit_date: data.mlg_left_shop_visit || null,
-                        hours_since_new: Number(data.mlg_left_hours || 0), cycles_since_new: Number(data.mlg_left_cycles || 0)
+                        hours_since_new: hoursMinutesToDecimal(data.mlg_left_hours), cycles_since_new: Number(data.mlg_left_cycles || 0)
                     },
                     {
                         aircraft_id: newId, section: "Main Landing Gear Right",
@@ -312,7 +322,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.mlg_right_serial_number, part_number: data.mlg_right_part_number,
                         status: data.mlg_right_status, manufacture_date: data.mlg_right_manufacture_date,
                         last_shop_visit_date: data.mlg_right_shop_visit || null,
-                        hours_since_new: Number(data.mlg_right_hours || 0), cycles_since_new: Number(data.mlg_right_cycles || 0)
+                        hours_since_new: hoursMinutesToDecimal(data.mlg_right_hours), cycles_since_new: Number(data.mlg_right_cycles || 0)
                     },
                     {
                         aircraft_id: newId, section: "Nose Landing Gear",
@@ -320,7 +330,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.nlg_serial_number, part_number: data.nlg_part_number,
                         status: data.nlg_status, manufacture_date: data.nlg_manufacture_date,
                         last_shop_visit_date: data.nlg_shop_visit || null,
-                        hours_since_new: Number(data.nlg_hours || 0), cycles_since_new: Number(data.nlg_cycles || 0)
+                        hours_since_new: hoursMinutesToDecimal(data.nlg_hours), cycles_since_new: Number(data.nlg_cycles || 0)
                     },
                 ];
                 await api.aircraftComponents.create(componentsToInsert);
@@ -475,7 +485,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("delivery_date", "Date Received", "DD/MM/YYYY", "date")}
 
-                    {TextField("flight_hours", "Aircraft Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("flight_hours", "Aircraft Hours", "HHHH:MM", "text")}
                     {TextField("flight_cycles", "Aircraft Cycles", "", "number")}
 
                     {/* engines_count as Select */}
@@ -511,7 +521,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("confirm_engine1_part_number", "Confirm Part No")}
                     {SelectField("engine1_status", "Engine Status", ENGINE_STATUS)}
                     {TextField("engine1_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
-                    {TextField("engine1_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("engine1_hours", "Total Hours", "HHHH:MM", "text")}
                     {TextField("engine1_cycles", "Total Cycles", "", "number")}
                     <div className="col-span-2">{TextField("engine1_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.engine1_status === "New")}</div>
 
@@ -525,7 +535,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("confirm_engine2_part_number", "Confirm Part No")}
                     {SelectField("engine2_status", "Engine Status", ENGINE_STATUS)}
                     {TextField("engine2_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
-                    {TextField("engine2_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("engine2_hours", "Total Hours", "HHHH:MM", "text")}
                     {TextField("engine2_cycles", "Total Cycles", "", "number")}
                     <div className="col-span-2">{TextField("engine2_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.engine2_status === "New")}</div>
 
@@ -579,7 +589,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
 
                     <div className="col-span-2">{TextField("apu_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.apu_status === "New")}</div>
 
-                    {TextField("apu_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("apu_hours", "Total Hours", "HHHH:MM", "text")}
                     {TextField("apu_cycles", "Total Cycles", "", "number")}
 
                     {/* ── Main Landing Gear — Left ──────────────────── */}
@@ -600,7 +610,18 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
-                    {TextField("mlg_left_model", "Model")}
+                    {/* MLG Left Model */}
+                    <FormField control={form.control} name="mlg_left_model" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
+                                <div className="relative flex-1">
+                                    <FormControl><Textarea className={`min-h-[40px] text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`} {...field} /></FormControl>
+                                    {fieldState.error && <span className="absolute right-2 top-2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
+                                </div>
+                            </div>
+                        </FormItem>
+                    )} />
 
                     {TextField("mlg_left_serial_number", "Serial No")}
                     {TextField("confirm_mlg_left_serial_number", "Re-Enter Serial No")}
@@ -609,7 +630,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {SelectField("mlg_left_status", "Status", ENGINE_STATUS)}
                     {TextField("mlg_left_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("mlg_left_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.mlg_left_status === "New")}
-                    {TextField("mlg_left_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("mlg_left_hours", "Total Hours", "HHHH:MM", "text")}
                     <div className="col-span-2">{TextField("mlg_left_cycles", "Total Cycles", "", "number")}</div>
 
                     {/* ── Main Landing Gear — Right ─────────────────── */}
@@ -630,7 +651,18 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
-                    {TextField("mlg_right_model", "Model")}
+                    {/* MLG Right Model */}
+                    <FormField control={form.control} name="mlg_right_model" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
+                                <div className="relative flex-1">
+                                    <FormControl><Textarea className={`min-h-[40px] text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`} {...field} /></FormControl>
+                                    {fieldState.error && <span className="absolute right-2 top-2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
+                                </div>
+                            </div>
+                        </FormItem>
+                    )} />
 
                     {TextField("mlg_right_serial_number", "Serial No")}
                     {TextField("confirm_mlg_right_serial_number", "Re-Enter Serial No")}
@@ -639,7 +671,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {SelectField("mlg_right_status", "Status", ENGINE_STATUS)}
                     {TextField("mlg_right_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("mlg_right_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.mlg_right_status === "New")}
-                    {TextField("mlg_right_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("mlg_right_hours", "Total Hours", "HHHH:MM", "text")}
                     <div className="col-span-2">{TextField("mlg_right_cycles", "Total Cycles", "", "number")}</div>
 
                     {/* ── Nose Landing Gear ────────────────────────── */}
@@ -660,7 +692,18 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             {fieldState.error && <p className="text-xs text-red-500 ml-[11rem]">Enter Manufacturer</p>}
                         </FormItem>
                     )} />
-                    {TextField("nlg_model", "Model")}
+                    {/* NLG Model */}
+                    <FormField control={form.control} name="nlg_model" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={`w-40 shrink-0 text-sm font-medium leading-tight ${fieldState.error ? 'text-red-500' : 'text-gray-600'}`}>Model</FormLabel>
+                                <div className="relative flex-1">
+                                    <FormControl><Textarea className={`min-h-[40px] text-sm ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`} {...field} /></FormControl>
+                                    {fieldState.error && <span className="absolute right-2 top-2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center pointer-events-none select-none">!</span>}
+                                </div>
+                            </div>
+                        </FormItem>
+                    )} />
 
                     {TextField("nlg_serial_number", "Serial No")}
                     {TextField("confirm_nlg_serial_number", "Re-Enter Serial No")}
@@ -669,7 +712,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {SelectField("nlg_status", "Status", ENGINE_STATUS)}
                     {TextField("nlg_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("nlg_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.nlg_status === "New")}
-                    {TextField("nlg_hours", "Total Hours", "HHHH-MM", "number", "0.01")}
+                    {TextField("nlg_hours", "Total Hours", "HHHH:MM", "text")}
                     <div className="col-span-2">{TextField("nlg_cycles", "Total Cycles", "", "number")}</div>
 
                 </div>

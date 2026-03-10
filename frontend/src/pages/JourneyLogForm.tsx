@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import * as XLSX from "xlsx";
+import { decimalToHoursMinutes, hoursMinutesToDecimal } from "@/lib/utils";
 
 
 interface Sector {
@@ -346,7 +347,7 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.on_chock_arr_time,
     );
     if (value !== sector.on_chock_duration) onChangeRef.current("on_chock_duration", value);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sector.on_chock_dep_date, sector.on_chock_dep_time, sector.on_chock_arr_date, sector.on_chock_arr_time]);
 
   // Auto-calculate Flight Hrs (Take Off → Landing), sharing the same dep/arr dates
@@ -356,7 +357,7 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.off_chock_arr_time,
     );
     if (value !== sector.off_chock_duration) onChangeRef.current("off_chock_duration", value);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sector.on_chock_dep_date, sector.off_chock_dep_time, sector.on_chock_arr_date, sector.off_chock_arr_time]);
 
   const blockCalc = calcDuration(
@@ -609,17 +610,17 @@ const JourneyLogForm = () => {
           fuel_uplift: data.fuel_uplift?.toString() ?? "",
           calculate_total_fuel: data.calculate_total_fuel?.toString() ?? "",
           fuel_discrepancy: data.fuel_discrepancy?.toString() ?? "",
-          aircraft_total_hrs: data.aircraft_total_hrs?.toString() ?? "",
+          aircraft_total_hrs: decimalToHoursMinutes(data.aircraft_total_hrs),
           aircraft_total_cyc: data.aircraft_total_cyc?.toString() ?? "",
           fuel_flight_deck_gauge: data.fuel_flight_deck_gauge?.toString() ?? "",
           next_due_maintenance: fmt(data.next_due_maintenance),
           due_at_date: fmt(data.due_at_date),
-          due_at_hours: data.due_at_hours?.toString() ?? "",
-          total_flight_hrs: data.total_flight_hrs?.toString() ?? "",
+          due_at_hours: decimalToHoursMinutes(data.due_at_hours),
+          total_flight_hrs: decimalToHoursMinutes(data.total_flight_hrs),
           total_flight_cyc: data.total_flight_cyc?.toString() ?? "",
           daily_inspection: fmt(data.daily_inspection),
           type_of_maintenance: data.type_of_maintenance ?? "",
-          apu_hrs: data.apu_hrs?.toString() ?? "",
+          apu_hrs: decimalToHoursMinutes(data.apu_hrs),
           apu_cyc: data.apu_cyc?.toString() ?? "",
           oil_uplift_eng1: data.oil_uplift_eng1?.toString() ?? "",
           oil_uplift_eng2: data.oil_uplift_eng2?.toString() ?? "",
@@ -699,7 +700,29 @@ const JourneyLogForm = () => {
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { ...form, aircraft_id: id, sectors, defects };
+      const payload = {
+        ...form,
+        aircraft_id: id,
+        sectors,
+        defects,
+        aircraft_total_hrs: hoursMinutesToDecimal(form.aircraft_total_hrs),
+        due_at_hours: hoursMinutesToDecimal(form.due_at_hours),
+        total_flight_hrs: hoursMinutesToDecimal(form.total_flight_hrs),
+        apu_hrs: hoursMinutesToDecimal(form.apu_hrs),
+        fuel_arrival: parseFloat(form.fuel_arrival) || null,
+        fuel_departure: parseFloat(form.fuel_departure) || null,
+        remaining_fuel_onboard: parseFloat(form.remaining_fuel_onboard) || null,
+        fuel_uplift: parseFloat(form.fuel_uplift) || null,
+        calculate_total_fuel: parseFloat(form.calculate_total_fuel) || null,
+        fuel_discrepancy: parseFloat(form.fuel_discrepancy) || null,
+        aircraft_total_cyc: parseInt(form.aircraft_total_cyc) || null,
+        total_flight_cyc: parseInt(form.total_flight_cyc) || null,
+        apu_cyc: parseInt(form.apu_cyc) || null,
+        fuel_flight_deck_gauge: parseFloat(form.fuel_flight_deck_gauge) || null,
+        oil_uplift_eng1: parseFloat(form.oil_uplift_eng1) || null,
+        oil_uplift_eng2: parseFloat(form.oil_uplift_eng2) || null,
+        oil_uplift_apu: parseFloat(form.oil_uplift_apu) || null,
+      };
       if (isEdit && logId) {
         await api.journeyLogs.update(logId, payload);
       } else {
@@ -869,7 +892,7 @@ const JourneyLogForm = () => {
                 <F label="Fuel Uplift (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.fuel_uplift} onChange={set("fuel_uplift")} /></F>
                 <F label="Calculate Total Fuel (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.calculate_total_fuel} onChange={set("calculate_total_fuel")} /></F>
                 <F label="Fuel Discrepancy (kg)"><Input className={inp} type="number" placeholder="0" value={form.fuel_discrepancy} onChange={set("fuel_discrepancy")} /></F>
-                <F label="Aircraft Total Hrs"><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.aircraft_total_hrs} onChange={set("aircraft_total_hrs")} /></F>
+                <F label="Aircraft Total Hrs"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.aircraft_total_hrs} onChange={set("aircraft_total_hrs")} /></F>
                 <F label="Aircraft Total Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.aircraft_total_cyc} onChange={set("aircraft_total_cyc")} /></F>
                 <F label="Fuel Flight Deck Gauge (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.fuel_flight_deck_gauge} onChange={set("fuel_flight_deck_gauge")} /></F>
               </Grid>
@@ -880,12 +903,12 @@ const JourneyLogForm = () => {
               <Grid cols={3}>
                 <F label="Next Due Maintenance"><Input className={inp} type="date" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
                 <F label="Due @ Date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
-                <F label="Due @ Hours"><Input className={inp} type="number" step="0.1" min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
-                <F label="Total Flight Hrs"><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} /></F>
+                <F label="Due @ Hours"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
+                <F label="Total Flight Hrs"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} /></F>
                 <F label="Total Flight Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.total_flight_cyc} onChange={set("total_flight_cyc")} /></F>
                 <F label="Daily Inspection"><Input className={inp} type="date" value={form.daily_inspection} onChange={set("daily_inspection")} /></F>
                 <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
-                <F label="APU Hrs"><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>
+                <F label="APU Hrs"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>
                 <F label="APU Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.apu_cyc} onChange={set("apu_cyc")} /></F>
               </Grid>
             </Section>

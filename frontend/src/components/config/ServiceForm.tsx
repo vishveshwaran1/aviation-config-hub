@@ -23,6 +23,7 @@ import { api } from "@/lib/api";
 import { serviceSchema, ServiceFormData } from "./ServiceFormSchema";
 import { useNavigate } from "react-router-dom";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
+import { decimalToHoursMinutes, hoursMinutesToDecimal } from "@/lib/utils";
 
 const ZONE_OPTIONS: Option[] = [
     { label: "Zone 1", value: "Zone 1" },
@@ -75,6 +76,10 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
             interval_threshold_unit: "Hours",
             repeat_interval_unit: "Hours",
             ...defaultValues,
+            // Format time fields
+            estimated_manhours: decimalToHoursMinutes(defaultValues?.estimated_manhours),
+            interval_threshold: defaultValues?.interval_threshold_unit === "Hours" || !defaultValues?.interval_threshold_unit ? decimalToHoursMinutes(defaultValues?.interval_threshold) : (defaultValues?.interval_threshold?.toString() || ""),
+            repeat_interval: defaultValues?.repeat_interval_unit === "Hours" || !defaultValues?.repeat_interval_unit ? decimalToHoursMinutes(defaultValues?.repeat_interval) : (defaultValues?.repeat_interval?.toString() || ""),
         },
     });
 
@@ -113,11 +118,11 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                 amm_id: data.amm_id || null,
                 task_card_ref: data.task_card_ref || null,
                 description: data.description || null,
-                estimated_manhours: data.estimated_manhours ?? null,
+                estimated_manhours: hoursMinutesToDecimal(data.estimated_manhours),
                 estimated_price: data.estimated_price ?? null,
                 quotation_price: data.quotation_price ?? null,
-                interval_threshold: data.interval_threshold ?? null,
-                repeat_interval: data.repeat_interval ?? null,
+                interval_threshold: interval_threshold_unit === "Hours" ? hoursMinutesToDecimal(data.interval_threshold) : Number(data.interval_threshold),
+                repeat_interval: repeat_interval_unit === "Hours" ? hoursMinutesToDecimal(data.repeat_interval) : Number(data.repeat_interval),
             };
 
             if (defaultValues?.id) {
@@ -351,7 +356,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Estimated Manhours</FormLabel>
                                 <div className="relative flex-1">
-                                    <FormControl><Input type="number" step="0.1" className={inputCls(!!fieldState.error)} {...field} /></FormControl>
+                                    <FormControl><Input type="text" placeholder="HHHH:MM" className={inputCls(!!fieldState.error)} {...field} /></FormControl>
                                     {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
@@ -432,11 +437,11 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                                         )} />
                                         <div className="relative flex-1">
                                             <FormControl><Input
-                                                type="number"
-                                                maxLength={4}
-                                                placeholder={placeholder}
+                                                type={unit === "Hours" ? "text" : "number"}
+                                                placeholder={unit === "Hours" ? "HHHH:MM" : placeholder}
                                                 className={inputCls(!!fieldState.error)}
                                                 {...field}
+                                                value={field.value as string}
                                             /></FormControl>
                                             {fieldState.error && <ErrorBadge />}
                                         </div>
@@ -468,11 +473,11 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                                         )} />
                                         <div className="relative flex-1">
                                             <FormControl><Input
-                                                type="number"
-                                                maxLength={4}
-                                                placeholder={placeholder}
+                                                type={unit === "Hours" ? "text" : "number"}
+                                                placeholder={unit === "Hours" ? "HHHH:MM" : placeholder}
                                                 className={inputCls(!!fieldState.error)}
                                                 {...field}
+                                                value={field.value as string}
                                             /></FormControl>
                                             {fieldState.error && <ErrorBadge />}
                                         </div>

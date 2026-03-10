@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, decimalToHoursMinutes } from "@/lib/utils";
 
 
 interface Aircraft {
@@ -337,7 +337,7 @@ const Scheduler = () => {
 
                       {/* Flight Hours */}
                       <td className="px-4 py-3 tabular-nums text-gray-700">
-                        {entry.flight_hours.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })} FH
+                        {decimalToHoursMinutes(entry.flight_hours)} FH
                       </td>
 
                       {/* Flight Cycles */}

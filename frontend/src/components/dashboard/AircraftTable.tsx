@@ -21,6 +21,7 @@ import { Eye, Settings, MoreHorizontal, Search, ChevronLeft, ChevronRight } from
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { decimalToHoursMinutes } from "@/lib/utils";
 
 interface Aircraft {
     id: string;
@@ -135,7 +136,7 @@ export function AircraftTable() {
                                     <TableCell>{aircraft.msn}</TableCell>
                                     <TableCell>{aircraft.registration_number}</TableCell>
                                     <TableCell>{aircraft.engines_count}</TableCell>
-                                    <TableCell>{aircraft.flight_hours}</TableCell>
+                                    <TableCell>{decimalToHoursMinutes(aircraft.flight_hours)}</TableCell>
                                     <TableCell>{aircraft.flight_cycles}</TableCell>
                                     {/* <TableCell>
                                         <span
