@@ -226,6 +226,10 @@ router.patch('/:id', async (req, res) => {
       if (!oldLog) throw new Error('Journey log not found');
 
       const oldFH = oldLog.total_flight_hrs ?? 0;
+      const oldFC = oldLog.total_flight_cyc ?? 0;
+      // Update the journey log header fields
+      const { aircraft_id: _aid, ...updateData } = data;
+      await tx.journeyLog.update({ where: { id }, data: updateData });
 
       if (sectors !== undefined) {
         await tx.journeyLogSector.deleteMany({ where: { journey_log_id: id } });
@@ -284,10 +288,12 @@ router.patch('/:id', async (req, res) => {
       }
 
       const newFH = data.total_flight_hrs ?? oldFH;
+      const newFC = data.total_flight_cyc ?? oldFC;
       await tx.aircraft.update({
         where: { id: oldLog.aircraft_id },
         data: {
           flight_hours: { increment: newFH - oldFH },
+          flight_cycles: { increment: newFC - oldFC },
         },
       });
 

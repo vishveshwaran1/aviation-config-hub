@@ -13,7 +13,6 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import * as XLSX from "xlsx";
-import { decimalToHoursMinutes, hoursMinutesToDecimal } from "@/lib/utils";
 
 
 interface Sector {
@@ -240,8 +239,13 @@ const calcDuration = (
   if (!depDate || !depTime || !arrDate || !arrTime) return { value: "", error: null };
   const norm = (t: string) => { const s = t.replace(":", "").padEnd(4, "0"); return `${s.slice(0, 2)}:${s.slice(2, 4)}`; };
   const dep = new Date(`${depDate}T${norm(depTime)}:00`);
-  const arr = new Date(`${arrDate}T${norm(arrTime)}:00`);
+  let arr = new Date(`${arrDate}T${norm(arrTime)}:00`);
   if (isNaN(dep.getTime()) || isNaN(arr.getTime())) return { value: "", error: null };
+  
+  // Handle 24-hour rollover, midnight la irundhu next day early mrg kum handle its
+  if (arrDate === depDate && arr <= dep) {
+    arr = new Date(arr.getTime() + 86400000);
+  }
   if (arr <= dep) return { value: "", error: "Arrival before departure" };
   const diffMs = arr.getTime() - dep.getTime();
   if (diffMs > 86400000) return { value: "", error: ">24 hr" };
@@ -264,7 +268,6 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.on_chock_arr_time,
     );
     if (value !== sector.on_chock_duration) onChangeRef.current("on_chock_duration", value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sector.on_chock_dep_date, sector.on_chock_dep_time, sector.on_chock_arr_date, sector.on_chock_arr_time]);
 
   // Auto-calculate Flight Hrs (Take Off → Landing), sharing the same dep/arr dates
@@ -274,7 +277,6 @@ function SectorCard({ index, sector, onChange }: {
       sector.on_chock_arr_date, sector.off_chock_arr_time,
     );
     if (value !== sector.off_chock_duration) onChangeRef.current("off_chock_duration", value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sector.on_chock_dep_date, sector.off_chock_dep_time, sector.on_chock_arr_date, sector.off_chock_arr_time]);
 
   const blockCalc = calcDuration(
@@ -407,10 +409,8 @@ const JourneyLogForm = () => {
         ...p,
         registration: aircraft.registration_number ?? p.registration,
         aircraft_type: aircraft.model ?? p.aircraft_type,
-        ...(isEdit ? {} : {
-          aircraft_total_hrs: decimalToHoursMinutes(aircraft.flight_hours ?? 0),
+          aircraft_total_hrs: String(aircraft.flight_hours ?? 0),
           aircraft_total_cyc: String(aircraft.flight_cycles ?? 0),
-        }),
       }));
     }).catch(console.error);
   }, [id, isEdit]);
@@ -504,11 +504,13 @@ const JourneyLogForm = () => {
       .then((data: any) => {
         const fmt = (v: string | null | undefined) =>
           v ? new Date(v).toISOString().split("T")[0] : "";
-        setForm({
+        //Prevented from the race condtion bug do not change it
+        setForm((prev) => ({
+          ...prev,
           company_name: data.company_name ?? "",
           date: fmt(data.date),
-          registration: data.registration ?? "",
-          aircraft_type: data.aircraft_type ?? "",
+          registration: data.registration ?? prev.registration,
+          aircraft_type: data.aircraft_type ?? prev.aircraft_type,
           log_sl_no: data.log_sl_no ?? "",
           pic_name: data.pic_name ?? "",
           pic_license_no: data.pic_license_no ?? "",
@@ -520,24 +522,22 @@ const JourneyLogForm = () => {
           fuel_uplift: data.fuel_uplift?.toString() ?? "",
           calculate_total_fuel: data.calculate_total_fuel?.toString() ?? "",
           fuel_discrepancy: data.fuel_discrepancy?.toString() ?? "",
-          aircraft_total_hrs: decimalToHoursMinutes(data.aircraft_total_hrs),
-          aircraft_total_cyc: data.aircraft_total_cyc?.toString() ?? "",
           fuel_flight_deck_gauge: data.fuel_flight_deck_gauge?.toString() ?? "",
           next_due_maintenance: fmt(data.next_due_maintenance),
           due_at_date: fmt(data.due_at_date),
-          due_at_hours: decimalToHoursMinutes(data.due_at_hours),
-          total_flight_hrs: decimalToHoursMinutes(data.total_flight_hrs),
+          due_at_hours: data.due_at_hours?.toString() ?? "",
+          total_flight_hrs: data.total_flight_hrs?.toString() ?? "",
           total_flight_cyc: data.total_flight_cyc?.toString() ?? "",
           daily_inspection: fmt(data.daily_inspection),
           type_of_maintenance: data.type_of_maintenance ?? "",
-          apu_hrs: decimalToHoursMinutes(data.apu_hrs),
+          apu_hrs: data.apu_hrs?.toString() ?? "",
           apu_cyc: data.apu_cyc?.toString() ?? "",
           oil_uplift_eng1: data.oil_uplift_eng1?.toString() ?? "",
           oil_uplift_eng2: data.oil_uplift_eng2?.toString() ?? "",
           oil_uplift_apu: data.oil_uplift_apu?.toString() ?? "",
           daily_inspection_sign: data.daily_inspection_sign ?? "No",
           sign_stamp: data.sign_stamp ?? "No",
-        });
+        }));
         const mappedSectors: Sector[] = (data.sectors ?? []).slice(0, 1).map((s: any) => ({
           flight_num: s.flight_num ?? "",
           sector_from: s.sector_from ?? "",
@@ -596,14 +596,24 @@ const JourneyLogForm = () => {
   // Running total store pannaadhu, indha sector-ku varra hours difference (delta) mattum save pannum
   useEffect(() => {
     const dur = sectors[0]?.off_chock_duration ?? "";
-    if (dur && /^\d+:[0-5]\d$/.test(dur)) {
-      setForm((p) => ({
-        ...p,
-        total_flight_hrs: dur,
-        total_flight_cyc: "1",
-      }));
-    } else if (!isEdit) {
-      setForm((p) => ({ ...p, total_flight_hrs: "0:00", total_flight_cyc: "1" }));
+    if (dur) {
+      const parts = dur.split(":");
+      if (parts.length === 2) {
+        const hrs = parseInt(parts[0], 10);
+        const mins = parseInt(parts[1], 10);
+        if (!isNaN(hrs) && !isNaN(mins)) {
+          const sectorFlightHrs = hrs + mins / 60;
+          setForm((p) => ({
+            ...p,
+            total_flight_hrs: sectorFlightHrs.toFixed(2),
+            total_flight_cyc: "1",
+          }));
+          return;
+        }
+      }
+    }
+    if (!isEdit) {
+      setForm((p) => ({ ...p, total_flight_hrs: "0", total_flight_cyc: "1" }));
     }
   }, [sectors[0]?.off_chock_duration, isEdit]);
 
@@ -626,29 +636,7 @@ const JourneyLogForm = () => {
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = {
-        ...form,
-        aircraft_id: id,
-        sectors,
-        defects,
-        aircraft_total_hrs: hoursMinutesToDecimal(form.aircraft_total_hrs),
-        due_at_hours: hoursMinutesToDecimal(form.due_at_hours),
-        total_flight_hrs: hoursMinutesToDecimal(form.total_flight_hrs),
-        apu_hrs: hoursMinutesToDecimal(form.apu_hrs),
-        fuel_arrival: parseFloat(form.fuel_arrival) || null,
-        fuel_departure: parseFloat(form.fuel_departure) || null,
-        remaining_fuel_onboard: parseFloat(form.remaining_fuel_onboard) || null,
-        fuel_uplift: parseFloat(form.fuel_uplift) || null,
-        calculate_total_fuel: parseFloat(form.calculate_total_fuel) || null,
-        fuel_discrepancy: parseFloat(form.fuel_discrepancy) || null,
-        aircraft_total_cyc: parseInt(form.aircraft_total_cyc) || null,
-        total_flight_cyc: parseInt(form.total_flight_cyc) || null,
-        apu_cyc: parseInt(form.apu_cyc) || null,
-        fuel_flight_deck_gauge: parseFloat(form.fuel_flight_deck_gauge) || null,
-        oil_uplift_eng1: parseFloat(form.oil_uplift_eng1) || null,
-        oil_uplift_eng2: parseFloat(form.oil_uplift_eng2) || null,
-        oil_uplift_apu: parseFloat(form.oil_uplift_apu) || null,
-      };
+      const payload = { ...form, aircraft_id: id, sectors, defects };
       if (isEdit && logId) {
         await api.journeyLogs.update(logId, payload);
       } else {
@@ -784,10 +772,10 @@ const JourneyLogForm = () => {
                   <Input className={inp} placeholder="e.g. 9MXXA-001" value={form.log_sl_no} onChange={set("log_sl_no")} />
                 </F>
                 <F label="Total Flight Hrs">
-                  <Input className={inp} type="text" placeholder="HHHH:MM" value={form.total_flight_hrs} onChange={set("total_flight_hrs")} readOnly />
+                  <Input className={cn(inp, "bg-gray-50")} type="number" step="0.01" min="0" placeholder="0" value={form.aircraft_total_hrs} readOnly />
                 </F>
                 <F label="Total Flight Cyc">
-                  <Input className={inp} type="number" min="0" placeholder="0" value={form.total_flight_cyc} onChange={set("total_flight_cyc")} readOnly />
+                  <Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.aircraft_total_cyc} readOnly />
                 </F>
               </Grid>
               <Grid cols={3}>
@@ -823,8 +811,8 @@ const JourneyLogForm = () => {
                 <F label="Fuel Uplift (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.fuel_uplift} onChange={set("fuel_uplift")} /></F>
                 <F label="Calculate Total Fuel (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.calculate_total_fuel} onChange={set("calculate_total_fuel")} /></F>
                 <F label="Fuel Discrepancy (kg)"><Input className={inp} type="number" placeholder="0" value={form.fuel_discrepancy} onChange={set("fuel_discrepancy")} /></F>
-                <F label="Aircraft Total Hrs"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.aircraft_total_hrs} onChange={set("aircraft_total_hrs")} /></F>
-                <F label="Aircraft Total Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.aircraft_total_cyc} onChange={set("aircraft_total_cyc")} /></F>
+                <F label="Aircraft Total Hrs"><Input className={cn(inp, "bg-gray-50")} type="number" step="0.01" min="0" placeholder="0" value={form.aircraft_total_hrs} readOnly /></F>
+                <F label="Aircraft Total Cyc"><Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.aircraft_total_cyc} readOnly /></F>
                 <F label="Fuel Flight Deck Gauge (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.fuel_flight_deck_gauge} onChange={set("fuel_flight_deck_gauge")} /></F>
               </Grid>
             </Section>
@@ -834,10 +822,10 @@ const JourneyLogForm = () => {
               <Grid cols={3}>
                 <F label="Next Due Maintenance"><Input className={inp} type="date" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
                 <F label="Due @ Date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
-                <F label="Due @ Hours"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
+                <F label="Due @ Hours"><Input className={inp} type="number" step="0.1" min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
                 <F label="Daily Inspection"><Input className={inp} type="date" value={form.daily_inspection} onChange={set("daily_inspection")} /></F>
                 <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
-                <F label="APU Hrs"><Input className={inp} type="text" placeholder="HHHH:MM" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>
+                <F label="APU Hrs"><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>
                 <F label="APU Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.apu_cyc} onChange={set("apu_cyc")} /></F>
               </Grid>
             </Section>
