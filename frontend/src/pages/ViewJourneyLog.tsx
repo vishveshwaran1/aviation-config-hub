@@ -78,6 +78,17 @@ const ViewJourneyLog = () => {
 
   const [loading, setLoading] = useState(true);
   const [entry, setEntry] = useState<{ form: any; sectors: any[]; defects: any[] } | null>(null);
+  const [aircraftTotals, setAircraftTotals] = useState<{ hrs: string; cyc: string }>({ hrs: "", cyc: "" });
+
+  useEffect(() => {
+    if (!id) return;
+    api.aircrafts.get(id).then((aircraft: any) => {
+      setAircraftTotals({
+        hrs: String(aircraft.flight_hours ?? 0),
+        cyc: String(aircraft.flight_cycles ?? 0),
+      });
+    }).catch(console.error);
+  }, [id]);
 
   useEffect(() => {
     if (!logId) return;
@@ -184,8 +195,8 @@ const ViewJourneyLog = () => {
               <F label="Aircraft Registration"><RO value={form.registration} mono /></F>
               <F label="Aircraft Model"><RO value={form.aircraft_type} /></F>
               <F label="Log Serial No."><RO value={form.log_sl_no} mono /></F>
-              <F label="Total Flight Hrs"><RO value={form.total_flight_hrs} mono /></F>
-              <F label="Total Flight Cyc"><RO value={form.total_flight_cyc} mono /></F>
+              <F label="Total Flight Hrs"><RO value={aircraftTotals.hrs} mono /></F>
+              <F label="Total Flight Cyc"><RO value={aircraftTotals.cyc} mono /></F>
             </Grid>
             <Grid cols={3}>
               <F label="PIC Name"><RO value={form.pic_name} /></F>
@@ -291,8 +302,8 @@ const ViewJourneyLog = () => {
               <F label="Fuel Uplift (kg)"><RO value={form.fuel_uplift} mono /></F>
               <F label="Calculate Total Fuel (kg)"><RO value={form.calculate_total_fuel} mono /></F>
               <F label="Fuel Discrepancy (kg)"><RO value={form.fuel_discrepancy} mono /></F>
-              <F label="Aircraft Total Hrs"><RO value={form.aircraft_total_hrs} mono /></F>
-              <F label="Aircraft Total Cyc"><RO value={form.aircraft_total_cyc} mono /></F>
+              <F label="Aircraft Total Hrs"><RO value={aircraftTotals.hrs} mono /></F>
+              <F label="Aircraft Total Cyc"><RO value={aircraftTotals.cyc} mono /></F>
               <F label="Fuel Flight Deck Gauge (kg)"><RO value={form.fuel_flight_deck_gauge} mono /></F>
             </Grid>
           </Section>
