@@ -206,7 +206,7 @@ const OccmPanel = () => {
       <div className="rounded-xl  px-6 py-4 shadow-sm">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/aircraft/${id}/activity`)}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-black hover:bg-white/20 transition-colors"
             >
               <ArrowLeft className="h-5 w-8" />

@@ -136,7 +136,7 @@ const JourneyLog = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/aircraft/${id}/activity`)}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-black hover:bg-white/20 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />

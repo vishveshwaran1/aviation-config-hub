@@ -643,7 +643,7 @@ const JourneyLogForm = () => {
         await api.journeyLogs.create(payload);
       }
       toast.success(isEdit ? "Journey log updated." : "Journey log entry created.");
-      navigate(`/aircraft/${id}/journey`);
+      navigate(`/aircraft/${id}/journey`, { replace: true });
     } catch (err) {
       console.error(err);
       toast.error("Failed to save journey log.");
@@ -727,7 +727,7 @@ const JourneyLogForm = () => {
       <div className="rounded-xl bg-[#ffffff] px-6 py-5 shadow-sm">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => navigate(`/aircraft/${id}/journey`)}
+            <button type="button" onClick={() => navigate(`/aircraft/${id}/journey`, { replace: true })}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-black hover:bg-white/20 transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -741,7 +741,7 @@ const JourneyLogForm = () => {
           <div className="flex gap-2">
             <Button type="button" variant="outline" size="sm"
               className="h-8 border-white/30 bg-white/10 text-black hover:bg-red-50 hover:text-red-600 font-semibold text-xs"
-              onClick={() => navigate(`/aircraft/${id}/journey`)}>Cancel</Button>
+              onClick={() => navigate(`/aircraft/${id}/journey`, { replace: true })}>Cancel</Button>
             <Button type="button" size="sm" disabled={saving}
               className="h-8 gap-1.5 bg-white text-[#556ee6] hover:bg-white/90 font-semibold text-xs"
               onClick={handleSubmit as React.MouseEventHandler}>
@@ -927,7 +927,7 @@ const JourneyLogForm = () => {
           <div className="flex items-center justify-between px-6 py-4 bg-gray-50/60">
             <p className="text-[11px] text-muted-foreground">Fields marked <span className="text-rose-500 font-bold">*</span> are required</p>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/aircraft/${id}/journey`)}>Cancel</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/aircraft/${id}/journey`, { replace: true })}>Cancel</Button>
               <Button type="submit" size="sm" disabled={saving} className="gap-1.5 bg-[#556ee6] hover:bg-[#4560d5]">
                 <Save className="h-3.5 w-3.5" />
                 {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Entry"}
