@@ -196,10 +196,9 @@ const AircraftSetup = () => {
                 <TableHead>Aircraft Model</TableHead>
                 <TableHead>MSN</TableHead>
                 <TableHead>Aircraft Reg ID</TableHead>
-                <TableHead>No of Engines</TableHead>
-                <TableHead>Aircraft Received Status</TableHead>
+                <TableHead>No of Engines</TableHead>   
                 <TableHead>Approval Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -223,18 +222,9 @@ const AircraftSetup = () => {
                     <TableCell>{item.msn}</TableCell>
                     <TableCell>{item.registration_number}</TableCell>
                     <TableCell>{item.engines_count}</TableCell>
+                    
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.aircraft_received_status === "Received"
-                        ? "bg-blue-100 text-blue-800"
-                        : item.aircraft_received_status === "Not Received"
-                          ? "bg-orange-100 text-orange-800"
-                          : "bg-gray-100 text-gray-600"
-                        }`}>
-                        {item.aircraft_received_status || "Pending"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === "Active" ? "bg-green-100 text-green-800" :
+                      <span className={`px-2 py-1 rounded-full ml-5 text-xs font-semibold ${item.status === "Active" ? "bg-green-100 text-green-800" :
                         item.status === "Declined" ? "bg-red-100 text-red-800" :
                           "bg-gray-100 text-gray-800"
                         }`}>
