@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { decimalToHoursMinutes } from "@/lib/utils";
 
 const AircraftDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -96,7 +97,7 @@ const AircraftDetails = () => {
                         label="Date Received"
                         value={aircraft.delivery_date ? format(new Date(aircraft.delivery_date), "dd/MM/yyyy") : "-"}
                     />
-                    <DetailItem label="Aircraft Hours" value={aircraft.initial_flight_hours ?? aircraft.flight_hours} />
+                    <DetailItem label="Aircraft Hours" value={decimalToHoursMinutes(Number(aircraft.initial_flight_hours ?? aircraft.flight_hours ?? 0))} />
                     <DetailItem label="Aircraft Cycles" value={aircraft.initial_flight_cycles ?? aircraft.flight_cycles} />
                     <DetailItem label="No. of Engines" value={aircraft.engines_count} />
                     <DetailItem label="Status" value={aircraft.status} />

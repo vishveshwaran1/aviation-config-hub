@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, decimalToHoursMinutes} from "@/lib/utils";
 
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -84,7 +84,7 @@ const ViewJourneyLog = () => {
     if (!id) return;
     api.aircrafts.get(id).then((aircraft: any) => {
       setAircraftTotals({
-        hrs: String(aircraft.flight_hours ?? 0),
+        hrs: decimalToHoursMinutes(Number(aircraft.flight_hours ?? 0)),
         cyc: String(aircraft.flight_cycles ?? 0),
       });
     }).catch(console.error);

@@ -747,7 +747,7 @@ const Forecast = () => {
             {/* Total FH */}
             <div className="px-5 py-4">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Total FH</p>
-              <p className="text-sm font-semibold text-gray-800">{aircraft.flight_hours.toLocaleString()} hrs</p>
+              <p className="text-sm font-semibold text-gray-800">{decimalToHoursMinutes(aircraft.flight_hours)} hrs</p>
             </div>
             {/* Total FC */}
             <div className="px-5 py-4">
@@ -1046,7 +1046,7 @@ const Forecast = () => {
                                     <tr className="bg-white">
                                       <td className="px-4 py-2.5 text-gray-700">{fmtDate(row.lastDate)}</td>
                                       <td className="px-4 py-2.5 tabular-nums text-gray-700">
-                                        {row.lastHours !== null ? `${row.lastHours} FH` : "—"}
+                                        {row.lastHours !== null ? `${decimalToHoursMinutes(row.lastHours)} FH` : "—"}
                                       </td>
                                       <td className="px-4 py-2.5 tabular-nums text-gray-700">
                                         {row.lastCycles !== null ? `${row.lastCycles} FC` : "—"}

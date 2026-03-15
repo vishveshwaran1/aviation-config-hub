@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Save, Plus, Trash2, Upload } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn , decimalToHoursMinutes} from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -772,7 +772,7 @@ const JourneyLogForm = () => {
                   <Input className={inp} placeholder="e.g. 9MXXA-001" value={form.log_sl_no} onChange={set("log_sl_no")} />
                 </F>
                 <F label="Total Flight Hrs">
-                  <Input className={cn(inp, "bg-gray-50")} type="number" step="0.01" min="0" placeholder="0" value={form.aircraft_total_hrs} readOnly />
+                  <Input className={cn(inp, "bg-gray-50")} type="number" step="0.01" min="0" placeholder="0"  value={decimalToHoursMinutes(Number(form.aircraft_total_hrs))} readOnly />
                 </F>
                 <F label="Total Flight Cyc">
                   <Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.aircraft_total_cyc} readOnly />
@@ -811,7 +811,7 @@ const JourneyLogForm = () => {
                 <F label="Fuel Uplift (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.fuel_uplift} onChange={set("fuel_uplift")} /></F>
                 <F label="Calculate Total Fuel (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.calculate_total_fuel} onChange={set("calculate_total_fuel")} /></F>
                 <F label="Fuel Discrepancy (kg)"><Input className={inp} type="number" placeholder="0" value={form.fuel_discrepancy} onChange={set("fuel_discrepancy")} /></F>
-                <F label="Aircraft Total Hrs"><Input className={cn(inp, "bg-gray-50")} type="number" step="0.01" min="0" placeholder="0" value={form.aircraft_total_hrs} readOnly /></F>
+                <F label="Aircraft Total Hrs"><Input className={cn(inp, "bg-gray-50")} type="number" step="0.01" min="0" placeholder="0"  value={decimalToHoursMinutes(Number(form.aircraft_total_hrs))} readOnly /></F>
                 <F label="Aircraft Total Cyc"><Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.aircraft_total_cyc} readOnly /></F>
                 <F label="Fuel Flight Deck Gauge (kg)"><Input className={inp} type="number" min="0" placeholder="0" value={form.fuel_flight_deck_gauge} onChange={set("fuel_flight_deck_gauge")} /></F>
               </Grid>

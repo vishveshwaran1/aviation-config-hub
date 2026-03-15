@@ -12,6 +12,7 @@ import { Printer, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { decimalToHoursMinutes } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -267,7 +268,7 @@ const PrintTaskCard = () => {
           <div className="space-y-1">
             <div>
               <strong>A/C FH: </strong>
-              <span>{aircraft.flight_hours.toLocaleString()} hrs</span>
+              <span>{decimalToHoursMinutes(aircraft.flight_hours)} hrs</span>
             </div>
             <div>
               <strong>A/C FC: </strong>
