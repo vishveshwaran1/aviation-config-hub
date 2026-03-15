@@ -77,14 +77,23 @@ router.post('/', async (req, res) => {
       total_flight_hrs,
       total_flight_cyc,
       daily_inspection,
+      transit_inspection,
       type_of_maintenance,
       apu_hrs,
       apu_cyc,
       oil_uplift_eng1,
       oil_uplift_eng2,
       oil_uplift_apu,
+      hyd_fluid,
       daily_inspection_sign,
       sign_stamp,
+      amo_name,
+      amo_approval,
+      lae_name,
+      lae_license,
+      crs_signature,
+      digital_stamp,
+      fuel_density,
       sectors = [],
       defects = [],
     } = req.body;
@@ -117,14 +126,23 @@ router.post('/', async (req, res) => {
           total_flight_hrs: toFloat(total_flight_hrs),
           total_flight_cyc: toFloat(total_flight_cyc),
           daily_inspection: toDate(daily_inspection),
+          transit_inspection: toDate(transit_inspection),
           type_of_maintenance,
           apu_hrs: toFloat(apu_hrs),
           apu_cyc: toFloat(apu_cyc),
           oil_uplift_eng1: toFloat(oil_uplift_eng1),
           oil_uplift_eng2: toFloat(oil_uplift_eng2),
           oil_uplift_apu: toFloat(oil_uplift_apu),
+          hyd_fluid: toFloat(hyd_fluid),
           daily_inspection_sign: daily_inspection_sign ?? 'No',
           sign_stamp: sign_stamp ?? 'No',
+          amo_name,
+          amo_approval,
+          lae_name,
+          lae_license,
+          crs_signature: crs_signature ?? 'No',
+          digital_stamp: digital_stamp ?? 'No',
+          fuel_density: toFloat(fuel_density),
           sectors: {
             create: (sectors as any[]).map((s: any, idx: number) => ({
               sl_no: idx + 1,
@@ -149,6 +167,7 @@ router.post('/', async (req, res) => {
               category: d.category ?? 'PIREP',
               defect_description: d.defect_description,
               action_taken: d.action_taken,
+              status: d.status ?? 'Closed',
               mel_expiry_date: d.mel_expiry_date,
               mel_reference: d.mel_reference,
               mel_repair_cat: d.mel_repair_cat,
@@ -206,12 +225,12 @@ router.patch('/:id', async (req, res) => {
     // Convert numeric/date fields
     const data: any = { ...fields };
     const numFields = [
-      'fuel_arrival', 'fuel_departure', 'remaining_fuel_onboard', 'fuel_uplift',
+      'fuel_arrival', 'fuel_departure', 'remaining_fuel_onboard', 'fuel_uplift','fuel_density',
       'calculate_total_fuel', 'fuel_discrepancy', 'aircraft_total_hrs', 'aircraft_total_cyc',
       'fuel_flight_deck_gauge', 'due_at_hours', 'total_flight_hrs', 'total_flight_cyc',
-      'apu_hrs', 'apu_cyc', 'oil_uplift_eng1', 'oil_uplift_eng2', 'oil_uplift_apu',
+      'apu_hrs', 'apu_cyc', 'oil_uplift_eng1', 'oil_uplift_eng2', 'oil_uplift_apu', 'hyd_fluid'
     ];
-    const dateFields = ['date', 'next_due_maintenance', 'due_at_date', 'daily_inspection'];
+    const dateFields = ['date', 'next_due_maintenance', 'due_at_date', 'daily_inspection', 'transit_inspection'];
 
     for (const f of numFields) {
       if (f in data) data[f] = toFloat(data[f]);
