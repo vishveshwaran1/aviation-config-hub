@@ -96,8 +96,8 @@ const AircraftDetails = () => {
                         label="Date Received"
                         value={aircraft.delivery_date ? format(new Date(aircraft.delivery_date), "dd/MM/yyyy") : "-"}
                     />
-                    <DetailItem label="Aircraft Hours" value={aircraft.flight_hours} />
-                    <DetailItem label="Aircraft Cycles" value={aircraft.flight_cycles} />
+                    <DetailItem label="Aircraft Hours" value={aircraft.initial_flight_hours ?? aircraft.flight_hours} />
+                    <DetailItem label="Aircraft Cycles" value={aircraft.initial_flight_cycles ?? aircraft.flight_cycles} />
                     <DetailItem label="No. of Engines" value={aircraft.engines_count} />
                     <DetailItem label="Status" value={aircraft.status} />
                 </DetailSection>

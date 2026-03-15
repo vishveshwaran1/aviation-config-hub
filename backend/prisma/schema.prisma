@@ -27,6 +27,8 @@ model Aircraft {
   country             String?
   manufacture_date    DateTime?
   delivery_date       DateTime?
+  initial_flight_hours Float              @default(0)
+  initial_flight_cycles Float             @default(0)
   flight_hours        Float               @default(0)
   flight_cycles       Float               @default(0)
   engines_count       Int                 @default(2)
