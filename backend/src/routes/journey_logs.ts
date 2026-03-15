@@ -21,7 +21,7 @@ router.get('/:aircraft_id', async (req, res) => {
         sectors: { orderBy: { sl_no: 'asc' } },
         defects: { orderBy: { sl_no: 'asc' } },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: 'asc' },
     });
     res.json(logs);
   } catch (error) {
