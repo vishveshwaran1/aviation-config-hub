@@ -167,7 +167,6 @@ router.post('/', async (req, res) => {
               category: d.category ?? 'PIREP',
               defect_description: d.defect_description,
               action_taken: d.action_taken,
-              status: d.status ?? 'Closed',
               mel_expiry_date: d.mel_expiry_date,
               mel_reference: d.mel_reference,
               mel_repair_cat: d.mel_repair_cat,
@@ -240,14 +239,14 @@ router.patch('/:id', async (req, res) => {
     }
 
     // Run in a transaction: update header, replace sectors & defects
-    const log = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       const oldLog = await tx.journeyLog.findUnique({ where: { id } });
       if (!oldLog) throw new Error('Journey log not found');
 
       const oldFH = oldLog.total_flight_hrs ?? 0;
       const oldFC = oldLog.total_flight_cyc ?? 0;
       // Update the journey log header fields
-      const { aircraft_id: _aid, ...updateData } = data;
+      const { aircraft_id: _aid, msn: _msn, ...updateData } = data;
       await tx.journeyLog.update({ where: { id }, data: updateData });
 
       if (sectors !== undefined) {
@@ -315,14 +314,17 @@ router.patch('/:id', async (req, res) => {
           flight_cycles: { increment: newFC - oldFC },
         },
       });
+    }, {
+      maxWait: 10000,
+      timeout: 20000,
+    });
 
-      return tx.journeyLog.findUnique({
-        where: { id },
-        include: {
-          sectors: { orderBy: { sl_no: 'asc' } },
-          defects: { orderBy: { sl_no: 'asc' } },
-        },
-      });
+    const log = await prisma.journeyLog.findUnique({
+      where: { id },
+      include: {
+        sectors: { orderBy: { sl_no: 'asc' } },
+        defects: { orderBy: { sl_no: 'asc' } },
+      },
     });
 
     res.json(log);

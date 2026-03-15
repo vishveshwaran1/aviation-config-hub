@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -55,6 +56,7 @@ interface DefectRow {
 }
 
 interface JourneyFormData {
+  company_name: string;
   date: string;
   registration: string;
   aircraft_type: string;
@@ -176,6 +178,7 @@ const EMPTY_DEFECT: Omit<DefectRow, "id"> = {
 };
 
 const EMPTY_FORM: JourneyFormData = {
+  company_name: "",
   date: "", registration: "", aircraft_type: "", msn: "", log_sl_no: "",
   pic_name: "", pic_license_no: "", pic_sign: "No", commander_sign: "No",
   fuel_arrival: "", fuel_departure: "", remaining_fuel_onboard: "", fuel_uplift: "",
@@ -676,7 +679,8 @@ const JourneyLogForm = () => {
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { ...form, aircraft_id: id, sectors, defects };
+      const { msn: _msn, ...formPayload } = form;
+      const payload = { ...formPayload, aircraft_id: id, sectors, defects };
       if (isEdit && logId) {
         await api.journeyLogs.update(logId, payload);
       } else {
@@ -710,8 +714,7 @@ const JourneyLogForm = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-[#556ee6]">
               <Upload className="h-5 w-5" /> Upload Journey Log
-            </DialogTitle>
-          </DialogHeader>
+            </DialogTitle></DialogHeader>
 
           <div className="space-y-4 py-2">
             {uploading ? (
