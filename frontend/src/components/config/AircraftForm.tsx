@@ -124,6 +124,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 engineData[`${p}hours`] = decimalToHoursMinutes(e.hours_since_new);
                 engineData[`${p}cycles`] = e.cycles_since_new || 0;
                 engineData[`${p}last_shop_visit`] = formatDate(e.last_shop_visit_date);
+                engineData[`${p}time_since_visit`] = decimalToHoursMinutes(e.time_since_visit);
+                engineData[`${p}cycle_since_visit`] = e.cycle_since_visit || 0;
             }
 
             const apu = findComp("APU");
@@ -145,6 +147,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 apu_hours: decimalToHoursMinutes(apu.hours_since_new),
                 apu_cycles: apu.cycles_since_new || 0,
                 apu_last_shop_visit: formatDate(apu.last_shop_visit_date),
+                apu_time_since_visit: decimalToHoursMinutes(apu.time_since_visit),
+                apu_cycle_since_visit: apu.cycle_since_visit || 0,
 
                 mlg_left_manufacturer: ml.manufacturer || "",
                 mlg_left_model: ml.model || "",
@@ -157,6 +161,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 mlg_left_hours: decimalToHoursMinutes(ml.hours_since_new),
                 mlg_left_cycles: ml.cycles_since_new || 0,
                 mlg_left_shop_visit: formatDate(ml.last_shop_visit_date),
+                mlg_left_time_since_visit: decimalToHoursMinutes(ml.time_since_visit),
+                mlg_left_cycle_since_visit: ml.cycle_since_visit || 0,
 
                 mlg_right_manufacturer: mr.manufacturer || "",
                 mlg_right_model: mr.model || "",
@@ -169,6 +175,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 mlg_right_hours: decimalToHoursMinutes(mr.hours_since_new),
                 mlg_right_cycles: mr.cycles_since_new || 0,
                 mlg_right_shop_visit: formatDate(mr.last_shop_visit_date),
+                mlg_right_time_since_visit: decimalToHoursMinutes(mr.time_since_visit),
+                mlg_right_cycle_since_visit: mr.cycle_since_visit || 0,
 
                 nlg_manufacturer: nl.manufacturer || "",
                 nlg_model: nl.model || "",
@@ -181,6 +189,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                 nlg_hours: decimalToHoursMinutes(nl.hours_since_new),
                 nlg_cycles: nl.cycles_since_new || 0,
                 nlg_shop_visit: formatDate(nl.last_shop_visit_date),
+                nlg_time_since_visit: decimalToHoursMinutes(nl.time_since_visit),
+                nlg_cycle_since_visit: nl.cycle_since_visit || 0,
             };
         }
         return baseValues;
@@ -232,6 +242,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         status: (data as any)[`${p}status`],
                         manufacture_date: (data as any)[`${p}manufacture_date`] || null,
                         last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
+                        time_since_visit: hoursMinutesToDecimal((data as any)[`${p}time_since_visit`]),
+                        cycle_since_visit: Number((data as any)[`${p}cycle_since_visit`] || 0),
                         hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
                         cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                     };
@@ -245,6 +257,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             status: (data as any)[`${p}status`],
                             manufacture_date: (data as any)[`${p}manufacture_date`] || null,
                             last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
+                            time_since_visit: hoursMinutesToDecimal((data as any)[`${p}time_since_visit`]),
+                            cycle_since_visit: Number((data as any)[`${p}cycle_since_visit`] || 0),
                             hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
                             cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                         }));
@@ -259,6 +273,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                             status: (data as any)[`${p}status`],
                             manufacture_date: (data as any)[`${p}manufacture_date`] || null,
                             last_shop_visit_date: (data as any)[`${p}${mapping.lastShopVisit}`] || null,
+                            time_since_visit: hoursMinutesToDecimal((data as any)[`${p}time_since_visit`]),
+                            cycle_since_visit: Number((data as any)[`${p}cycle_since_visit`] || 0),
                             hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
                             cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                         });
@@ -289,6 +305,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         status: (data as any)[`${p}status`],
                         manufacture_date: (data as any)[`${p}manufacture_date`],
                         last_shop_visit_date: (data as any)[`${p}last_shop_visit`] || null,
+                        time_since_visit: hoursMinutesToDecimal((data as any)[`${p}time_since_visit`]),
+                        cycle_since_visit: Number((data as any)[`${p}cycle_since_visit`] || 0),
                         hours_since_new: hoursMinutesToDecimal((data as any)[`${p}hours`]),
                         cycles_since_new: Number((data as any)[`${p}cycles`] || 0)
                     });
@@ -301,6 +319,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.apu_serial_number, part_number: data.apu_part_number,
                         status: data.apu_status, manufacture_date: data.apu_manufacture_date,
                         last_shop_visit_date: data.apu_last_shop_visit || null,
+                        time_since_visit: hoursMinutesToDecimal(data.apu_time_since_visit), cycle_since_visit: Number(data.apu_cycle_since_visit || 0),
                         hours_since_new: hoursMinutesToDecimal(data.apu_hours), cycles_since_new: Number(data.apu_cycles || 0)
                     },
                     {
@@ -309,6 +328,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.mlg_left_serial_number, part_number: data.mlg_left_part_number,
                         status: data.mlg_left_status, manufacture_date: data.mlg_left_manufacture_date,
                         last_shop_visit_date: data.mlg_left_shop_visit || null,
+                        time_since_visit: hoursMinutesToDecimal(data.mlg_left_time_since_visit), cycle_since_visit: Number(data.mlg_left_cycle_since_visit || 0),
                         hours_since_new: hoursMinutesToDecimal(data.mlg_left_hours), cycles_since_new: Number(data.mlg_left_cycles || 0)
                     },
                     {
@@ -317,6 +337,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.mlg_right_serial_number, part_number: data.mlg_right_part_number,
                         status: data.mlg_right_status, manufacture_date: data.mlg_right_manufacture_date,
                         last_shop_visit_date: data.mlg_right_shop_visit || null,
+                        time_since_visit: hoursMinutesToDecimal(data.mlg_right_time_since_visit), cycle_since_visit: Number(data.mlg_right_cycle_since_visit || 0),
                         hours_since_new: hoursMinutesToDecimal(data.mlg_right_hours), cycles_since_new: Number(data.mlg_right_cycles || 0)
                     },
                     {
@@ -325,6 +346,7 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                         serial_number: data.nlg_serial_number, part_number: data.nlg_part_number,
                         status: data.nlg_status, manufacture_date: data.nlg_manufacture_date,
                         last_shop_visit_date: data.nlg_shop_visit || null,
+                        time_since_visit: hoursMinutesToDecimal(data.nlg_time_since_visit), cycle_since_visit: Number(data.nlg_cycle_since_visit || 0),
                         hours_since_new: hoursMinutesToDecimal(data.nlg_hours), cycles_since_new: Number(data.nlg_cycles || 0)
                     },
                 );
@@ -537,6 +559,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                                 <div className="col-span-2">
                                     {TextField(`${p}last_shop_visit` as any, "Last Shop Visit", "DD/MM/YYYY", "date", undefined, status === "New")}
                                 </div>
+                                {TextField(`${p}time_since_visit` as any, "Time Since Visit", "HHHH:MM", "text", undefined, status === "New")}
+                                {TextField(`${p}cycle_since_visit` as any, "Cycle Since Visit", "", "number", undefined, status === "New")}
                             </div>
                         );
                     })}
@@ -590,6 +614,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {TextField("apu_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
 
                     <div className="col-span-2">{TextField("apu_last_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.apu_status === "New")}</div>
+                    {TextField("apu_time_since_visit", "Time Since Visit", "HHHH:MM", "text", undefined, watchAll.apu_status === "New")}
+                    {TextField("apu_cycle_since_visit", "Cycle Since Visit", "", "number", undefined, watchAll.apu_status === "New")}
 
                     {TextField("apu_hours", "Total Hours", "HHHH:MM", "text")}
                     {TextField("apu_cycles", "Total Cycles", "", "number")}
@@ -632,6 +658,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {SelectField("mlg_left_status", "Status", ENGINE_STATUS)}
                     {TextField("mlg_left_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("mlg_left_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.mlg_left_status === "New")}
+                    {TextField("mlg_left_time_since_visit", "Time Since Visit", "HHHH:MM", "text", undefined, watchAll.mlg_left_status === "New")}
+                    {TextField("mlg_left_cycle_since_visit", "Cycle Since Visit", "", "number", undefined, watchAll.mlg_left_status === "New")}
                     {TextField("mlg_left_hours", "Total Hours", "HHHH:MM", "text")}
                     <div className="col-span-2">{TextField("mlg_left_cycles", "Total Cycles", "", "number")}</div>
 
@@ -673,6 +701,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {SelectField("mlg_right_status", "Status", ENGINE_STATUS)}
                     {TextField("mlg_right_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("mlg_right_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.mlg_right_status === "New")}
+                    {TextField("mlg_right_time_since_visit", "Time Since Visit", "HHHH:MM", "text", undefined, watchAll.mlg_right_status === "New")}
+                    {TextField("mlg_right_cycle_since_visit", "Cycle Since Visit", "", "number", undefined, watchAll.mlg_right_status === "New")}
                     {TextField("mlg_right_hours", "Total Hours", "HHHH:MM", "text")}
                     <div className="col-span-2">{TextField("mlg_right_cycles", "Total Cycles", "", "number")}</div>
 
@@ -714,6 +744,8 @@ export function AircraftForm({ defaultValues, onSuccess }: AircraftFormProps) {
                     {SelectField("nlg_status", "Status", ENGINE_STATUS)}
                     {TextField("nlg_manufacture_date", "Manufactured Date", "DD/MM/YYYY", "date")}
                     {TextField("nlg_shop_visit", "Last Shop Visit", "DD/MM/YYYY", "date", undefined, watchAll.nlg_status === "New")}
+                    {TextField("nlg_time_since_visit", "Time Since Visit", "HHHH:MM", "text", undefined, watchAll.nlg_status === "New")}
+                    {TextField("nlg_cycle_since_visit", "Cycle Since Visit", "", "number", undefined, watchAll.nlg_status === "New")}
                     {TextField("nlg_hours", "Total Hours", "HHHH:MM", "text")}
                     <div className="col-span-2">{TextField("nlg_cycles", "Total Cycles", "", "number")}</div>
 

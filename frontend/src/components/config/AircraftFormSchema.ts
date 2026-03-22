@@ -29,6 +29,8 @@ const engineFields = (index: number) => ({
     [`engine${index}_hours`]: optionalTimeString,
     [`engine${index}_cycles`]: z.coerce.number().min(0).optional(),
     [`engine${index}_last_shop_visit`]: z.string().optional().or(z.literal("")),
+    [`engine${index}_time_since_visit`]: optionalTimeString,
+    [`engine${index}_cycle_since_visit`]: z.coerce.number().min(0).optional(),
 });
 
 export const aircraftSchema = z.object({
@@ -59,6 +61,8 @@ export const aircraftSchema = z.object({
     engine1_hours: optionalTimeString,
     engine1_cycles: z.coerce.number().min(0).optional(),
     engine1_last_shop_visit: optionalString,
+    engine1_time_since_visit: optionalTimeString,
+    engine1_cycle_since_visit: z.coerce.number().min(0).optional(),
 
     // Engine 2
     engine2_manufacturer: optionalString,
@@ -72,6 +76,8 @@ export const aircraftSchema = z.object({
     engine2_hours: optionalTimeString,
     engine2_cycles: z.coerce.number().min(0).optional(),
     engine2_last_shop_visit: optionalString,
+    engine2_time_since_visit: optionalTimeString,
+    engine2_cycle_since_visit: z.coerce.number().min(0).optional(),
 
     // Engine 3
     engine3_manufacturer: optionalString,
@@ -85,6 +91,8 @@ export const aircraftSchema = z.object({
     engine3_hours: optionalTimeString,
     engine3_cycles: z.coerce.number().min(0).optional(),
     engine3_last_shop_visit: optionalString,
+    engine3_time_since_visit: optionalTimeString,
+    engine3_cycle_since_visit: z.coerce.number().min(0).optional(),
 
     // Engine 4
     engine4_manufacturer: optionalString,
@@ -98,6 +106,8 @@ export const aircraftSchema = z.object({
     engine4_hours: optionalTimeString,
     engine4_cycles: z.coerce.number().min(0).optional(),
     engine4_last_shop_visit: optionalString,
+    engine4_time_since_visit: optionalTimeString,
+    engine4_cycle_since_visit: z.coerce.number().min(0).optional(),
 
     // APU Details
     apu_manufacturer: requiredString,
@@ -109,6 +119,8 @@ export const aircraftSchema = z.object({
     apu_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     apu_manufacture_date: requiredString,
     apu_last_shop_visit: optionalString,
+    apu_time_since_visit: optionalTimeString,
+    apu_cycle_since_visit: z.coerce.number().min(0).optional(),
     apu_hours: timeString,
     apu_cycles: z.coerce.number().min(0, "APU cycles must be 0 or more"),
 
@@ -122,6 +134,8 @@ export const aircraftSchema = z.object({
     mlg_left_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     mlg_left_manufacture_date: requiredString,
     mlg_left_shop_visit: optionalString,
+    mlg_left_time_since_visit: optionalTimeString,
+    mlg_left_cycle_since_visit: z.coerce.number().min(0).optional(),
     mlg_left_hours: timeString,
     mlg_left_cycles: z.coerce.number().min(0, "MLG cycles must be 0 or more"),
 
@@ -135,6 +149,8 @@ export const aircraftSchema = z.object({
     mlg_right_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     mlg_right_manufacture_date: requiredString,
     mlg_right_shop_visit: optionalString,
+    mlg_right_time_since_visit: optionalTimeString,
+    mlg_right_cycle_since_visit: z.coerce.number().min(0).optional(),
     mlg_right_hours: timeString,
     mlg_right_cycles: z.coerce.number().min(0, "MLG cycles must be 0 or more"),
 
@@ -148,6 +164,8 @@ export const aircraftSchema = z.object({
     nlg_status: z.enum(["New", "Used", "N/A"]).default("Used"),
     nlg_manufacture_date: requiredString,
     nlg_shop_visit: optionalString,
+    nlg_time_since_visit: optionalTimeString,
+    nlg_cycle_since_visit: z.coerce.number().min(0).optional(),
     nlg_hours: timeString,
     nlg_cycles: z.coerce.number().min(0, "NLG cycles must be 0 or more"),
 })

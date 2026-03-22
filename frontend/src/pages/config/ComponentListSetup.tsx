@@ -4,8 +4,9 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import {
   Table,
   TableBody,
@@ -80,6 +81,33 @@ const ComponentListSetup = () => {
     )
   );
 
+  const exportToExcel = () => {
+    if (data.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const exportData = data.map((item, index) => ({
+      "#": index + 1,
+      "Compatible Aircrafts": Array.isArray(item.compatible_aircraft_models) ? item.compatible_aircraft_models.join(", ") : (item.compatible_aircraft_models || "-"),
+      "Component Name": item.name || "-",
+      "Component Manufacturer": item.manufacturer || "-",
+      "Part No": item.part_number || "-",
+      "CMM No": item.cmm_number || "-",
+      "Classification": item.classification || "-",
+      "Class Linkage": item.class_linkage || "-",
+      "Estimated Price": item.estimated_price || "-",
+      "Quotation Price": item.quotation_price || "-",
+      "Classification Date": item.classification_date ? new Date(item.classification_date).toLocaleDateString() : "-",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Components");
+    XLSX.writeFile(workbook, "Component_List.xlsx");
+    toast.success("Excel sheet downloaded successfully");
+  };
+
   if (isCreating || editingItem) {
     return (
       <div className="w-full pb-10">
@@ -131,9 +159,14 @@ const ComponentListSetup = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white" onClick={() => setIsCreating(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Create New
-          </Button>
+          <div className="flex gap-2">
+            {/* <Button variant="outline" onClick={exportToExcel}>
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button> */}
+            <Button className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white" onClick={() => setIsCreating(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Create New
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-md border overflow-x-auto">

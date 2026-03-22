@@ -4,8 +4,9 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Plus, Search, Pencil, Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ThumbsUp, ThumbsDown, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import {
   Table,
   TableBody,
@@ -111,6 +112,107 @@ const AircraftSetup = () => {
     )
   );
 
+  const exportToExcel = () => {
+    if (data.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const exportData = data.map((item, index) => {
+      const components = Array.isArray(item.components) ? item.components : [];
+      const getComp = (section: string) => components.find((c: any) => c.section === section) || {};
+
+      const mapped: any = {
+        "#": index + 1,
+        "Aircraft Model": item.model || "-",
+        "MSN": item.msn || "-",
+        "Registration Number": item.registration_number || "-",
+        "No of Engines": item.engines_count || 0,
+        "Aircraft Received Status": item.aircraft_received_status || "Pending",
+        "Approval Status": item.status || "Pending",
+        "Manufactured Date": item.manufacture_date ? new Date(item.manufacture_date).toLocaleDateString() : "-",
+        "Date Received": item.delivery_date ? new Date(item.delivery_date).toLocaleDateString() : "-",
+        "Flight Hours": item.flight_hours || 0,
+        "Flight Cycles": item.flight_cycles || 0,
+      };
+
+      for (let i = 1; i <= Math.max(item.engines_count || 2, 2); i++) {
+        const e = getComp(`Engine ${i}`);
+        mapped[`Engine ${i} Manufacturer`] = e.manufacturer || "-";
+        mapped[`Engine ${i} Model`] = e.model || "-";
+        mapped[`Engine ${i} Serial`] = e.serial_number || "-";
+        mapped[`Engine ${i} Part No`] = e.part_number || "-";
+        mapped[`Engine ${i} Status`] = e.status || "-";
+        mapped[`Engine ${i} Mfg Date`] = e.manufacture_date ? new Date(e.manufacture_date).toLocaleDateString() : "-";
+        mapped[`Engine ${i} Total Hours`] = e.hours_since_new || 0;
+        mapped[`Engine ${i} Total Cycles`] = e.cycles_since_new || 0;
+        mapped[`Engine ${i} Last Shop Visit`] = e.last_shop_visit_date ? new Date(e.last_shop_visit_date).toLocaleDateString() : "-";
+        mapped[`Engine ${i} Time Since Visit`] = e.time_since_visit || 0;
+        mapped[`Engine ${i} Cycle Since Visit`] = e.cycle_since_visit || 0;
+      }
+
+      const apu = getComp("APU");
+      mapped["APU Manufacturer"] = apu.manufacturer || "-";
+      mapped["APU Model"] = apu.model || "-";
+      mapped["APU Serial"] = apu.serial_number || "-";
+      mapped["APU Part No"] = apu.part_number || "-";
+      mapped["APU Status"] = apu.status || "-";
+      mapped["APU Mfg Date"] = apu.manufacture_date ? new Date(apu.manufacture_date).toLocaleDateString() : "-";
+      mapped["APU Total Hours"] = apu.hours_since_new || 0;
+      mapped["APU Total Cycles"] = apu.cycles_since_new || 0;
+      mapped["APU Last Shop Visit"] = apu.last_shop_visit_date ? new Date(apu.last_shop_visit_date).toLocaleDateString() : "-";
+      mapped["APU Time Since Visit"] = apu.time_since_visit || 0;
+      mapped["APU Cycle Since Visit"] = apu.cycle_since_visit || 0;
+
+      const mlgL = getComp("Main Landing Gear Left");
+      mapped["MLG Left Manufacturer"] = mlgL.manufacturer || "-";
+      mapped["MLG Left Model"] = mlgL.model || "-";
+      mapped["MLG Left Serial"] = mlgL.serial_number || "-";
+      mapped["MLG Left Part No"] = mlgL.part_number || "-";
+      mapped["MLG Left Status"] = mlgL.status || "-";
+      mapped["MLG Left Mfg Date"] = mlgL.manufacture_date ? new Date(mlgL.manufacture_date).toLocaleDateString() : "-";
+      mapped["MLG Left Total Hours"] = mlgL.hours_since_new || 0;
+      mapped["MLG Left Total Cycles"] = mlgL.cycles_since_new || 0;
+      mapped["MLG Left Last Shop Visit"] = mlgL.last_shop_visit_date ? new Date(mlgL.last_shop_visit_date).toLocaleDateString() : "-";
+      mapped["MLG Left Time Since Visit"] = mlgL.time_since_visit || 0;
+      mapped["MLG Left Cycle Since Visit"] = mlgL.cycle_since_visit || 0;
+
+      const mlgR = getComp("Main Landing Gear Right");
+      mapped["MLG Right Manufacturer"] = mlgR.manufacturer || "-";
+      mapped["MLG Right Model"] = mlgR.model || "-";
+      mapped["MLG Right Serial"] = mlgR.serial_number || "-";
+      mapped["MLG Right Part No"] = mlgR.part_number || "-";
+      mapped["MLG Right Status"] = mlgR.status || "-";
+      mapped["MLG Right Mfg Date"] = mlgR.manufacture_date ? new Date(mlgR.manufacture_date).toLocaleDateString() : "-";
+      mapped["MLG Right Total Hours"] = mlgR.hours_since_new || 0;
+      mapped["MLG Right Total Cycles"] = mlgR.cycles_since_new || 0;
+      mapped["MLG Right Last Shop Visit"] = mlgR.last_shop_visit_date ? new Date(mlgR.last_shop_visit_date).toLocaleDateString() : "-";
+      mapped["MLG Right Time Since Visit"] = mlgR.time_since_visit || 0;
+      mapped["MLG Right Cycle Since Visit"] = mlgR.cycle_since_visit || 0;
+
+      const nlg = getComp("Nose Landing Gear");
+      mapped["NLG Manufacturer"] = nlg.manufacturer || "-";
+      mapped["NLG Model"] = nlg.model || "-";
+      mapped["NLG Serial"] = nlg.serial_number || "-";
+      mapped["NLG Part No"] = nlg.part_number || "-";
+      mapped["NLG Status"] = nlg.status || "-";
+      mapped["NLG Mfg Date"] = nlg.manufacture_date ? new Date(nlg.manufacture_date).toLocaleDateString() : "-";
+      mapped["NLG Total Hours"] = nlg.hours_since_new || 0;
+      mapped["NLG Total Cycles"] = nlg.cycles_since_new || 0;
+      mapped["NLG Last Shop Visit"] = nlg.last_shop_visit_date ? new Date(nlg.last_shop_visit_date).toLocaleDateString() : "-";
+      mapped["NLG Time Since Visit"] = nlg.time_since_visit || 0;
+      mapped["NLG Cycle Since Visit"] = nlg.cycle_since_visit || 0;
+
+      return mapped;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Aircrafts");
+    XLSX.writeFile(workbook, "Aircraft_List.xlsx");
+    toast.success("Excel sheet downloaded successfully");
+  };
+
   /* ── Header row shared by both views ── */
   const PageHeader = ({ showBack = false }: { showBack?: boolean }) => (
     <div className="flex items-center justify-between mb-4">
@@ -180,12 +282,17 @@ const AircraftSetup = () => {
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button
-            className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white"
-            onClick={() => setIsCreating(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Create New
-          </Button>
+          <div className="flex gap-2">
+            {/* <Button variant="outline" onClick={exportToExcel}>
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button> */}
+            <Button
+              className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white"
+              onClick={() => setIsCreating(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Create New
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-md border overflow-x-auto">

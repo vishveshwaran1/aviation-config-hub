@@ -50,6 +50,8 @@ model AircraftComponent {
   status               String?
   manufacture_date     DateTime?
   last_shop_visit_date DateTime?
+  time_since_visit     Float?
+  cycle_since_visit    Float?
   hours_since_new      Float?
   cycles_since_new     Float?
   created_at           DateTime  @default(now())

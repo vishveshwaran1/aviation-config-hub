@@ -4,8 +4,9 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import {
   Table,
   TableBody,
@@ -81,6 +82,36 @@ const ServiceListSetup = () => {
     )
   );
 
+  const exportToExcel = () => {
+    if (data.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const exportData = data.map((item, index) => ({
+      "#": index + 1,
+      "Aircraft Model": item.aircraft_model || "-",
+      "Task Name": item.task_name || "-",
+      "MPD ID": item.mpd_id || "-",
+      "AMM ID": item.amm_id || "-",
+      "Task Card Ref": item.task_card_ref || "-",
+      "Zones": Array.isArray(item.zones) ? item.zones.join(", ") : (item.zones || "-"),
+      "Assigned Component": item.assigned_component_id || "-",
+      "Estimated Manhours": item.estimated_manhours || "-",
+      "Comp Price": item.estimated_price || "-",
+      "Service Price": item.quotation_price || "-",
+      "Interval Threshold": item.interval_threshold ? `${item.interval_threshold} ${item.interval_unit || 'Hours'}` : "-",
+      "Repeat Interval": item.repeat_interval || "-",
+      "Description": item.description || "-",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Services");
+    XLSX.writeFile(workbook, "Service_List.xlsx");
+    toast.success("Excel sheet downloaded successfully");
+  };
+
   if (isCreating || editingItem) {
     return (
       <div className="w-full pb-10">
@@ -132,9 +163,14 @@ const ServiceListSetup = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white" onClick={() => setIsCreating(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Create New
-          </Button>
+          <div className="flex gap-2">
+            {/* <Button variant="outline" onClick={exportToExcel}>
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button> */}
+            <Button className="bg-[#556ee6] hover:bg-[#4a5fcc] text-white" onClick={() => setIsCreating(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Create New
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-md border overflow-x-auto">

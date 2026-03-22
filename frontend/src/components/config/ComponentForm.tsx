@@ -237,10 +237,11 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="Active">Active</SelectItem>
-                                            <SelectItem value="Alternative">Alternative</SelectItem>
-                                            <SelectItem value="Obsolete">Obsolete</SelectItem>
-                                            <SelectItem value="Superseded">Superseded</SelectItem>
+                                            <SelectItem value="Rotatable">Rotatable</SelectItem>
+                                            <SelectItem value="Repairable">Repairable</SelectItem>
+                                            <SelectItem value="Expendable/consumable">Expendable/consumable</SelectItem>
+                                            <SelectItem value="Life-Limited-part">Life-Limited-part</SelectItem>
+                                            <SelectItem value="Standard parts">Standard parts</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     {fieldState.error && <SelectErrorBadge />}
@@ -268,12 +269,12 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                     <FormField control={form.control} name="class_linkage" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Component Class Linkage</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}> ATA chapter</FormLabel>
                                 <div className="relative flex-1">
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className={selectCls(!!fieldState.error)}>
-                                                <SelectValue placeholder="Select class linkage" />
+                                                <SelectValue placeholder="Select ATA chapter" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
