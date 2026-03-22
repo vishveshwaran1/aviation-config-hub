@@ -95,7 +95,7 @@ const ComponentListSetup = () => {
       "Part No": item.part_number || "-",
       "CMM No": item.cmm_number || "-",
       "Classification": item.classification || "-",
-      "Class Linkage": item.class_linkage || "-",
+      "ATA Chapter": item.class_linkage || "-",
       "Estimated Price": item.estimated_price || "-",
       "Quotation Price": item.quotation_price || "-",
       "Classification Date": item.classification_date ? new Date(item.classification_date).toLocaleDateString() : "-",
@@ -178,7 +178,7 @@ const ComponentListSetup = () => {
                 <TableHead>Component Name</TableHead>
                 <TableHead>Component Part No</TableHead>
                 <TableHead>Component Class</TableHead>
-                <TableHead>Class Linkage</TableHead>
+                <TableHead>ATA Chapter</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>

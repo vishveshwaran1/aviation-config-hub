@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,20 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
         console.error("Form Validation Errors:", errors);
         toast.error("Please fill in all required fields correctly.");
     };
+
+    const cmmNumber = form.watch("cmm_number");
+
+    useEffect(() => {
+        if (cmmNumber) {
+            if (cmmNumber.startsWith("32")) {
+                form.setValue("class_linkage", "Landing Gear", { shouldValidate: true });
+            } else if (cmmNumber.startsWith("24")) {
+                form.setValue("class_linkage", "Electrical Power", { shouldValidate: true });
+            } else if (cmmNumber.startsWith("25")) {
+                form.setValue("class_linkage", "Equipment/Furnishing", { shouldValidate: true });
+            }
+        }
+    }, [cmmNumber, form]);
 
     async function onSubmit(data: ComponentFormData) {
         setLoading(true);
@@ -265,28 +279,17 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                         </FormItem>
                     )} />
 
-                    {/* Component Class Linkage */}
+                    {/* ATA Chapter */}
                     <FormField control={form.control} name="class_linkage" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}> ATA chapter</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
-                                                <SelectValue placeholder="Select ATA chapter" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Subassembly">Subassembly</SelectItem>
-                                            <SelectItem value="Single">Single</SelectItem>
-                                            <SelectItem value="Consumable">Consumable</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    {fieldState.error && <SelectErrorBadge />}
+                                    <FormControl><Input className={inputCls(!!fieldState.error)} {...field} placeholder="ATA chapter linkage" /></FormControl>
+                                    {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Component Class Linkage</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter ATA Chapter</p>}
                         </FormItem>
                     )} />
 
