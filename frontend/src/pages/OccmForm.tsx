@@ -93,12 +93,12 @@ const OccmForm = () => {
           });
         } else {
           toast.error("Component not found.");
-          navigate(-1);
+          navigate(`/aircraft/${id}/occm`);
         }
       })
       .catch(() => {
         toast.error("Failed to load component.");
-        navigate(-1);
+        navigate(`/aircraft/${id}/occm`);
       })
       .finally(() => setLoading(false));
   }, [id, componentId]);
@@ -156,7 +156,7 @@ const OccmForm = () => {
       {/* ── Page header ── */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/aircraft/${id}/occm`)}
           className="flex h-8 w-8 items-center justify-center rounded-lg border bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -296,7 +296,7 @@ const OccmForm = () => {
               type="button"
               variant="outline"
               className="gap-1.5 bg-[#68686f] hover:bg-[#585d65]"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/aircraft/${id}/occm`)}
             >
               Cancel
             </Button>

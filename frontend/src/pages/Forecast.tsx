@@ -718,7 +718,7 @@ const Forecast = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/aircraft/${id}/activity`)}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10  hover:bg-white/20 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -747,7 +747,7 @@ const Forecast = () => {
             {/* Total FH */}
             <div className="px-5 py-4">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Total FH</p>
-              <p className="text-sm font-semibold text-gray-800">{aircraft.flight_hours.toLocaleString()} hrs</p>
+              <p className="text-sm font-semibold text-gray-800">{decimalToHoursMinutes(aircraft.flight_hours)} hrs</p>
             </div>
             {/* Total FC */}
             <div className="px-5 py-4">
@@ -1046,7 +1046,7 @@ const Forecast = () => {
                                     <tr className="bg-white">
                                       <td className="px-4 py-2.5 text-gray-700">{fmtDate(row.lastDate)}</td>
                                       <td className="px-4 py-2.5 tabular-nums text-gray-700">
-                                        {row.lastHours !== null ? `${row.lastHours} FH` : "—"}
+                                        {row.lastHours !== null ? `${decimalToHoursMinutes(row.lastHours)} FH` : "—"}
                                       </td>
                                       <td className="px-4 py-2.5 tabular-nums text-gray-700">
                                         {row.lastCycles !== null ? `${row.lastCycles} FC` : "—"}

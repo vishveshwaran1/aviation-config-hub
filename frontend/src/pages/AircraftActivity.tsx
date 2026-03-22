@@ -12,7 +12,7 @@ import {
   Lock,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, decimalToHoursMinutes } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface Aircraft {
@@ -117,7 +117,7 @@ const AircraftActivity = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/dashboard`)}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -134,7 +134,7 @@ const AircraftActivity = () => {
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3 sm:justify-end">
               <StatBadge label="Aircraft Reg ID" value={aircraft.registration_number} />
               <div className="hidden sm:block w-px h-8 bg-white/20" />
-              <StatBadge label="Aircraft FH" value={aircraft.flight_hours} />
+              <StatBadge label="Aircraft FH" value={decimalToHoursMinutes(aircraft.flight_hours)} />
               <div className="hidden sm:block w-px h-8 bg-white/20" />
               <StatBadge label="Aircraft FC" value={aircraft.flight_cycles} />
             </div>

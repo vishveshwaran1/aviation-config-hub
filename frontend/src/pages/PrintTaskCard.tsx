@@ -12,6 +12,7 @@ import { Printer, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { decimalToHoursMinutes } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -206,7 +207,7 @@ const PrintTaskCard = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <p className="text-muted-foreground text-sm">No task card data found.</p>
-        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+        <Button variant="outline" size="sm" onClick={() => navigate(`/aircraft/${id}/forecast`)}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
       </div>
@@ -218,7 +219,7 @@ const PrintTaskCard = () => {
       {/* ── Screen-only toolbar (hidden on print) ── */}
       <div className="print:hidden flex items-center justify-between px-6 py-3 border-b bg-white sticky top-0 z-10 shadow-sm">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/aircraft/${id}/forecast`)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-gray-800"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Forecast
@@ -267,7 +268,7 @@ const PrintTaskCard = () => {
           <div className="space-y-1">
             <div>
               <strong>A/C FH: </strong>
-              <span>{aircraft.flight_hours.toLocaleString()} hrs</span>
+              <span>{decimalToHoursMinutes(aircraft.flight_hours)} hrs</span>
             </div>
             <div>
               <strong>A/C FC: </strong>

@@ -27,6 +27,8 @@ model Aircraft {
   country             String?
   manufacture_date    DateTime?
   delivery_date       DateTime?
+  initial_flight_hours Float              @default(0)
+  initial_flight_cycles Float             @default(0)
   flight_hours        Float               @default(0)
   flight_cycles       Float               @default(0)
   engines_count       Int                 @default(2)
@@ -148,6 +150,7 @@ model JourneyLog {
   fuel_uplift            Float?
   calculate_total_fuel   Float?
   fuel_discrepancy       Float?
+  fuel_density           Float?
   aircraft_total_hrs     Float?
   aircraft_total_cyc     Float?
   fuel_flight_deck_gauge Float?
@@ -157,14 +160,22 @@ model JourneyLog {
   total_flight_hrs       Float?
   total_flight_cyc       Float?
   daily_inspection       DateTime?
+  transit_inspection     DateTime?
   type_of_maintenance    String?
   apu_hrs                Float?
   apu_cyc                Float?
   oil_uplift_eng1        Float?
   oil_uplift_eng2        Float?
   oil_uplift_apu         Float?
+  hyd_fluid              Float?
   daily_inspection_sign  String             @default("No")
   sign_stamp             String             @default("No")
+  amo_name               String?
+  amo_approval           String?
+  lae_name               String?
+  lae_license            String?
+  crs_signature          String             @default("No")
+  digital_stamp          String             @default("No")
   created_at             DateTime           @default(now())
   updated_at             DateTime           @updatedAt
   aircraft               Aircraft           @relation(fields: [aircraft_id], references: [id])

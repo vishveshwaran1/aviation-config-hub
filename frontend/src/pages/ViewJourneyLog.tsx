@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, decimalToHoursMinutes} from "@/lib/utils";
 
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -78,6 +78,17 @@ const ViewJourneyLog = () => {
 
   const [loading, setLoading] = useState(true);
   const [entry, setEntry] = useState<{ form: any; sectors: any[]; defects: any[] } | null>(null);
+  const [aircraftTotals, setAircraftTotals] = useState<{ hrs: string; cyc: string }>({ hrs: "", cyc: "" });
+
+  useEffect(() => {
+    if (!id) return;
+    api.aircrafts.get(id).then((aircraft: any) => {
+      setAircraftTotals({
+        hrs: decimalToHoursMinutes(Number(aircraft.flight_hours ?? 0)),
+        cyc: String(aircraft.flight_cycles ?? 0),
+      });
+    }).catch(console.error);
+  }, [id]);
 
   useEffect(() => {
     if (!logId) return;
@@ -111,14 +122,22 @@ const ViewJourneyLog = () => {
             total_flight_hrs:       data.total_flight_hrs?.toString(),
             total_flight_cyc:       data.total_flight_cyc?.toString(),
             daily_inspection:       fmt(data.daily_inspection),
+            transit_inspection:     fmt(data.transit_inspection),
             type_of_maintenance:    data.type_of_maintenance,
             apu_hrs:                data.apu_hrs?.toString(),
             apu_cyc:                data.apu_cyc?.toString(),
             oil_uplift_eng1:        data.oil_uplift_eng1?.toString(),
             oil_uplift_eng2:        data.oil_uplift_eng2?.toString(),
             oil_uplift_apu:         data.oil_uplift_apu?.toString(),
+            hyd_fluid:              data.hyd_fluid?.toString(),
             daily_inspection_sign:  data.daily_inspection_sign,
             sign_stamp:             data.sign_stamp,
+            amo_name:               data.amo_name,
+            amo_approval:           data.amo_approval,
+            lae_name:               data.lae_name,
+            lae_license:            data.lae_license,
+            crs_signature:          data.crs_signature,
+            digital_stamp:          data.digital_stamp,
           },
           sectors: data.sectors ?? [],
           defects: data.defects ?? [],
@@ -184,8 +203,8 @@ const ViewJourneyLog = () => {
               <F label="Aircraft Registration"><RO value={form.registration} mono /></F>
               <F label="Aircraft Model"><RO value={form.aircraft_type} /></F>
               <F label="Log Serial No."><RO value={form.log_sl_no} mono /></F>
-              <F label="Total Flight Hrs"><RO value={form.total_flight_hrs} mono /></F>
-              <F label="Total Flight Cyc"><RO value={form.total_flight_cyc} mono /></F>
+              <F label="Total Flight Hrs"><RO value={aircraftTotals.hrs} mono /></F>
+              <F label="Total Flight Cyc"><RO value={aircraftTotals.cyc} mono /></F>
             </Grid>
             <Grid cols={3}>
               <F label="PIC Name"><RO value={form.pic_name} /></F>
@@ -291,35 +310,56 @@ const ViewJourneyLog = () => {
               <F label="Fuel Uplift (kg)"><RO value={form.fuel_uplift} mono /></F>
               <F label="Calculate Total Fuel (kg)"><RO value={form.calculate_total_fuel} mono /></F>
               <F label="Fuel Discrepancy (kg)"><RO value={form.fuel_discrepancy} mono /></F>
-              <F label="Aircraft Total Hrs"><RO value={form.aircraft_total_hrs} mono /></F>
-              <F label="Aircraft Total Cyc"><RO value={form.aircraft_total_cyc} mono /></F>
+              <F label="Aircraft Total Hrs"><RO value={aircraftTotals.hrs} mono /></F>
+              <F label="Aircraft Total Cyc"><RO value={aircraftTotals.cyc} mono /></F>
               <F label="Fuel Flight Deck Gauge (kg)"><RO value={form.fuel_flight_deck_gauge} mono /></F>
             </Grid>
           </Section>
 
           {/* 4. Maintenance */}
           <Section title="Maintenance">
-            <Grid cols={3}>
-              <F label="Next Due Maintenance"><RO value={form.next_due_maintenance} /></F>
-              <F label="Due @ Date"><RO value={form.due_at_date} /></F>
-              <F label="Due @ Hours"><RO value={form.due_at_hours} mono /></F>
-              <F label="Daily Inspection"><RO value={form.daily_inspection} /></F>
-              <F label="Type of Maintenance"><RO value={form.type_of_maintenance} /></F>
-              <F label="APU Hrs"><RO value={form.apu_hrs} mono /></F>
-              <F label="APU Cyc"><RO value={form.apu_cyc} mono /></F>
-            </Grid>
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Group 1: Airworthiness</h4>
+                <Grid cols={3}>
+                  <F label="A/C Total Hrs"><RO value={aircraftTotals.hrs} mono /></F>
+                  <F label="Total Cycles"><RO value={aircraftTotals.cyc} mono /></F>
+                  <F label="Next Due Maintenance"><RO value={form.next_due_maintenance} /></F>
+                  <F label="Due @ Date"><RO value={form.due_at_date} /></F>
+                  <F label="Due @ Hours"><RO value={form.due_at_hours} mono /></F>
+                </Grid>
+              </div>
+
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Group 2: Inspections</h4>
+                <Grid cols={3}>
+                  <F label="Daily Inspection"><RO value={form.daily_inspection} /></F>
+                  <F label="Transit Inspection"><RO value={form.transit_inspection} /></F>
+                  <F label="Type of Maintenance"><RO value={form.type_of_maintenance} /></F>
+                </Grid>
+              </div>
+
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Group 3: Fluid Servicing</h4>
+                <Grid cols={4}>
+                  <F label="Oil Uplift Engine No.1 (L)"><RO value={form.oil_uplift_eng1} mono /></F>
+                  <F label="Oil Uplift Engine No.2 (L)"><RO value={form.oil_uplift_eng2} mono /></F>
+                  <F label="Oil Uplift APU (L)"><RO value={form.oil_uplift_apu} mono /></F>
+                  <F label="Hyd Fluid (L)"><RO value={form.hyd_fluid} mono /></F>
+                </Grid>
+              </div>
+
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Group 4: APU Tracking</h4>
+                <Grid cols={3}>
+                  <F label="APU Hrs"><RO value={form.apu_hrs} mono /></F>
+                  <F label="APU Cyc"><RO value={form.apu_cyc} mono /></F>
+                </Grid>
+              </div>
+            </div>
           </Section>
 
-          {/* 5. Oil Uplift */}
-          <Section title="Oil Uplift">
-            <Grid cols={3}>
-              <F label="Oil Uplift Engine No.1 (L)"><RO value={form.oil_uplift_eng1} mono /></F>
-              <F label="Oil Uplift Engine No.2 (L)"><RO value={form.oil_uplift_eng2} mono /></F>
-              <F label="Oil Uplift APU (L)"><RO value={form.oil_uplift_apu} mono /></F>
-            </Grid>
-          </Section>
-
-          {/* 6. Action Taken */}
+          {/* 5. Action Taken */}
           <Section title="Action Taken">
             {defects.length === 0 ? (
               <p className="text-xs text-muted-foreground italic">No entries recorded.</p>
@@ -386,12 +426,43 @@ const ViewJourneyLog = () => {
             )}
           </Section>
 
-          {/* 7. Signatures*/}
+          {/* 6. Signatures*/}
           <Section title="Signatures">
             <Grid cols={2}>
               <SignDisplay label="Daily Inspection Signature &amp; Stamp" value={form.daily_inspection_sign} />
               <SignDisplay label="Signature and Stamp" value={form.sign_stamp} />
             </Grid>
+          </Section>
+
+          {/* 7. CRS Statement */}
+          <Section title="CRS Statement">
+            <div className="space-y-6">
+              <p className="text-sm text-gray-600 bg-gray-50/50 p-4 rounded-lg border border-gray-100 italic">
+                "Certifies that the work specified, except as otherwise specified, was carried out in accordance with the Civil Aviation Act 1969 and the regulations made thereunder and in respect to that work, the aircraft/aircraft component is considered ready for release to service"
+              </p>
+              
+              <div className="space-y-4">
+                <Grid cols={2}>
+                  <F label="AMO Name">
+                    <RO value={form.amo_name} mono />
+                  </F>
+                  <F label="AMO Approval">
+                    <RO value={form.amo_approval} mono />
+                  </F>
+                  <F label="LAE Name">
+                    <RO value={form.lae_name} mono />
+                  </F>
+                  <F label="LAE License">
+                    <RO value={form.lae_license} mono />
+                  </F>
+                </Grid>
+                
+                <div className="max-w-md pt-2 flex gap-4">
+                   <SignDisplay label="CRS Signature" value={form.crs_signature} />
+                   <SignDisplay label="Digital Stamp" value={form.digital_stamp} />
+                </div>
+              </div>
+            </div>
           </Section>
 
         </div>
