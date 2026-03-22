@@ -256,6 +256,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                                             <SelectItem value="Expendable/consumable">Expendable/consumable</SelectItem>
                                             <SelectItem value="Life-Limited-part">Life-Limited-part</SelectItem>
                                             <SelectItem value="Standard parts">Standard parts</SelectItem>
+                                            <SelectItem value = "Tooling/Ground Support Equipment" >Tooling/Ground Support Equipment</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     {fieldState.error && <SelectErrorBadge />}
