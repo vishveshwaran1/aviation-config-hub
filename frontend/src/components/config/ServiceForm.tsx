@@ -418,7 +418,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     {/* Interval Threshold */}
                     <FormField control={form.control} name="interval_threshold" render={({ field, fieldState }) => {
                         const unit = form.watch("interval_threshold_unit");
-                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Threshold in Cycles" : "Enter Threshold";
+                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Threshold in Cycles" : "Enter Threshold in Years";
                         return (
                             <FormItem className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-3">
@@ -454,7 +454,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     {/* Repeat Interval */}
                     <FormField control={form.control} name="repeat_interval" render={({ field, fieldState }) => {
                         const unit = form.watch("repeat_interval_unit");
-                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Interval Repeat in Cycles" : "Enter Interval Repeat";
+                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Interval Repeat in Cycles" : "Enter Interval Repeat in Years";
                         return (
                             <FormItem className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-3">

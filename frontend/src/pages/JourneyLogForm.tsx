@@ -79,6 +79,7 @@ interface JourneyFormData {
   next_due_maintenance: string;
   due_at_date: string;
   due_at_hours: string;
+  due_at_cycles: string;
   total_flight_hrs: string;
   total_flight_cyc: string;
   daily_inspection: string;
@@ -108,11 +109,11 @@ const COL_MAP: Record<string, string> = {
   "PIC Sign": "pic_sign", "Commander Sign": "commander_sign",
   "Fuel Arrival": "fuel_arrival", "Fuel Departure": "fuel_departure",
   "Remaining Fuel Onboard": "remaining_fuel_onboard", "Fuel Uplift": "fuel_uplift",
-  "Calculate Total Fuel": "calculate_total_fuel", "Fuel Discrepancy": "fuel_discrepancy",
+  "Calculate total fuel(used)": "calculate_total_fuel", "Calculate Total Fuel": "calculate_total_fuel", "Total Used Fuel": "calculate_total_fuel", "Fuel Discrepancy": "fuel_discrepancy",
   "Aircraft Total Hrs": "aircraft_total_hrs", "Aircraft Total Cyc": "aircraft_total_cyc",
   "Fuel Flight Deck Gauge": "fuel_flight_deck_gauge",
   "Next Due Maintenance": "next_due_maintenance", "Due At Date": "due_at_date",
-  "Due At Hours": "due_at_hours", "Total Flight Hrs": "total_flight_hrs",
+  "Due At Hours": "due_at_hours", "Due At Cycles": "due_at_cycles", "Total Flight Hrs": "total_flight_hrs",
   "Total Flight Cyc": "total_flight_cyc", "Daily Inspection": "daily_inspection",
   "Transit Inspection": "transit_inspection",
   "Type of Maintenance": "type_of_maintenance", "APU Hrs": "apu_hrs", "APU Cyc": "apu_cyc",
@@ -138,8 +139,8 @@ const TEMPLATE_HEADERS = [
   "Company Name", "Date", "Registration", "Aircraft Type", "Log Serial No",
   "PIC Name", "PIC License No", "PIC Sign", "Commander Sign",
   "Fuel Arrival", "Fuel Departure", "Remaining Fuel Onboard", "Fuel Uplift",
-  "Calculate Total Fuel", "Fuel Discrepancy", "Aircraft Total Hrs", "Aircraft Total Cyc",
-  "Fuel Flight Deck Gauge", "Next Due Maintenance", "Due At Date", "Due At Hours",
+  "Calculate total fuel(used)", "Fuel Discrepancy", "Aircraft Total Hrs", "Aircraft Total Cyc",
+  "Fuel Flight Deck Gauge", "Next Due Maintenance", "Due At Date", "Due At Hours", "Due At Cycles",
   "Total Flight Hrs", "Total Flight Cyc", "Daily Inspection", "Transit Inspection", "Type of Maintenance",
   "APU Hrs", "APU Cyc", "Oil Uplift Eng1", "Oil Uplift Eng2", "Oil Uplift APU", "Hyd Fluid",
   "Daily Inspection Sign", "Sign Stamp", "AMO Name", "AMO Approval", "LAE Name", "LAE License", "CRS Signature", "Digital Stamp",
@@ -152,7 +153,7 @@ const TEMPLATE_SAMPLE_ROW = [
   "AeroTrend MRO Sdn Bhd", "2026-02-24", "9M-AAD", "B737-900", "9MAAD-001",
   "Capt. Ahmad Fadzil", "ATPL-MY-00142", "Yes", "Yes",
   "6800", "9200", "6800", "8500", "15300", "0", "18502", "4201",
-  "6750", "2026-03-01", "2026-03-01", "18600",
+  "6750", "2026-03-01", "2026-03-01", "18600", "4250",
   "1.25", "1", "2026-02-24", "2026-02-24", "Daily Check",
   "0.5", "2", "0.5", "0.5", "0", "0.5", "Yes", "Yes",
   "MAS Engineering", "FAMTO-001", "Mohamad Firdaus", "CAAM-L-66-1234", "Yes", "Yes",
@@ -184,7 +185,7 @@ const EMPTY_FORM: JourneyFormData = {
   fuel_arrival: "", fuel_departure: "", remaining_fuel_onboard: "", fuel_uplift: "",
   calculate_total_fuel: "", fuel_discrepancy: "", aircraft_total_hrs: "", aircraft_total_cyc: "",
   fuel_flight_deck_gauge: "", fuel_density: "",
-  next_due_maintenance: "", due_at_date: "", due_at_hours: "",
+  next_due_maintenance: "", due_at_date: "", due_at_hours: "", due_at_cycles: "",
   total_flight_hrs: "", total_flight_cyc: "",
   daily_inspection: "", transit_inspection: "", type_of_maintenance: "", apu_hrs: "", apu_cyc: "",
   oil_uplift_eng1: "", oil_uplift_eng2: "", oil_uplift_apu: "", hyd_fluid: "",
@@ -558,6 +559,7 @@ const JourneyLogForm = () => {
           next_due_maintenance: fmt(data.next_due_maintenance),
           due_at_date: fmt(data.due_at_date),
           due_at_hours: data.due_at_hours?.toString() ?? "",
+          due_at_cycles: data.due_at_cycles?.toString() ?? "",
           total_flight_hrs: data.total_flight_hrs?.toString() ?? "",
           total_flight_cyc: data.total_flight_cyc?.toString() ?? "",
           daily_inspection: fmt(data.daily_inspection),
@@ -659,6 +661,33 @@ const JourneyLogForm = () => {
       setForm((p) => ({ ...p, total_flight_hrs: "", total_flight_cyc: "0" }));
     }
   }, [sectors[0]?.off_chock_duration, isEdit]);
+
+  // Fuel calculations
+  useEffect(() => {
+    const arr = parseFloat(form.fuel_arrival) || 0;
+    const up = parseFloat(form.fuel_uplift) || 0;
+    const used = parseFloat(form.calculate_total_fuel) || 0;
+
+    let newDep = form.fuel_departure;
+    let newRem = form.remaining_fuel_onboard;
+
+    if (form.fuel_arrival === "" && form.fuel_uplift === "") {
+      newDep = "";
+    } else {
+      newDep = (arr + up).toString();
+    }
+
+    if (newDep === "" && form.calculate_total_fuel === "") {
+      newRem = "";
+    } else {
+      const depNum = parseFloat(newDep) || 0;
+      newRem = (depNum - used).toString();
+    }
+
+    if (newDep !== form.fuel_departure || newRem !== form.remaining_fuel_onboard) {
+      setForm(p => ({ ...p, fuel_departure: newDep, remaining_fuel_onboard: newRem }));
+    }
+  }, [form.fuel_arrival, form.fuel_uplift, form.calculate_total_fuel, form.fuel_departure, form.remaining_fuel_onboard]);
 
   const addDefect = () => setDefects((p) => [...p, { id: Date.now(), ...EMPTY_DEFECT }]);
   const updateDefect = (i: number, field: keyof Omit<DefectRow, "id">, val: string) =>
@@ -848,11 +877,13 @@ const JourneyLogForm = () => {
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Fuel Log</h4>
                     <Grid cols={3}>
                       <F label="Fuel Arrival (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_arrival} onChange={set("fuel_arrival")} /></F>
-                      <F label="Fuel Departure (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_departure} onChange={set("fuel_departure")} /></F>
-                      <F label="Remaining Fuel Onboard (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.remaining_fuel_onboard} onChange={set("remaining_fuel_onboard")} /></F>
                       <F label="Fuel Uplift (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_uplift} onChange={set("fuel_uplift")} /></F>
-                      <F label="Calculate Total Fuel (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.calculate_total_fuel} onChange={set("calculate_total_fuel")} /></F>
+                      <F label="Fuel Departure (kg)"><Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.fuel_departure} readOnly /></F>
+                      
+                      <F label="Calculate total fuel(used) (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.calculate_total_fuel} onChange={set("calculate_total_fuel")} /></F>
+                      <F label="Remaining Fuel Onboard (kg)"><Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.remaining_fuel_onboard} readOnly /></F>
                       <F label="Fuel Discrepancy (kg)"><Input className={cn(inp, "bg-white")} type="number" placeholder="0" value={form.fuel_discrepancy} onChange={set("fuel_discrepancy")} /></F>
+                      
                       <F label="Fuel Flight Deck Gauge (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_flight_deck_gauge} onChange={set("fuel_flight_deck_gauge")} /></F>
                       <F label="Fuel Density (S.G)"><Input className={cn(inp, "bg-white")} type="number" step="0.001" placeholder="e.g. 0.8" value={form.fuel_density} onChange={set("fuel_density")} /></F>
                     </Grid>
@@ -963,15 +994,11 @@ const JourneyLogForm = () => {
                   <div className="space-y-4 pt-2">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Airworthiness</h4>
                     <Grid cols={3}>
-                      <F label="A/C Total Hrs">
-                        <Input className={cn(inp, "bg-white")} type="text" placeholder="00:00" value={decimalToHoursMinutes(Number(form.aircraft_total_hrs))} readOnly />
-                      </F>
-                      <F label="Total Cycles">
-                        <Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.aircraft_total_cyc} readOnly />
-                      </F>
+                      <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
                       <F label="Next Due Maintenance"><Input className={inp} type="date" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
-                      <F label="Due @ Date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
-                      <F label="Due @ Hours"><Input className={inp} type="number" step="0.1" min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
+                      <F label="Carried Out date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
+                      <F label="Carried Out Hours"><Input className={inp} type="number" step="0.1" min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
+                      <F label="Carried Out Cycles"><Input className={inp} type="number" min="0" placeholder="0" value={form.due_at_cycles} onChange={set("due_at_cycles")} /></F>
                     </Grid>
                   </div>
 
@@ -981,7 +1008,6 @@ const JourneyLogForm = () => {
                     <Grid cols={3}>
                       <F label="Daily Inspection"><Input className={inp} type="date" value={form.daily_inspection} onChange={set("daily_inspection")} /></F>
                       <F label="Transit Inspection"><Input className={inp} type="date" value={form.transit_inspection} onChange={set("transit_inspection")} /></F>
-                      <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
                     </Grid>
                   </div>
 

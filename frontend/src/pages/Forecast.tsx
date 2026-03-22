@@ -16,7 +16,7 @@ import {
   CalendarDays,
   BarChart3,
 } from "lucide-react";
-import { format, addDays } from "date-fns";
+import { format, addDays, addYears, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ interface Service {
   estimated_price: number | null;
   interval_threshold: number | null;
   repeat_interval: number | null;
-  interval_unit: string; // "Hours" | "Cycles"
+  interval_unit: string; // "Hours" | "Cycles" | "Years"
 }
 
 interface ForecastRecord {
@@ -160,11 +160,15 @@ function buildRows(
           remainingHours = nextHours - aircraft.flight_hours;
           const numDays = remainingHours > 0 ? Math.floor(remainingHours / avgHours) : 0;
           nextDate = addDays(new Date(), numDays);
-        } else {
+        } else if (unit === "Cycles") {
           nextCycles = (fc.last_cycles ?? 0) + repeat;
           remainingCycles = nextCycles - aircraft.flight_cycles;
           const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / avgCycles) : 0;
           nextDate = addDays(new Date(), numDays);
+        } else if (unit === "Years") {
+          if (lastDate) {
+            nextDate = addYears(lastDate, repeat);
+          }
         }
       }
 
@@ -474,10 +478,14 @@ const Forecast = () => {
         remainingHours = (r.lastHours ?? 0) + repeat - aircraft.flight_hours;
         const numDays = remainingHours > 0 ? Math.floor(remainingHours / newAvgH) : 0;
         nextDate = addDays(new Date(), numDays);
-      } else {
+      } else if (r.intervalUnit === "Cycles") {
         remainingCycles = (r.lastCycles ?? 0) + repeat - aircraft.flight_cycles;
         const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / newAvgC) : 0;
         nextDate = addDays(new Date(), numDays);
+      } else if (r.intervalUnit === "Years") {
+        if (r.lastDate) {
+          nextDate = addYears(r.lastDate, repeat);
+        }
       }
 
       return { ...r, nextDate, remainingHours, remainingCycles };
@@ -624,7 +632,7 @@ const Forecast = () => {
         //  days_to_due = remaining_hours / avg_daily_fh
         const numDays = remainingHours > 0 ? Math.floor(remainingHours / avgHours) : 0;
         nextDate = addDays(new Date(), numDays);
-      } else {
+      } else if (unit === "Cycles") {
         //  next_due_cycles = last_cycles + repeat_interval
         nextCycles = (lastCycles ?? 0) + repeat;
         //  remaining_cycles = next_due_cycles - current_aircraft_fc
@@ -632,6 +640,12 @@ const Forecast = () => {
         //  days_to_due = remaining_cycles / avg_daily_fc
         const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / avgCycles) : 0;
         nextDate = addDays(new Date(), numDays);
+      } else {
+        if (editForm.last_date) {
+            nextDate = addYears(new Date(editForm.last_date), repeat);
+        } else {
+            nextDate = addYears(new Date(), repeat);
+        }
       }
 
       const payload = {
@@ -960,9 +974,11 @@ const Forecast = () => {
                             "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
                             row.intervalUnit === "Hours"
                               ? "bg-blue-100 text-blue-700"
-                              : "bg-cyan-100 text-cyan-700"
+                              : row.intervalUnit === "Cycles"
+                                ? "bg-cyan-100 text-cyan-700"
+                                : "bg-purple-100 text-purple-700"
                           )}>
-                            {row.intervalUnit === "Hours" ? "FH" : "FC"}
+                            {row.intervalUnit === "Hours" ? "FH" : row.intervalUnit === "Cycles" ? "FC" : "YR"}
                           </span>
                         </td>
                         {/* Next Due */}
@@ -1080,12 +1096,12 @@ const Forecast = () => {
                                       </td>
                                       <td className="px-4 py-2.5 border-l border-blue-100 tabular-nums text-gray-700">
                                         {row.intervalThreshold !== null
-                                          ? `${row.intervalThreshold} ${row.intervalUnit === "Hours" ? "FH" : "FC"}`
+                                          ? `${row.intervalThreshold} ${row.intervalUnit === "Hours" ? "FH" : row.intervalUnit === "Cycles" ? "FC" : "Years"}`
                                           : "—"}
                                       </td>
                                       <td className="px-4 py-2.5 tabular-nums text-gray-700">
                                         {row.repeatInterval !== null
-                                          ? `${row.repeatInterval} ${row.intervalUnit === "Hours" ? "FH" : "FC"}`
+                                          ? `${row.repeatInterval} ${row.intervalUnit === "Hours" ? "FH" : row.intervalUnit === "Cycles" ? "FC" : "Years"}`
                                           : "—"}
                                       </td>
                                     </tr>
