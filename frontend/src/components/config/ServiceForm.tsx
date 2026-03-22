@@ -25,11 +25,10 @@ import { useNavigate } from "react-router-dom";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 import { decimalToHoursMinutes, hoursMinutesToDecimal } from "@/lib/utils";
 
-const ZONE_OPTIONS: Option[] = [
-    { label: "Zone 1", value: "Zone 1" },
-    { label: "Zone 2", value: "Zone 2" },
-    { label: "Zone 3", value: "Zone 3" },
-];
+const ZONE_OPTIONS: Option[] = Array.from({ length: 900 }, (_, i) => ({
+    label: `Zone ${i + 1}`,
+    value: `Zone ${i + 1}`,
+}));
 
 const AIRCRAFT_MODELS = [
     "B737-700", "B737-800", "B737-900", "B737-900ER",
@@ -53,7 +52,7 @@ const SERVICE_CLASS_OPTIONS = [
 ];
 
 const CURRENCIES = ["MYR", "USD", "EUR"];
-const UNIT_OPTIONS = ["Hours", "Cycles"];
+const UNIT_OPTIONS = ["Hours", "Cycles", "Months", "Years"];
 
 interface ServiceFormProps {
     defaultValues?: any;
