@@ -119,6 +119,7 @@ const ViewJourneyLog = () => {
             next_due_maintenance:   fmt(data.next_due_maintenance),
             due_at_date:            fmt(data.due_at_date),
             due_at_hours:           data.due_at_hours?.toString(),
+            due_at_cycles:          data.due_at_cycles?.toString(),
             total_flight_hrs:       data.total_flight_hrs?.toString(),
             total_flight_cyc:       data.total_flight_cyc?.toString(),
             daily_inspection:       fmt(data.daily_inspection),
@@ -304,15 +305,14 @@ const ViewJourneyLog = () => {
           {/* 3. Fuel*/}
           <Section title="Fuel">
             <Grid cols={3}>
-              <F label="Fuel Arrival (kg)"><RO value={form.fuel_arrival} mono /></F>
-              <F label="Fuel Departure (kg)"><RO value={form.fuel_departure} mono /></F>
-              <F label="Remaining Fuel Onboard (kg)"><RO value={form.remaining_fuel_onboard} mono /></F>
+              <F label="Fuel Arrival (kg)"><RO  value={form.fuel_arrival} mono /></F>
               <F label="Fuel Uplift (kg)"><RO value={form.fuel_uplift} mono /></F>
-              <F label="Calculate Total Fuel (kg)"><RO value={form.calculate_total_fuel} mono /></F>
+              <F label="Fuel Departure (kg)"><RO value={form.fuel_departure} mono /></F>                     
+              <F label="Calculate total fuel(used) (kg)"><RO value={form.calculate_total_fuel} mono /></F>
+              <F label="Remaining Fuel Onboard (kg)"><RO  value={form.remaining_fuel_onboard} mono /></F>
               <F label="Fuel Discrepancy (kg)"><RO value={form.fuel_discrepancy} mono /></F>
-              <F label="Aircraft Total Hrs"><RO value={aircraftTotals.hrs} mono /></F>
-              <F label="Aircraft Total Cyc"><RO value={aircraftTotals.cyc} mono /></F>
               <F label="Fuel Flight Deck Gauge (kg)"><RO value={form.fuel_flight_deck_gauge} mono /></F>
+              <F label="Fuel Density (S.G)"><RO value={form.fuel_density} mono /></F>
             </Grid>
           </Section>
 
@@ -322,11 +322,11 @@ const ViewJourneyLog = () => {
               <div>
                 <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-4">Group 1: Airworthiness</h4>
                 <Grid cols={3}>
-                  <F label="A/C Total Hrs"><RO value={aircraftTotals.hrs} mono /></F>
-                  <F label="Total Cycles"><RO value={aircraftTotals.cyc} mono /></F>
+                  <F label="Type Of Maintainence"><RO value={form.type_of_maintenance} mono></RO></F>
                   <F label="Next Due Maintenance"><RO value={form.next_due_maintenance} /></F>
-                  <F label="Due @ Date"><RO value={form.due_at_date} /></F>
-                  <F label="Due @ Hours"><RO value={form.due_at_hours} mono /></F>
+                  <F label="Carried Out Date"><RO value={form.due_at_date} /></F>
+                  <F label="Carried Out Hours"><RO value={form.due_at_hours} mono /></F>
+                  <F label= "Carried Out Cycles" ><RO value = {form.due_at_cycles} mono></RO></F>
                 </Grid>
               </div>
 
@@ -335,7 +335,6 @@ const ViewJourneyLog = () => {
                 <Grid cols={3}>
                   <F label="Daily Inspection"><RO value={form.daily_inspection} /></F>
                   <F label="Transit Inspection"><RO value={form.transit_inspection} /></F>
-                  <F label="Type of Maintenance"><RO value={form.type_of_maintenance} /></F>
                 </Grid>
               </div>
 
