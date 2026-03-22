@@ -45,7 +45,7 @@ const SERVICE_CLASS_OPTIONS = [
     "LUB (Lubricate)",
     "OPC (Operational Check)",
     "RST (Restore)",
-    "SBC (Servicing)",
+    "SVC (Servicing)",
     "VIC (Visual Check)",
     "Internal",
     "Third Party",

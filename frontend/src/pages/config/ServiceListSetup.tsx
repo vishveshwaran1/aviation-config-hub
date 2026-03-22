@@ -205,7 +205,7 @@ const ServiceListSetup = () => {
                     <TableCell>{item.aircraft_model}</TableCell>
                     <TableCell className="font-medium">{item.task_name}</TableCell>
                     <TableCell>{item.mpd_id || '-'}</TableCell>
-                    <TableCell>{item.amm_id || '-'}</TableCell>
+                    {/* <TableCell>{item.amm_id || '-'}</TableCell> */}
                     <TableCell>{item.task_card_ref || '-'}</TableCell>
                     <TableCell>{Array.isArray(item.zones) ? item.zones.join(', ') : (item.zones || '-')}</TableCell>
                     <TableCell>{item.estimated_price != null ? item.estimated_price : '-'}</TableCell>
