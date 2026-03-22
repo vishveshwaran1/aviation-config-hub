@@ -836,7 +836,7 @@ const Forecast = () => {
               variant="outline"
               className="h-8 gap-1.5 text-xs whitespace-nowrap"
               title="Open PowerBI dashboard"
-              onClick={() => navigate("/powerbi")}
+              onClick={() => navigate(`/aircraft/${id}/powerbi`)}
             >
               <BarChart3 className="h-3.5 w-3.5" />
               Dashboard

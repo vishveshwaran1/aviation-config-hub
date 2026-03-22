@@ -59,7 +59,7 @@ const App = () => (
               <Route path="/aircraft/:id/forecast" element={<Forecast />} />
               <Route path="/aircraft/:id/forecast/print/:selectedIds" element={<PrintTaskCard />} />
               <Route path="/aircraft/:id/scheduler" element={<Scheduler />} />
-              <Route path="/powerbi" element={<PowerBi />} />
+              <Route path="/aircraft/:id/powerbi" element={<PowerBi />} />
               <Route path="/config/aircraft" element={<AircraftSetup />} />
               <Route path="/config/components" element={<ComponentListSetup />} />
               <Route path="/config/services" element={<ServiceListSetup />} />
