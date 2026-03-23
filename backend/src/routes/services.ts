@@ -31,6 +31,8 @@ router.post('/', async (req, res) => {
             interval_threshold,
             repeat_interval,
             interval_unit,
+            repeat_interval_unit,
+            part_no,
         } = req.body;
 
         const service = await prisma.service.create({
@@ -49,6 +51,8 @@ router.post('/', async (req, res) => {
                 interval_threshold: interval_threshold ? Number(interval_threshold) : null,
                 repeat_interval: repeat_interval ? Number(repeat_interval) : null,
                 interval_unit: interval_unit ?? 'Hours',
+                repeat_interval_unit: repeat_interval_unit ?? 'Hours',
+                part_no: part_no || null,
             }
         });
         res.json(service);
