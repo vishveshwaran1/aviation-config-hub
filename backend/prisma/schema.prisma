@@ -96,8 +96,10 @@ model Service {
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
   interval_unit         String   @default("Hours")
+  repeat_interval_unit  String   @default("Hours")
   amm_id                String?
   mpd_id                String?
+  part_no               String?
 }
 
 model Forecast {
