@@ -22,6 +22,7 @@ export const serviceSchema = z.object({
     interval_threshold_unit: z.string().min(1, "Select unit").default("Hours"),
     repeat_interval: z.string().min(1, "Enter interval"),
     repeat_interval_unit: z.string().min(1, "Select unit").default("Hours"),
+    part_no: z.string().optional(),
 });
 
 export type ServiceFormData = z.infer<typeof serviceSchema>;

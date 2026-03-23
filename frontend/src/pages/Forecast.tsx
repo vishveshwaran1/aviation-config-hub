@@ -16,7 +16,7 @@ import {
   CalendarDays,
   BarChart3,
 } from "lucide-react";
-import { format, addDays, addYears, differenceInDays } from "date-fns";
+import { format, addDays, addYears, addMonths, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,8 @@ interface Service {
   estimated_price: number | null;
   interval_threshold: number | null;
   repeat_interval: number | null;
-  interval_unit: string; // "Hours" | "Cycles" | "Years"
+  interval_unit: string; // "Hours" | "Cycles" | "Years" | "Months"
+  repeat_interval_unit: string;
 }
 
 interface ForecastRecord {
@@ -89,6 +90,7 @@ interface ForecastRow {
   intervalThreshold: number | null;
   repeatInterval: number | null;
   intervalUnit: string;
+  repeatIntervalUnit: string;
   // calculated / from forecast record
   lastDate: Date | null;
   lastHours: number | null;
@@ -144,7 +146,8 @@ function buildRows(
     .filter((s) => s.aircraft_model === aircraft.model)
     .map((service) => {
       const fc = forecasts.find((f) => f.service_id === service.id) ?? null;
-      const unit = fc?.interval_unit ?? service.interval_unit ?? "Hours";
+      const unit = service.interval_unit ?? "Hours";
+      const repeatUnit = service.repeat_interval_unit ?? "Hours";
       const repeat = service.repeat_interval ?? 0;
 
       let lastDate: Date | null = fc?.last_date ? new Date(fc.last_date) : null;
@@ -155,19 +158,23 @@ function buildRows(
       let remainingCycles: number | null = null;
 
       if (fc) {
-        if (unit === "Hours") {
+        if (repeatUnit === "Hours") {
           nextHours = (fc.last_hours ?? 0) + repeat;
           remainingHours = nextHours - aircraft.flight_hours;
           const numDays = remainingHours > 0 ? Math.floor(remainingHours / avgHours) : 0;
           nextDate = addDays(new Date(), numDays);
-        } else if (unit === "Cycles") {
+        } else if (repeatUnit === "Cycles") {
           nextCycles = (fc.last_cycles ?? 0) + repeat;
           remainingCycles = nextCycles - aircraft.flight_cycles;
           const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / avgCycles) : 0;
           nextDate = addDays(new Date(), numDays);
-        } else if (unit === "Years") {
+        } else if (repeatUnit === "Years") {
           if (lastDate) {
             nextDate = addYears(lastDate, repeat);
+          }
+        } else if (repeatUnit === "Months") {
+          if (lastDate) {
+            nextDate = addMonths(lastDate, repeat);
           }
         }
       }
@@ -184,6 +191,7 @@ function buildRows(
         intervalThreshold: service.interval_threshold,
         repeatInterval: service.repeat_interval,
         intervalUnit: unit,
+        repeatIntervalUnit: repeatUnit,
         lastDate,
         lastHours: fc?.last_hours ?? null,
         lastCycles: fc?.last_cycles ?? null,
@@ -474,17 +482,21 @@ const Forecast = () => {
       let remainingHours = r.remainingHours;
       let remainingCycles = r.remainingCycles;
 
-      if (r.intervalUnit === "Hours") {
+      if (r.repeatIntervalUnit === "Hours") {
         remainingHours = (r.lastHours ?? 0) + repeat - aircraft.flight_hours;
         const numDays = remainingHours > 0 ? Math.floor(remainingHours / newAvgH) : 0;
         nextDate = addDays(new Date(), numDays);
-      } else if (r.intervalUnit === "Cycles") {
+      } else if (r.repeatIntervalUnit === "Cycles") {
         remainingCycles = (r.lastCycles ?? 0) + repeat - aircraft.flight_cycles;
         const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / newAvgC) : 0;
         nextDate = addDays(new Date(), numDays);
-      } else if (r.intervalUnit === "Years") {
+      } else if (r.repeatIntervalUnit === "Years") {
         if (r.lastDate) {
           nextDate = addYears(r.lastDate, repeat);
+        }
+      } else if (r.repeatIntervalUnit === "Months") {
+        if (r.lastDate) {
+          nextDate = addMonths(r.lastDate, repeat);
         }
       }
 
@@ -540,7 +552,7 @@ const Forecast = () => {
       last_date: row.lastDate ? format(row.lastDate, "yyyy-MM-dd") : "",
       last_hours: decimalToHoursMinutes(row.lastHours),
       last_cycles: row.lastCycles !== null ? String(row.lastCycles) : "",
-      interval_unit: row.intervalUnit,
+      interval_unit: row.repeatIntervalUnit,
     });
     setUploadFileName("No file chosen");
     setUploadError(null);
@@ -615,7 +627,7 @@ const Forecast = () => {
     try {
       const lastHours = hoursMinutesToDecimal(editForm.last_hours);
       const lastCycles = editForm.last_cycles ? parseFloat(editForm.last_cycles) : null;
-      const unit = editForm.interval_unit;
+      const unit = editTarget.repeatIntervalUnit;
       const repeat = editTarget.repeatInterval ?? 0;
 
       let nextHours: number | null = null;
@@ -640,11 +652,17 @@ const Forecast = () => {
         //  days_to_due = remaining_cycles / avg_daily_fc
         const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / avgCycles) : 0;
         nextDate = addDays(new Date(), numDays);
-      } else {
+      } else if (unit === "Years") {
         if (editForm.last_date) {
             nextDate = addYears(new Date(editForm.last_date), repeat);
         } else {
             nextDate = addYears(new Date(), repeat);
+        }
+      } else if (unit === "Months") {
+        if (editForm.last_date) {
+            nextDate = addMonths(new Date(editForm.last_date), repeat);
+        } else {
+            nextDate = addMonths(new Date(), repeat);
         }
       }
 
@@ -970,16 +988,20 @@ const Forecast = () => {
                         </td>
                         {/* Unit */}
                         <td className="px-4 py-3">
-                          <span className={cn(
-                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                            row.intervalUnit === "Hours"
-                              ? "bg-blue-100 text-blue-700"
-                              : row.intervalUnit === "Cycles"
-                                ? "bg-cyan-100 text-cyan-700"
-                                : "bg-purple-100 text-purple-700"
-                          )}>
-                            {row.intervalUnit === "Hours" ? "FH" : row.intervalUnit === "Cycles" ? "FC" : "YR"}
-                          </span>
+                          <div className="flex">
+                            <span className={cn(
+                              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                              row.repeatIntervalUnit === "Hours"
+                                ? "bg-blue-100 text-blue-700"
+                                : row.repeatIntervalUnit === "Cycles"
+                                  ? "bg-cyan-100 text-cyan-700"
+                                  : row.repeatIntervalUnit === "Years"
+                                    ? "bg-purple-100 text-purple-700"
+                                    : "bg-orange-100 text-orange-700"
+                            )}>
+                              {row.repeatIntervalUnit === "Hours" ? "FH" : row.repeatIntervalUnit === "Cycles" ? "FC" : row.repeatIntervalUnit === "Years" ? "YR" : "MO"}
+                            </span>
+                          </div>
                         </td>
                         {/* Next Due */}
                         <td className="px-4 py-3 text-gray-700 whitespace-nowrap text-xs">
@@ -989,7 +1011,7 @@ const Forecast = () => {
                         </td>
                         {/* Rem. Hours */}
                         <td className="px-4 py-3 whitespace-nowrap">
-                          {row.intervalUnit === "Hours" && row.remainingHours !== null ? (
+                          {row.repeatIntervalUnit === "Hours" && row.remainingHours !== null ? (
                             <span className={cn(
                               "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs",
                               remainingBadgeClass(row.remainingHours)
@@ -1000,7 +1022,7 @@ const Forecast = () => {
                         </td>
                         {/* Rem. Cycles */}
                         <td className="px-4 py-3 whitespace-nowrap">
-                          {row.intervalUnit === "Cycles" && row.remainingCycles !== null ? (
+                          {row.repeatIntervalUnit === "Cycles" && row.remainingCycles !== null ? (
                             <span className={cn(
                               "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs",
                               remainingBadgeClass(row.remainingCycles)
@@ -1075,7 +1097,7 @@ const Forecast = () => {
                                         {row.nextCycles !== null ? `${row.nextCycles} FC` : "—"}
                                       </td>
                                       <td className="px-4 py-2.5 border-l border-blue-100">
-                                        {row.intervalUnit === "Hours" && row.remainingHours !== null ? (
+                                        {row.repeatIntervalUnit === "Hours" && row.remainingHours !== null ? (
                                           <span className={cn(
                                             "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
                                             remainingBadgeClass(row.remainingHours)
@@ -1085,7 +1107,7 @@ const Forecast = () => {
                                         ) : "—"}
                                       </td>
                                       <td className="px-4 py-2.5">
-                                        {row.intervalUnit === "Cycles" && row.remainingCycles !== null ? (
+                                        {row.repeatIntervalUnit === "Cycles" && row.remainingCycles !== null ? (
                                           <span className={cn(
                                             "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
                                             remainingBadgeClass(row.remainingCycles)
@@ -1096,12 +1118,12 @@ const Forecast = () => {
                                       </td>
                                       <td className="px-4 py-2.5 border-l border-blue-100 tabular-nums text-gray-700">
                                         {row.intervalThreshold !== null
-                                          ? `${row.intervalThreshold} ${row.intervalUnit === "Hours" ? "FH" : row.intervalUnit === "Cycles" ? "FC" : "Years"}`
+                                          ? `${row.intervalThreshold} ${row.intervalUnit === "Hours" ? "FH" : row.intervalUnit === "Cycles" ? "FC" : row.intervalUnit === "Years" ? "Years" : "Months"}`
                                           : "—"}
                                       </td>
                                       <td className="px-4 py-2.5 tabular-nums text-gray-700">
                                         {row.repeatInterval !== null
-                                          ? `${row.repeatInterval} ${row.intervalUnit === "Hours" ? "FH" : row.intervalUnit === "Cycles" ? "FC" : "Years"}`
+                                          ? `${row.repeatInterval} ${row.repeatIntervalUnit === "Hours" ? "FH" : row.repeatIntervalUnit === "Cycles" ? "FC" : row.repeatIntervalUnit === "Years" ? "Years" : "Months"}`
                                           : "—"}
                                       </td>
                                     </tr>

@@ -92,7 +92,7 @@ function computeScheduleDate(
   remainingCycles: number | null,
   intervalUnit: string
 ): Date | null {
-  if (!lastDate || intervalUnit === "Years") return null;
+  if (!lastDate || intervalUnit === "Years" || intervalUnit === "Months") return null;
   const cutoff = new Date(lastDate).setHours(0, 0, 0, 0);
   const future = schedulerEntries
     .filter((e) => new Date(e.flight_date).setHours(0, 0, 0, 0) > cutoff)
@@ -378,7 +378,7 @@ const PrintTaskCard = () => {
                   {/* INTERVAL */}
                   <td className="border border-gray-400 px-2 py-1.5">
                     {item.interval_threshold != null
-                      ? `${item.interval_threshold} ${item.interval_unit === "Hours" ? "FH" : item.interval_unit === "Cycles" ? "FC" : "Years"}`
+                      ? `${item.interval_threshold} ${item.interval_unit === "Hours" ? "FH" : item.interval_unit === "Cycles" ? "FC" : item.interval_unit === "Years" ? "Years" : "Months"}`
                       : "—"}
                   </td>
 

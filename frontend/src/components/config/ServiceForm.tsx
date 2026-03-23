@@ -72,13 +72,15 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
             assigned_component_text: defaultValues?.assigned_component_id || "",
             estimated_currency: "MYR",
             quotation_currency: "MYR",
-            interval_threshold_unit: "Hours",
-            repeat_interval_unit: "Hours",
+            part_no: defaultValues?.part_no || "",
+            // Provide default unit
+            interval_threshold_unit: defaultValues?.interval_unit || "Hours",
+            repeat_interval_unit: defaultValues?.repeat_interval_unit || "Hours",
             ...defaultValues,
             // Format time fields
             estimated_manhours: decimalToHoursMinutes(defaultValues?.estimated_manhours),
-            interval_threshold: defaultValues?.interval_threshold_unit === "Hours" || !defaultValues?.interval_threshold_unit ? decimalToHoursMinutes(defaultValues?.interval_threshold) : (defaultValues?.interval_threshold?.toString() || ""),
-            repeat_interval: defaultValues?.repeat_interval_unit === "Hours" || !defaultValues?.repeat_interval_unit ? decimalToHoursMinutes(defaultValues?.repeat_interval) : (defaultValues?.repeat_interval?.toString() || ""),
+            interval_threshold: (!defaultValues?.interval_unit || defaultValues?.interval_unit === "Hours") ? decimalToHoursMinutes(defaultValues?.interval_threshold) : (defaultValues?.interval_threshold?.toString() || ""),
+            repeat_interval: (!defaultValues?.repeat_interval_unit || defaultValues?.repeat_interval_unit === "Hours") ? decimalToHoursMinutes(defaultValues?.repeat_interval) : (defaultValues?.repeat_interval?.toString() || ""),
         },
     });
 
@@ -110,12 +112,13 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                 // Backend expects a single assigned_component_id (string | null)
                 // We map our text area content here
                 assigned_component_id: assigned_component_text || null,
-                // Backend stores a single interval_unit; use threshold unit as the primary
                 interval_unit: interval_threshold_unit || "Hours",
+                repeat_interval_unit: repeat_interval_unit || "Hours",
                 // Nullable optional fields
                 mpd_id: data.mpd_id || null,
                 amm_id: data.amm_id || null,
                 task_card_ref: data.task_card_ref || null,
+                part_no: data.part_no || null,
                 description: data.description || null,
                 estimated_manhours: hoursMinutesToDecimal(data.estimated_manhours),
                 estimated_price: data.estimated_price ?? null,
@@ -328,6 +331,31 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
+                                        {/* Part No Dropdown */}
+                    <FormField control={form.control} name="part_no" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={labelCls(!!fieldState.error)}>Part No</FormLabel>
+                                <div className="relative flex-1">
+                                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                                        <FormControl>
+                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
+                                                <SelectValue placeholder="Select Part No" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {Array.from({ length: 12 }, (_, i) => (i + 1).toString()).map(num => (
+                                                <SelectItem key={num} value={num}>{num}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {fieldState.error && <SelectErrorBadge />}
+                                </div>
+                            </div>
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Select Part No</p>}
+                        </FormItem>
+                    )} />
+
                     {/* Zones — creatable: user can type and add custom zones */}
                     <FormField control={form.control} name="zones" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
@@ -418,7 +446,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     {/* Interval Threshold */}
                     <FormField control={form.control} name="interval_threshold" render={({ field, fieldState }) => {
                         const unit = form.watch("interval_threshold_unit");
-                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Threshold in Cycles" : "Enter Threshold in Years";
+                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Threshold in Cycles" : unit === "Years" ? "Enter Threshold in Years" : "Enter Threshold in Months";
                         return (
                             <FormItem className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-3">
@@ -454,7 +482,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                     {/* Repeat Interval */}
                     <FormField control={form.control} name="repeat_interval" render={({ field, fieldState }) => {
                         const unit = form.watch("repeat_interval_unit");
-                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Interval Repeat in Cycles" : "Enter Interval Repeat in Years";
+                        const placeholder = unit === "Hours" ? "HHHH" : unit === "Cycles" ? "Enter Interval Repeat in Cycles" : unit === "Years" ? "Enter Interval Repeat in Years" : "Enter Interval Repeat in Months";
                         return (
                             <FormItem className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-3">

@@ -101,7 +101,7 @@ const ServiceListSetup = () => {
       "Comp Price": item.estimated_price || "-",
       "Service Price": item.quotation_price || "-",
       "Interval Threshold": item.interval_threshold ? `${item.interval_threshold} ${item.interval_unit || 'Hours'}` : "-",
-      "Repeat Interval": item.repeat_interval || "-",
+      "Repeat Interval": item.repeat_interval ? `${item.repeat_interval} ${item.repeat_interval_unit || 'Hours'}` : "-",
       "Description": item.description || "-",
     }));
 
@@ -183,6 +183,7 @@ const ServiceListSetup = () => {
                 <TableHead>MPD ID</TableHead>
                 {/* <TableHead>AMM ID</TableHead> */}
                 <TableHead>Task Card Ref</TableHead>
+                <TableHead>Part No</TableHead>
                 <TableHead>Zone</TableHead>
                 <TableHead>Comp Price</TableHead>
                 <TableHead>Service Price</TableHead>
@@ -192,11 +193,11 @@ const ServiceListSetup = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={10} className="text-center h-24 text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">No results found.</TableCell>
+                  <TableCell colSpan={10} className="text-center h-24 text-muted-foreground">No results found.</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((item, index) => (
@@ -207,6 +208,7 @@ const ServiceListSetup = () => {
                     <TableCell>{item.mpd_id || '-'}</TableCell>
                     {/* <TableCell>{item.amm_id || '-'}</TableCell> */}
                     <TableCell>{item.task_card_ref || '-'}</TableCell>
+                    <TableCell>{item.part_no || '-'}</TableCell>
                     <TableCell>{Array.isArray(item.zones) ? item.zones.join(', ') : (item.zones || '-')}</TableCell>
                     <TableCell>{item.estimated_price != null ? item.estimated_price : '-'}</TableCell>
                     <TableCell>{item.quotation_price != null ? item.quotation_price : '-'}</TableCell>
