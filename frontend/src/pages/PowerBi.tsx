@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
@@ -15,9 +15,6 @@ import {
   ResponsiveContainer,
   Line,
   ComposedChart,
-  ScatterChart,
-  Scatter,
-  ZAxis,
 } from "recharts";
 import {
   Card,
@@ -300,6 +297,414 @@ function buildChartData(
   };
 }
 
+// ─── Maintenance Portfolio Bubble Chart ────────────────────────────────────────
+
+interface BubbleDatum {
+  id: string;
+  dueDate: number;
+  monthName: string;
+  monthYear: string;
+  mh: number;
+  cost: number;
+  name: string;
+  shortName: string;
+  index: number;
+}
+
+function getBubbleRadius(cost: number, minCost: number, maxCost: number): number {
+  const MIN_R = 14;
+  const MAX_R = 36;
+  if (maxCost === minCost) return (MIN_R + MAX_R) / 2;
+  const t = (cost - minCost) / (maxCost - minCost);
+  return MIN_R + t * (MAX_R - MIN_R);
+}
+
+const MaintenanceBubbleChart = ({
+  bubbleData,
+  aircraft,
+}: {
+  bubbleData: BubbleDatum[];
+  aircraft: any;
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dims, setDims] = useState({ width: 800, height: 500 });
+
+  const measure = useCallback(() => {
+    if (containerRef.current) {
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      setDims({ width: Math.max(width, 400), height: Math.max(height, 300) });
+    }
+  }, []);
+
+  useEffect(() => {
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  // Layout constants
+  const LEGEND_W = 100;  // right legend area width
+  const PAD_LEFT = 80;
+  const PAD_TOP = 80;    // extra space for label boxes above top bubble
+  const PAD_BOTTOM = 60;
+  const PAD_RIGHT = 20;
+
+  const plotW = dims.width - PAD_LEFT - LEGEND_W - PAD_RIGHT;
+  const plotH = dims.height - PAD_TOP - PAD_BOTTOM;
+
+  // X-axis: determine date range
+  if (!bubbleData || bubbleData.length === 0) {
+    return (
+      <div ref={containerRef} className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+        No maintenance tasks within forecast window.
+      </div>
+    );
+  }
+
+  const sortedData = [...bubbleData].sort((a, b) => a.dueDate - b.dueDate);
+  const minDate = sortedData[0].dueDate;
+  const maxDate = sortedData[sortedData.length - 1].dueDate;
+
+  // ── Dynamic Y-axis: scale to fit all MH values ──────────────────────────────
+  const maxMH = Math.max(...sortedData.map((d) => d.mh));
+  const Y_MIN = 0;
+  // Round up to next multiple of 2, then add 4 ticks of headroom for label boxes
+  const Y_MAX = Math.max(16, Math.ceil((maxMH + 4) / 2) * 2);
+  const yTicks: number[] = [];
+  for (let t = 0; t <= Y_MAX; t += 2) yTicks.push(t);
+  const toY = (mh: number) => PAD_TOP + plotH - ((mh - Y_MIN) / (Y_MAX - Y_MIN)) * plotH;
+
+
+  // Build month ticks spanning the range + padding months
+  const startDate = new Date(minDate);
+  startDate.setDate(1);
+  startDate.setHours(0,0,0,0);
+  startDate.setMonth(startDate.getMonth() - 1);
+  
+  const endDate = new Date(maxDate);
+  endDate.setDate(1);
+  endDate.setHours(0,0,0,0);
+  endDate.setMonth(endDate.getMonth() + 2);
+
+  const monthTicks: { label: string; ts: number }[] = [];
+  const cursor = new Date(startDate);
+  // Prevent infinite loops if dates are bad
+  let safety = 0;
+  while (cursor <= endDate && safety < 100) {
+    monthTicks.push({ label: format(cursor, 'MMM'), ts: cursor.getTime() });
+    cursor.setMonth(cursor.getMonth() + 1);
+    safety++;
+  }
+
+  const xDomainMin = startDate.getTime();
+  const xDomainMax = monthTicks[monthTicks.length - 1].ts;
+  const toX = (ts: number) =>
+    PAD_LEFT + ((ts - xDomainMin) / (xDomainMax - xDomainMin)) * plotW;
+
+  // Cost range for bubble radius scaling
+  const costs = sortedData.map((d) => d.cost);
+  const minCost = Math.min(...costs);
+  const maxCost = Math.max(...costs);
+
+  // Make legend ticks dynamic based on min/max cost
+  const legendInterval = Math.max(500, Math.ceil((maxCost - minCost) / 7 / 500) * 500);
+  const legendMin = Math.floor(minCost / 500) * 500;
+  const legendMax = legendMin + (legendInterval * 7);
+  
+  const legendTicks: number[] = [];
+  for (let t = legendMax; t >= legendMin; t -= legendInterval) {
+    if (t > 0) legendTicks.push(t);
+  }
+
+  // Legend dimensions
+  const LEG_BAR_H = 220;
+  const LEG_BAR_W = 16;
+  const LEG_X = PAD_LEFT + plotW + 24;
+  const LEG_Y_TOP = PAD_TOP + 10;
+  const LEG_LABEL_MIN = legendMin;
+  const LEG_LABEL_MAX = legendMax;
+  const legTickY = (v: number) =>
+    LEG_Y_TOP + LEG_BAR_H - ((v - LEG_LABEL_MIN) / (LEG_LABEL_MAX - LEG_LABEL_MIN)) * LEG_BAR_H;
+
+  function getDynamicBubbleColor(cost: number) {
+    let p = 0;
+    if (legendMax > legendMin) {
+      p = Math.max(0, Math.min(1, (cost - legendMin) / (legendMax - legendMin)));
+    }
+    const stops = [
+      { pct: 0.0, rgb: [250, 243, 215], stroke: [200, 180, 90] },   // #FAF3D7
+      { pct: 0.4, rgb: [238, 219, 146], stroke: [180, 150, 30] },   // #EEDB92
+      { pct: 0.8, rgb: [225, 90, 107],  stroke: [150, 30, 40] },    // #E15A6B
+      { pct: 1.0, rgb: [155, 35, 53],   stroke: [100, 15, 25] }     // #9B2335
+    ];
+    let lower = stops[0], upper = stops[stops.length - 1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (p >= stops[i].pct && p <= stops[i+1].pct) {
+        lower = stops[i];
+        upper = stops[i+1];
+        break;
+      }
+    }
+    const range = upper.pct - lower.pct;
+    const factor = range === 0 ? 0 : (p - lower.pct) / range;
+    const interp = (a: number, b: number) => Math.round(a + factor * (b - a));
+    return { 
+      fill: `rgb(${interp(lower.rgb[0], upper.rgb[0])},${interp(lower.rgb[1], upper.rgb[1])},${interp(lower.rgb[2], upper.rgb[2])})`,
+      stroke: `rgb(${interp(lower.stroke[0], upper.stroke[0])},${interp(lower.stroke[1], upper.stroke[1])},${interp(lower.stroke[2], upper.stroke[2])})`
+    };
+  }
+
+  // Compute pixel positions
+  const bubbles = sortedData.map((d) => ({
+    ...d,
+    cx: toX(d.dueDate),
+    cy: toY(d.mh),
+    r: getBubbleRadius(d.cost, minCost, maxCost),
+    color: getDynamicBubbleColor(d.cost),
+  }));
+
+  // Label box height
+  const LBL_W = 76;
+  const LBL_H = 46;
+  const LBL_PAD_Y = 10; // gap between label bottom and bubble top
+
+  const svgH = dims.height;
+  const svgW = dims.width;
+
+  return (
+    <div ref={containerRef} className="w-full h-full">
+      <svg width={svgW} height={svgH} style={{ fontFamily: 'inherit', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="mbcLegendGrad" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#FAF3D7" />
+            <stop offset="40%" stopColor="#EEDB92" />
+            <stop offset="80%" stopColor="#E15A6B" />
+            <stop offset="100%" stopColor="#9B2335" />
+          </linearGradient>
+          <filter id="mbcShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.18)" />
+          </filter>
+          <filter id="mbcLabelShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="rgba(0,0,0,0.12)" />
+          </filter>
+        </defs>
+
+        {/* Chart background */}
+        <rect x={PAD_LEFT} y={PAD_TOP} width={plotW} height={plotH} fill="#ffffff" />
+
+        {/* Grid lines */}
+        {yTicks.map((tick) => (
+          <line
+            key={`ygrid-${tick}`}
+            x1={PAD_LEFT} y1={toY(tick)}
+            x2={PAD_LEFT + plotW} y2={toY(tick)}
+            stroke="#E2E8F0" strokeDasharray="3 3" strokeWidth={1}
+          />
+        ))}
+        {monthTicks.map((mt) => (
+          <line
+            key={`xgrid-${mt.ts}`}
+            x1={toX(mt.ts)} y1={PAD_TOP}
+            x2={toX(mt.ts)} y2={PAD_TOP + plotH}
+            stroke="#E2E8F0" strokeDasharray="3 3" strokeWidth={1}
+          />
+        ))}
+
+        {/* Y-axis label */}
+        <text
+          x={14}
+          y={PAD_TOP + plotH / 2}
+          textAnchor="middle"
+          fontSize={11}
+          fontWeight={600}
+          fill="#374151"
+          transform={`rotate(-90, 14, ${PAD_TOP + plotH / 2})`}
+        >
+          Ground Time / Man-Hours (Operational Risk)
+        </text>
+
+        {/* Y-axis ticks */}
+        {yTicks.map((tick) => (
+          <g key={`ytick-${tick}`}>
+            <line x1={PAD_LEFT - 5} y1={toY(tick)} x2={PAD_LEFT} y2={toY(tick)} stroke="#94A3B8" strokeWidth={1} />
+            <text x={PAD_LEFT - 8} y={toY(tick) + 4} textAnchor="end" fontSize={11} fill="#64748B">
+              {tick}
+            </text>
+          </g>
+        ))}
+
+        {/* X-axis line */}
+        <line x1={PAD_LEFT} y1={PAD_TOP + plotH} x2={PAD_LEFT + plotW} y2={PAD_TOP + plotH} stroke="#94A3B8" strokeWidth={1} />
+        {/* Y-axis line */}
+        <line x1={PAD_LEFT} y1={PAD_TOP} x2={PAD_LEFT} y2={PAD_TOP + plotH} stroke="#94A3B8" strokeWidth={1} />
+
+        {/* X-axis month ticks */}
+        {monthTicks.map((mt) => (
+          <g key={`xtick-${mt.ts}`}>
+            <line x1={toX(mt.ts)} y1={PAD_TOP + plotH} x2={toX(mt.ts)} y2={PAD_TOP + plotH + 5} stroke="#94A3B8" strokeWidth={1} />
+            <text x={toX(mt.ts)} y={PAD_TOP + plotH + 18} textAnchor="middle" fontSize={11} fill="#64748B">
+              {mt.label}
+            </text>
+          </g>
+        ))}
+
+        {/* X-axis label */}
+        <text
+          x={PAD_LEFT + plotW / 2}
+          y={svgH - 10}
+          textAnchor="middle"
+          fontSize={12}
+          fontWeight={600}
+          fill="#1F2937"
+        >
+          {new Date(minDate).getFullYear()} Forecast Timeline
+        </text>
+
+        {/* Connecting dashed line between bubble centers */}
+        {bubbles.length > 1 && (
+          <polyline
+            points={bubbles.map((b) => `${b.cx},${b.cy}`).join(' ')}
+            fill="none"
+            stroke="#94A3B8"
+            strokeWidth={1.5}
+            strokeDasharray="5 4"
+            opacity={0.8}
+          />
+        )}
+
+        {/* Bubbles + labels */}
+        {bubbles.map((b) => {
+          const labelX = b.cx - LBL_W / 2;
+          const labelY = b.cy - b.r - LBL_PAD_Y - LBL_H;
+          // Clamp label to top of SVG (plus small margin)
+          const clampedLabelY = Math.max(2, labelY);
+          const leaderFromY = clampedLabelY + LBL_H;
+          const leaderToY = b.cy - b.r;
+
+          return (
+            <g key={b.id}>
+              {/* Leader line: label box bottom → bubble top */}
+              <line
+                x1={b.cx}
+                y1={leaderFromY}
+                x2={b.cx}
+                y2={leaderToY}
+                stroke="#94A3B8"
+                strokeWidth={1}
+                strokeDasharray="3 3"
+                opacity={0.7}
+              />
+
+              {/* Bubble */}
+              <circle
+                cx={b.cx}
+                cy={b.cy}
+                r={b.r}
+                fill={b.color.fill}
+                stroke={b.color.stroke}
+                strokeWidth={2}
+                opacity={0.92}
+                filter="url(#mbcShadow)"
+              />
+
+              {/* Label box */}
+              <rect
+                x={labelX}
+                y={clampedLabelY}
+                width={LBL_W}
+                height={LBL_H}
+                rx={4}
+                fill="white"
+                stroke="#CBD5E1"
+                strokeWidth={1}
+                filter="url(#mbcLabelShadow)"
+              />
+              {/* Task ID */}
+              <text
+                x={b.cx}
+                y={clampedLabelY + 13}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={700}
+                fill="#1F2937"
+              >
+                {b.shortName}
+              </text>
+              {/* MYR Cost */}
+              <text
+                x={b.cx}
+                y={clampedLabelY + 26}
+                textAnchor="middle"
+                fontSize={9.5}
+                fill="#374151"
+              >
+                MYR {Math.round(b.cost).toLocaleString()}
+              </text>
+              {/* MH */}
+              <text
+                x={b.cx}
+                y={clampedLabelY + 39}
+                textAnchor="middle"
+                fontSize={9.5}
+                fill="#374151"
+              >
+                {b.mh.toFixed(1)} MH
+              </text>
+            </g>
+          );
+        })}
+
+        {/* ── Color Scale Legend ── */}
+        {/* Gradient bar */}
+        <rect
+          x={LEG_X}
+          y={LEG_Y_TOP}
+          width={LEG_BAR_W}
+          height={LEG_BAR_H}
+          fill="url(#mbcLegendGrad)"
+          stroke="#CBD5E1"
+          strokeWidth={1}
+          rx={3}
+        />
+        {/* Tick marks + labels */}
+        {legendTicks.map((v) => (
+          <g key={`leg-${v}`}>
+            <line
+              x1={LEG_X + LEG_BAR_W}
+              y1={legTickY(v)}
+              x2={LEG_X + LEG_BAR_W + 4}
+              y2={legTickY(v)}
+              stroke="#94A3B8"
+              strokeWidth={1}
+            />
+            <text
+              x={LEG_X + LEG_BAR_W + 7}
+              y={legTickY(v) + 4}
+              fontSize={9.5}
+              fill="#64748B"
+            >
+              {v.toLocaleString()}
+            </text>
+          </g>
+        ))}
+        {/* Legend axis label */}
+        <text
+          x={LEG_X + LEG_BAR_W + 46}
+          y={LEG_Y_TOP + LEG_BAR_H / 2}
+          textAnchor="middle"
+          fontSize={10}
+          fontWeight={600}
+          fill="#374151"
+          transform={`rotate(90, ${LEG_X + LEG_BAR_W + 46}, ${LEG_Y_TOP + LEG_BAR_H / 2})`}
+        >
+          Financial Intensity (Total Value in MYR)
+        </text>
+      </svg>
+    </div>
+  );
+};
+
 const StatBadge = ({ label, value }: { label: string; value: string | number }) => (
   <div className="flex flex-col gap-0.5">
     <span className="text-[11px] uppercase tracking-widest text-white/50 font-medium">
@@ -444,7 +849,7 @@ const Dashboard = () => {
               <button
                 onClick={() => {
                   if (id) {
-                    navigate(`/aircraft/${id}`);
+                    navigate(-1);
                   } else {
                     navigate('/dashboard');
                   }
@@ -549,188 +954,30 @@ const Dashboard = () => {
               <CardHeader className="pb-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-base text-slate-900 font-bold">
+                    <CardTitle className="text-sm text-slate-900 font-bold uppercase tracking-wide">
                       {aircraft?.registration_number || aircraft?.model || ''} MAINTENANCE PORTFOLIO: COST vs. DOWNTIME RISK
                     </CardTitle>
-                    <CardDescription className="text-xs text-slate-600">(Bubble Size = Total Financial Outlay)</CardDescription>
+                    <CardDescription className="text-xs text-slate-500">(Bubble Size = Total Financial Outlay)</CardDescription>
                   </div>
+                  {/* <div className="flex items-center gap-3">
+                    <label className="text-xs font-semibold text-slate-600 whitespace-nowrap">Daily Flight Hours:</label>
+                    <input
+                      type="number"
+                      min="0.5"
+                      max="24"
+                      step="0.5"
+                      value={utilizationSettings.dailyFlightHours}
+                      onChange={(e) => setUtilizationSettings({ dailyFlightHours: parseFloat(e.target.value) || 8 })}
+                      className="w-20 px-2 py-1 border border-slate-300 rounded text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div> */}
                 </div>
               </CardHeader>
-              <CardContent className="h-[550px] relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 120, bottom: 70, left: 90 }}>
-                    <defs>
-                      {/* Gradient definition for the legend */}
-                      <linearGradient id="costGradient" x1="0" y1="1" x2="0" y2="0">
-                        <stop offset="0%" stopColor="#FFFBEB" /> {/* Cream */}
-                        <stop offset="20%" stopColor="#FEF3C7" /> {/* Light yellow */}
-                        <stop offset="40%" stopColor="#FDE68A" /> {/* Beige */}
-                        <stop offset="60%" stopColor="#FB923C" /> {/* Orange */}
-                        <stop offset="80%" stopColor="#F87171" /> {/* Coral */}
-                        <stop offset="100%" stopColor="#881337" /> {/* Maroon */}
-                      </linearGradient>
-                    </defs>
-
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-
-                    <XAxis
-                      type="number"
-                      dataKey="dueDate"
-                      name="Due Date"
-                      domain={['dataMin', 'dataMax']}
-                      tick={{ fontSize: 11 }}
-                      tickFormatter={(timestamp) => {
-                        const date = new Date(timestamp);
-                        return format(date, "MMM");
-                      }}
-                      label={{
-                        value: '2026 Forecast Timeline',
-                        position: 'insideBottom',
-                        offset: -10,
-                        style: { fontSize: 12, fontWeight: 600, fill: '#1F2937' }
-                      }}
-                      height={60}
-                    />
-
-                    <YAxis
-                      yAxisId="left"
-                      type="number"
-                      dataKey="mh"
-                      name="Man-Hours"
-                      domain={[0, 16]}
-                      ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16]}
-                      tick={{ fontSize: 11 }}
-                      label={{
-                        value: 'Ground Time / Man-hours (Operational Risk)',
-                        angle: -90,
-                        position: 'insideLeft',
-                        offset: 5,
-                        style: { fontSize: 12, fontWeight: 600, textAnchor: 'middle', fill: '#1F2937' }
-                      }}
-                      width={90}
-                    />
-
-                    <ZAxis type="number" dataKey="cost" range={[1000, 4500]} name="Cost" />
-
-                    <RechartsTooltip
-                      cursor={{ strokeDasharray: '3 3' }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-white p-2 border border-slate-300 rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.15)] text-center text-[11px] font-medium text-slate-800 leading-tight flex flex-col min-w-[80px]">
-                              <span>{data.shortName}</span>
-                              <span>MYR {Math.round(data.cost).toLocaleString()}</span>
-                              <span>{data.mh.toFixed(1)} MH</span>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-
-                    {/* Connecting dotted lines between bubbles */}
-                    {chartData.bubbleData.length > 1 && chartData.bubbleData.map((bubble: any, i: number) => {
-                      if (i === chartData.bubbleData.length - 1) return null;
-                      const nextBubble = chartData.bubbleData[i + 1];
-
-                      return (
-                        <line
-                          key={`line-${i}`}
-                          x1={bubble.dueDate}
-                          y1={bubble.mh}
-                          x2={nextBubble.dueDate}
-                          y2={nextBubble.mh}
-                          stroke="#CBD5E1"
-                          strokeWidth={1.5}
-                          strokeDasharray="4 4"
-                          opacity={0.8}
-                        />
-                      );
-                    })}
-
-                    <Scatter
-                      yAxisId="left"
-                      name="Maintenance Tasks"
-                      data={chartData.bubbleData}
-                      shape={(props: any) => {
-                        const { cx, cy, payload } = props;
-                        const cost = payload.cost;
-
-                        let fillColor = '#FFFBEB'; 
-                        let strokeColor = '#FEF3C7';
-
-                        if (cost > 3000) {
-                          // High Cost: Coral/Maroon
-                          fillColor = '#E15A6B'; 
-                          strokeColor = '#902638';
-                        } else if (cost >= 1500) {
-                          // Mid Cost: Beige/Tan/Orange
-                          fillColor = '#EEDB92'; 
-                          strokeColor = '#A18320';
-                        } else {
-                          // Low Cost: Cream/Light yellow
-                          fillColor = '#FAF3D7'; 
-                          strokeColor = '#C1B68A';
-                        }
-
-                        const radius = props.node.z / 65; // Scale radius appropriately
-                        
-                        return (
-                          <g className="bubble-group cursor-pointer">
-                            {/* Bubble circle with shadow */}
-                            <circle
-                              cx={cx}
-                              cy={cy}
-                              r={radius}
-                              fill={fillColor}
-                              stroke={strokeColor}
-                              strokeWidth={2}
-                              opacity={0.9}
-                              style={{ filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.15))" }}
-                            />
-                            {/* Hover info is handled by Recharts Tooltip, but we add a subtle semi-transparent label inside for immediate context if needed, wait no, they asked for white label on hover. We'll rely on the Tooltip for the exact white block! */}
-                          </g>
-                        );
-                      }}
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-
-                {/* Right Y-Axis Color Gradient Legend */}
-                <div className="absolute right-0 top-16 bottom-16 flex items-center pr-4">
-                  <div className="h-[280px] flex items-center relative gap-2">
-                    <div className="flex flex-col items-end text-[11px] text-gray-600 justify-between h-full py-1 pr-1 font-medium">
-                      <span>4500</span>
-                      <span>4000</span>
-                      <span>3500</span>
-                      <span>3000</span>
-                      <span>2500</span>
-                      <span>2000</span>
-                      <span>1500</span>
-                      <span>1000</span>
-                    </div>
-                    <svg width="18" height="280">
-                      <defs>
-                        <linearGradient id="legendGradient" x1="0" y1="1" x2="0" y2="0">
-                          <stop offset="0%" stopColor="#FAF3D7" />
-                          <stop offset="20%" stopColor="#FAF3D7" />
-                          <stop offset="40%" stopColor="#EEDB92" />
-                          <stop offset="60%" stopColor="#EEDB92" />
-                          <stop offset="80%" stopColor="#E15A6B" />
-                          <stop offset="100%" stopColor="#E15A6B" />
-                        </linearGradient>
-                      </defs>
-                      <rect x="0" y="0" width="18" height="280" fill="url(#legendGradient)" stroke="#CBD5E1" strokeWidth="1" rx="2" />
-                    </svg>
-                    <div 
-                      className="text-[11px] font-bold text-gray-600 tracking-wide ml-1" 
-                      style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-                    >
-                      Financial Intensity (Total Value in MYR)
-                    </div>
-                  </div>
-                </div>
+              <CardContent className="h-[560px] relative pr-4">
+                <MaintenanceBubbleChart
+                  bubbleData={chartData.bubbleData}
+                  aircraft={aircraft}
+                />
               </CardContent>
             </Card>
           )}
