@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -33,12 +33,64 @@ const AIRCRAFT_MODELS: Option[] = [
     { label: "ATR72-600", value: "ATR72-600" },
 ];
 
-const MANUFACTURERS = [
-    "Hamilton Sundstrand", "Honeywell International", "Pratt&Whitney Canada",
-    "Eaton Aerospace", "Honeywell ASCA", "CFM International", "BAE Systems",
-    "Rockwell Collins", "Eldec Corporation", "Sensor Systems",
-    "GE Aviation Systems", "BF Goodrich Rosemount", "Safran Landing Systems",
-];
+const INITIAL_MANUFACTURERS = [
+    "3M Aerospace",
+    "AAR Corp",
+    "Airbus",
+    "Astronics Corporation",
+    "Aviation Industry Corporation of China (AVIC)",
+    "BAE Systems",
+    "BF Goodrich Rosemount",
+    "Bridgestone Aircraft Tire",
+    "CFM International",
+    "Champion Aerospace (Ignition systems)",
+    "Collins Aerospace",
+    "Crane Aerospace & Electronics",
+    "Eaton Aerospace",
+    "Eldec Corporation",
+    "GE Aerospace",
+    "GE Aviation Systems",
+    "GKN Aerospace",
+    "Garmin Aviation",
+    "Goodyear Aviation",
+    "Hamilton Sundstrand",
+    "Heroux-Devtek",
+    "Hexcel Corporation (Composites)",
+    "Honeywell ASCA",
+    "Honeywell Aerospace",
+    "Honeywell International",
+    "IAE (International Aero Engines)",
+    "Jamco Corporation",
+    "Kawasaki Heavy Industries (KHI)",
+    "L3Harris Technologies",
+    "Leonardo",
+    "Liebherr-Aerospace",
+    "Lufthansa Technik",
+    "Meggitt (now part of Parker Hannifin)",
+    "Michelin Aircraft",
+    "Mitsubishi Heavy Industries (MHI)",
+    "Moog Inc.",
+    "Panasonic Avionics",
+    "Parker Aerospace (Parker Hannifin)",
+    "PPG Aerospace (Windshields & Sealants)",
+    "Pratt & Whitney",
+    "Pratt&Whitney Canada",
+    "RECARO Aircraft Seating",
+    "Rockwell Collins",
+    "Rolls-Royce",
+    "ST Engineering",
+    "Safran Aircraft Engines",
+    "Safran Cabin",
+    "Safran Landing Systems",
+    "Saint-Gobain Aerospace",
+    "Sensor Systems",
+    "Spirit AeroSystems",
+    "Subaru Aerospace",
+    "Teledyne Controls",
+    "Thales Group",
+    "Woodward, Inc.",
+    "Zodiac Aerospace"
+].sort();
 
 interface ComponentFormProps {
     defaultValues?: any;
@@ -47,7 +99,40 @@ interface ComponentFormProps {
 
 export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) {
     const [loading, setLoading] = useState(false);
+    const [dbManufacturers, setDbManufacturers] = useState<string[]>([]);
+    const [manufacturerDropdownOpen, setManufacturerDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // Fetch existing components from DB to extract their manufacturers globally
+        const fetchExistingManufacturers = async () => {
+            try {
+                const components = await api.components.list();
+                const manufacturersFromDb = components
+                    .map((c: any) => c.manufacturer)
+                    .filter((m: string) => m && m.trim().length > 0);
+                
+                setDbManufacturers([...new Set(manufacturersFromDb)] as string[]);
+            } catch (error) {
+                console.error("Failed to fetch manufacturers for suggestions", error);
+            }
+        };
+
+        fetchExistingManufacturers();
+    }, []);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setManufacturerDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const allManufacturers = Array.from(new Set([...INITIAL_MANUFACTURERS, ...dbManufacturers])).sort();
 
     const form = useForm<ComponentFormData>({
         resolver: zodResolver(componentSchema),
@@ -132,27 +217,54 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                 <div className="flex flex-col gap-5">
 
                     {/* Component Manufacturer */}
-                    <FormField control={form.control} name="manufacturer" render={({ field, fieldState }) => (
-                        <FormItem className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>Component Manufacturer</FormLabel>
-                                <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormField control={form.control} name="manufacturer" render={({ field, fieldState }) => {
+                        const filteredManufacturers = allManufacturers.filter(m => m.toLowerCase().includes(field.value?.toLowerCase() || ''));
+                        return (
+                            <FormItem className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-3">
+                                    <FormLabel className={labelCls(!!fieldState.error)}>Component Manufacturer</FormLabel>
+                                    <div className="relative flex-1" ref={dropdownRef}>
                                         <FormControl>
-                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
-                                                <SelectValue placeholder="Select manufacturer" />
-                                            </SelectTrigger>
+                                            <Input
+                                                autoComplete="off"
+                                                placeholder="Select or enter manufacturer"
+                                                className={inputCls(!!fieldState.error)}
+                                                {...field}
+                                                onFocus={() => setManufacturerDropdownOpen(true)}
+                                                onChange={(e) => {
+                                                    field.onChange(e);
+                                                    setManufacturerDropdownOpen(true);
+                                                }}
+                                            />
                                         </FormControl>
-                                        <SelectContent>
-                                            {MANUFACTURERS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    {fieldState.error && <SelectErrorBadge />}
+                                        
+                                        {/* Neatly Styled Suggestion Dropdown */}
+                                        {manufacturerDropdownOpen && filteredManufacturers.length > 0 && (
+                                            <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg shadow-black/5 outline-none custom-scrollbar">
+                                                <div className="p-1">
+                                                    {filteredManufacturers.map(m => (
+                                                        <div
+                                                            key={m}
+                                                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm text-slate-700 outline-none hover:bg-slate-100 hover:text-slate-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault(); // Prevents input from losing focus immediately
+                                                                field.onChange(m);
+                                                                setManufacturerDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            {m}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {fieldState.error && <ErrorBadge />}
+                                    </div>
                                 </div>
-                            </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Component Manufacturer</p>}
-                        </FormItem>
-                    )} />
+                                {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Component Manufacturer</p>}
+                            </FormItem>
+                        );
+                    }} />
 
                     {/* Component Name */}
                     <FormField control={form.control} name="name" render={({ field, fieldState }) => (
