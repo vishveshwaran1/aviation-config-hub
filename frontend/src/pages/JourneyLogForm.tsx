@@ -484,7 +484,7 @@ const JourneyLogForm = () => {
         for (const [col, field] of Object.entries(COL_MAP)) {
           const val = r[col];
           const k = field as keyof JourneyFormData;
-          if (field.endsWith("_date") || ["date", "next_due_maintenance", "due_at_date", "daily_inspection", "transit_inspection"].includes(field)) {
+          if (field.endsWith("_date") || ["date", "due_at_date", "daily_inspection", "transit_inspection"].includes(field)) {
             (parsed as Record<string, string>)[k] = fmtExcelDate(val);
           } else if (["pic_sign", "commander_sign", "daily_inspection_sign", "sign_stamp", "crs_sign_stamp", "crs_signature", "digital_stamp"].includes(field)) {
             (parsed as Record<string, string>)[k] = str(val) || "No";
@@ -556,7 +556,7 @@ const JourneyLogForm = () => {
           fuel_discrepancy: data.fuel_discrepancy?.toString() ?? "",
           fuel_flight_deck_gauge: data.fuel_flight_deck_gauge?.toString() ?? "",
           fuel_density: data.fuel_density?.toString() ?? "",
-          next_due_maintenance: fmt(data.next_due_maintenance),
+          next_due_maintenance: data.next_due_maintenance?.toString() ?? "",
           due_at_date: fmt(data.due_at_date),
           due_at_hours: data.due_at_hours?.toString() ?? "",
           due_at_cycles: data.due_at_cycles?.toString() ?? "",
@@ -995,9 +995,9 @@ const JourneyLogForm = () => {
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Airworthiness</h4>
                     <Grid cols={3}>
                       <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
-                      <F label="Next Due Maintenance"><Input className={inp} type="date" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
+                      <F label="Next Due Maintenance"><Input className={inp} type="number"  min="0" placeholder="0" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
                       <F label="Carried Out date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
-                      <F label="Carried Out Hours"><Input className={inp} type="number" step="0.1" min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
+                      <F label="Carried Out Hours"><Input className={inp} type="number"  min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
                       <F label="Carried Out Cycles"><Input className={inp} type="number" min="0" placeholder="0" value={form.due_at_cycles} onChange={set("due_at_cycles")} /></F>
                     </Grid>
                   </div>

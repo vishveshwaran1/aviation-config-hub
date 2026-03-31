@@ -156,7 +156,7 @@ model JourneyLog {
   aircraft_total_hrs     Float?
   aircraft_total_cyc     Float?
   fuel_flight_deck_gauge Float?
-  next_due_maintenance   DateTime?
+  next_due_maintenance   Float?
   due_at_date            DateTime?
   due_at_hours           Float?
   due_at_cycles          Float?
