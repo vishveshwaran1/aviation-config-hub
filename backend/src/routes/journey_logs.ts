@@ -180,7 +180,7 @@ router.post('/', async (req, res) => {
           aircraft_total_hrs: toFloat(aircraft_total_hrs),
           aircraft_total_cyc: toFloat(aircraft_total_cyc),
           fuel_flight_deck_gauge: toFloat(fuel_flight_deck_gauge),
-          next_due_maintenance: toDate(next_due_maintenance),
+          next_due_maintenance: toFloat(next_due_maintenance),
           due_at_date: toDate(due_at_date),
           due_at_hours: toFloat(due_at_hours),
           due_at_cycles: toFloat(due_at_cycles),
@@ -287,10 +287,10 @@ router.patch('/:id', async (req, res) => {
     const numFields = [
       'fuel_arrival', 'fuel_departure', 'remaining_fuel_onboard', 'fuel_uplift','fuel_density',
       'calculate_total_fuel', 'fuel_discrepancy', 'aircraft_total_hrs', 'aircraft_total_cyc',
-      'fuel_flight_deck_gauge', 'due_at_hours', 'due_at_cycles', 'total_flight_hrs', 'total_flight_cyc',
+      'fuel_flight_deck_gauge', 'next_due_maintenance', 'due_at_hours', 'due_at_cycles', 'total_flight_hrs', 'total_flight_cyc',
       'apu_hrs', 'apu_cyc', 'oil_uplift_eng1', 'oil_uplift_eng2', 'oil_uplift_apu', 'hyd_fluid'
     ];
-    const dateFields = ['date', 'next_due_maintenance', 'due_at_date', 'daily_inspection', 'transit_inspection'];
+    const dateFields = ['date', 'due_at_date', 'daily_inspection', 'transit_inspection'];
 
     for (const f of numFields) {
       if (f in data) data[f] = toFloat(data[f]);

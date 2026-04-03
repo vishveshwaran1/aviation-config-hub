@@ -331,28 +331,18 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
-                                        {/* Part No Dropdown */}
+                    {/* Part No Input */}
                     <FormField control={form.control} name="part_no" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Part No</FormLabel>
                                 <div className="relative flex-1">
-                                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                                        <FormControl>
-                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
-                                                <SelectValue placeholder="Select Part No" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {Array.from({ length: 12 }, (_, i) => (i + 1).toString()).map(num => (
-                                                <SelectItem key={num} value={num}>{num}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {fieldState.error && <SelectErrorBadge />}
+                                    <FormControl>
+                                        <Input className={inputCls(!!fieldState.error)} placeholder="Enter Part No" {...field} />
+                                    </FormControl>
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Select Part No</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Part No</p>}
                         </FormItem>
                     )} />
 

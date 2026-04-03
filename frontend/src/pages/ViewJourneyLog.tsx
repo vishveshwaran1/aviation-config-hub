@@ -116,7 +116,7 @@ const ViewJourneyLog = () => {
             aircraft_total_hrs:     data.aircraft_total_hrs?.toString(),
             aircraft_total_cyc:     data.aircraft_total_cyc?.toString(),
             fuel_flight_deck_gauge: data.fuel_flight_deck_gauge?.toString(),
-            next_due_maintenance:   fmt(data.next_due_maintenance),
+            next_due_maintenance:   data.next_due_maintenance?.toString(),
             due_at_date:            fmt(data.due_at_date),
             due_at_hours:           data.due_at_hours?.toString(),
             due_at_cycles:          data.due_at_cycles?.toString(),
