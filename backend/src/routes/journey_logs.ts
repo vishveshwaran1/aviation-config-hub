@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma';
+import multer from 'multer';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 const toFloat = (v: unknown): number | null =>
   v === '' || v === null || v === undefined ? null : Number(v);
@@ -48,6 +51,62 @@ router.get('/entry/:id', async (req, res) => {
   }
 });
 
+router.post('/extract', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY is not configured in backend .env' });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    const prompt = `Extract all structured fields from this Aircraft Journey Log document.
+Return ONLY valid JSON with keys matching the following fields. If a field is not found or empty, leave it as an empty string.
+JSON structure needed:
+{
+  "company_name": "", "date": "", "registration": "", "aircraft_type": "", "log_sl_no": "",
+  "pic_name": "", "pic_license_no": "", "pic_sign": "Yes", "commander_sign": "Yes",
+  "fuel_arrival": "", "fuel_departure": "", "remaining_fuel_onboard": "", "fuel_uplift": "",
+  "calculate_total_fuel": "", "fuel_discrepancy": "", "aircraft_total_hrs": "", "aircraft_total_cyc": "",
+  "fuel_flight_deck_gauge": "", "fuel_density": "", "next_due_maintenance": "", "due_at_date": "",
+  "due_at_hours": "", "due_at_cycles": "", "total_flight_hrs": "", "total_flight_cyc": "",
+  "daily_inspection": "", "transit_inspection": "", "type_of_maintenance": "", "apu_hrs": "", "apu_cyc": "",
+  "oil_uplift_eng1": "", "oil_uplift_eng2": "", "oil_uplift_apu": "", "hyd_fluid": "",
+  "daily_inspection_sign": "Yes", "sign_stamp": "Yes", "amo_name": "", "amo_approval": "",
+  "lae_name": "", "lae_license": "", "crs_signature": "Yes", "digital_stamp": "Yes",
+  "sectors": [
+    {
+      "flight_num": "", "sector_from": "", "sector_to": "",
+      "on_chock_dep_date": "", "on_chock_dep_time": "HHMM",
+      "on_chock_arr_date": "", "on_chock_arr_time": "HHMM",
+      "on_chock_duration": "", "off_chock_dep_date": "", "off_chock_dep_time": "HHMM",
+      "off_chock_arr_date": "", "off_chock_arr_time": "HHMM", "off_chock_duration": ""
+    }
+  ]
+}`;
+
+    const filePart = {
+      inlineData: {
+        data: req.file.buffer.toString('base64'),
+        mimeType: req.file.mimetype
+      }
+    };
+
+    const response = await model.generateContent([prompt, filePart]);
+    const outputText = response.response.text() || "{}";
+    const parsedData = JSON.parse(outputText);
+    
+    res.json(parsedData);
+  } catch (error) {
+    console.error('Error extracting data via GenAI:', error);
+    res.status(500).json({ error: 'Failed to extract data', details: (error as Error).message });
+  }
+});
 
 router.post('/', async (req, res) => {
   try {

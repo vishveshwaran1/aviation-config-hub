@@ -249,6 +249,16 @@ export const api = {
         }
     },
     journeyLogs: {
+        extract: async (formData: FormData) => {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/journey_logs/extract`, {
+                method: 'POST',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                body: formData
+            });
+            await throwIfError(res);
+            return res.json();
+        },
         /** List all journey log entries for an aircraft */
         getForAircraft: async (aircraftId: string) => {
             const res = await fetch(`${API_URL}/journey_logs/${aircraftId}`, { headers: getHeaders() });

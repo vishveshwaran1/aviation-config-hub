@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Save, Plus, Trash2, Upload } from "lucide-react";
 import { cn , decimalToHoursMinutes} from "@/lib/utils";
@@ -465,34 +465,74 @@ const JourneyLogForm = () => {
     setUploadError(null);
   };
 
-  const handleExcelUpload = () => {
+  const handleFileUpload = async () => {
     if (!uploadFile) { setUploadError("Please choose a file first."); return; }
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const wb = XLSX.read(data, { type: "array", cellDates: true });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
-        if (rows.length === 0) { setUploadError("File is empty or has no data rows."); setUploading(false); return; }
-        const r = rows[0];
-        const str = (v: unknown) => v != null ? String(v).trim() : "";
+    
+    if (uploadFile.name.match(/\.(xlsx|xls|csv)$/i)) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const wb = XLSX.read(data, { type: "array", cellDates: true });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
+          if (rows.length === 0) { setUploadError("File is empty or has no data rows."); setUploading(false); return; }
+          const r = rows[0];
+          const str = (v: unknown) => v != null ? String(v).trim() : "";
 
-        // Fill main form fields
-        const parsed: Partial<JourneyFormData> = {};
-        for (const [col, field] of Object.entries(COL_MAP)) {
-          const val = r[col];
-          const k = field as keyof JourneyFormData;
-          if (field.endsWith("_date") || ["date", "next_due_maintenance", "due_at_date", "daily_inspection", "transit_inspection"].includes(field)) {
-            (parsed as Record<string, string>)[k] = fmtExcelDate(val);
-          } else if (["pic_sign", "commander_sign", "daily_inspection_sign", "sign_stamp", "crs_sign_stamp", "crs_signature", "digital_stamp"].includes(field)) {
-            (parsed as Record<string, string>)[k] = str(val) || "No";
-          } else {
-            (parsed as Record<string, string>)[k] = str(val);
+          // Fill main form fields
+          const parsed: Partial<JourneyFormData> = {};
+          for (const [col, field] of Object.entries(COL_MAP)) {
+            const val = r[col];
+            const k = field as keyof JourneyFormData;
+            if (field.endsWith("_date") || ["date", "next_due_maintenance", "due_at_date", "daily_inspection", "transit_inspection"].includes(field)) {
+              (parsed as Record<string, string>)[k] = fmtExcelDate(val);
+            } else if (["pic_sign", "commander_sign", "daily_inspection_sign", "sign_stamp", "crs_sign_stamp", "crs_signature", "digital_stamp"].includes(field)) {
+              (parsed as Record<string, string>)[k] = str(val) || "No";
+            } else {
+              (parsed as Record<string, string>)[k] = str(val);
+            }
           }
+          
+          setForm(prev => ({ 
+            ...EMPTY_FORM, 
+            ...parsed,
+            // Preserve autofetched aircraft data
+            registration: prev.registration,
+            msn: prev.msn,
+            aircraft_type: prev.aircraft_type,
+            aircraft_total_hrs: prev.aircraft_total_hrs,
+            aircraft_total_cyc: prev.aircraft_total_cyc,
+          }));
+
+          // Fill sectors
+          const buildSector = (prefix: string): Sector => {
+            const s: Partial<Sector> = {};
+            for (const [col, field] of Object.entries(SECTOR_COL_MAP)) {
+              const val = r[`${prefix} ${col}`];
+              (s as Record<string, string>)[field] = field.endsWith("_date") ? fmtExcelDate(val) : str(val);
+            }
+            return { ...EMPTY_SECTOR, ...s };
+          };
+          setSectors([buildSector("S1")]);
+          setDefects([]);
+
+          setShowUploadModal(false);
+          toast.success("Form pre-filled from Excel file.");
+        } catch {
+          setUploadError("Failed to parse file. Ensure it is a valid .xlsx or .csv.");
+        } finally {
+          setUploading(false);
         }
-        
+      };
+      reader.readAsArrayBuffer(uploadFile);
+    } else {
+      try {
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        const parsed = await api.journeyLogs.extract(formData);
+
         setForm(prev => ({ 
           ...EMPTY_FORM, 
           ...parsed,
@@ -503,28 +543,26 @@ const JourneyLogForm = () => {
           aircraft_total_hrs: prev.aircraft_total_hrs,
           aircraft_total_cyc: prev.aircraft_total_cyc,
         }));
-
-        // Fill sectors
-        const buildSector = (prefix: string): Sector => {
-          const s: Partial<Sector> = {};
-          for (const [col, field] of Object.entries(SECTOR_COL_MAP)) {
-            const val = r[`${prefix} ${col}`];
-            (s as Record<string, string>)[field] = field.endsWith("_date") ? fmtExcelDate(val) : str(val);
-          }
-          return { ...EMPTY_SECTOR, ...s };
-        };
-        setSectors([buildSector("S1")]);
+        
+        if (parsed.sectors && parsed.sectors.length > 0) {
+          const s = parsed.sectors[0];
+          setSectors([{
+            ...EMPTY_SECTOR,
+            ...s
+          }]);
+        } else {
+          setSectors([{ ...EMPTY_SECTOR }]);
+        }
         setDefects([]);
-
         setShowUploadModal(false);
-        toast.success("Form pre-filled from Excel file.");
-      } catch {
-        setUploadError("Failed to parse file. Ensure it is a valid .xlsx or .csv.");
+        toast.success("Form pre-filled by AI extraction.");
+      } catch (err) {
+        console.error(err);
+        setUploadError("AI Extraction failed. Please try again with a clearer image/PDF.");
       } finally {
         setUploading(false);
       }
-    };
-    reader.readAsArrayBuffer(uploadFile);
+    }
   };
 
   // Load entry data when editing
@@ -768,7 +806,7 @@ const JourneyLogForm = () => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".xlsx,.xls,.csv"
+                    accept=".xlsx,.xls,.csv,.pdf,image/*"
                     className="hidden"
                     onChange={handleFileChange}
                   />
@@ -787,7 +825,7 @@ const JourneyLogForm = () => {
             <Button
               size="sm"
               disabled={!uploadFile || uploading}
-              onClick={handleExcelUpload}
+              onClick={handleFileUpload}
               className="bg-[#3b58e9] hover:bg-[#3d59d4] text-white px-8"
             >
               Submit
