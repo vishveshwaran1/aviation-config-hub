@@ -98,8 +98,8 @@ const ServiceListSetup = () => {
       "Zones": Array.isArray(item.zones) ? item.zones.join(", ") : (item.zones || "-"),
       "Assigned Component": item.assigned_component_id || "-",
       "Estimated Manhours": item.estimated_manhours || "-",
-      "Comp Price": item.estimated_price || "-",
-      "Service Price": item.quotation_price || "-",
+      "Comp Price": item.estimated_price != null ? `${item.estimated_currency || 'MYR'} ${item.estimated_price}` : "-",
+      "Service Price": item.quotation_price != null ? `${item.quotation_currency || 'MYR'} ${item.quotation_price}` : "-",
       "Interval Threshold": item.interval_threshold ? `${item.interval_threshold} ${item.interval_unit || 'Hours'}` : "-",
       "Repeat Interval": item.repeat_interval ? `${item.repeat_interval} ${item.repeat_interval_unit || 'Hours'}` : "-",
       "Description": item.description || "-",
@@ -210,8 +210,8 @@ const ServiceListSetup = () => {
                     <TableCell>{item.task_card_ref || '-'}</TableCell>
                     <TableCell>{item.part_no || '-'}</TableCell>
                     <TableCell>{Array.isArray(item.zones) ? item.zones.join(', ') : (item.zones || '-')}</TableCell>
-                    <TableCell>{item.estimated_price != null ? item.estimated_price : '-'}</TableCell>
-                    <TableCell>{item.quotation_price != null ? item.quotation_price : '-'}</TableCell>
+                    <TableCell>{item.estimated_price != null ? `${item.estimated_currency || 'MYR'} ${item.estimated_price}` : '-'}</TableCell>
+                    <TableCell>{item.quotation_price != null ? `${item.quotation_currency || 'MYR'} ${item.quotation_price}` : '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

@@ -68,15 +68,15 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
         resolver: zodResolver(serviceSchema),
         mode: "onBlur",
         defaultValues: {
-            zones: [],
+            ...defaultValues,
+            zones: defaultValues?.zones || [],
             assigned_component_text: defaultValues?.assigned_component_id || "",
-            estimated_currency: "MYR",
-            quotation_currency: "MYR",
+            estimated_currency: defaultValues?.estimated_currency || "MYR",
+            quotation_currency: defaultValues?.quotation_currency || "MYR",
             part_no: defaultValues?.part_no || "",
             // Provide default unit
             interval_threshold_unit: defaultValues?.interval_unit || "Hours",
             repeat_interval_unit: defaultValues?.repeat_interval_unit || "Hours",
-            ...defaultValues,
             // Format time fields
             estimated_manhours: decimalToHoursMinutes(defaultValues?.estimated_manhours),
             interval_threshold: (!defaultValues?.interval_unit || defaultValues?.interval_unit === "Hours") ? decimalToHoursMinutes(defaultValues?.interval_threshold) : (defaultValues?.interval_threshold?.toString() || ""),
@@ -98,8 +98,6 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
         try {
             // Strip all UI-only fields that the backend doesn't accept
             const {
-                estimated_currency,
-                quotation_currency,
                 assigned_component_text,
                 interval_threshold_unit,
                 repeat_interval_unit,
@@ -109,6 +107,8 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
             // Map form fields to backend field names
             const payload = {
                 ...rest,
+                estimated_currency: data.estimated_currency || "MYR",
+                quotation_currency: data.quotation_currency || "MYR",
                 // Backend expects a single assigned_component_id (string | null)
                 // We map our text area content here
                 assigned_component_id: assigned_component_text || null,

@@ -54,7 +54,9 @@ interface Service {
   zones: string[] | null;
   estimated_manhours: number | null;
   estimated_price: number | null;
+  estimated_currency: string | null;
   quotation_price: number | null;
+  quotation_currency: string | null;
   interval_threshold: number | null;
   repeat_interval: number | null;
   interval_unit: string;
@@ -160,8 +162,18 @@ function buildChartData(
     const forecast = forecasts.find((f) => f.service_id === service.id) ?? null;
     const dueInfo = calculateNextDue(aircraft, service, forecast, dailyFlightHours, avgCycles);
 
-    const componentValue = service.assigned_component_id ? (service.estimated_price ?? 0) : 0;
-    const serviceValue = service.quotation_price ?? service.estimated_price ?? 0;
+    // Dynamic fallback exchange rates (could be fetched from API)
+    const EXCHANGE_RATES: Record<string, number> = {
+      USD: 1,
+      MYR: 0.25, 
+      EUR: 1.15,
+    };
+    
+    const estRate = EXCHANGE_RATES[service.estimated_currency || "MYR"] || 1;
+    const quotRate = EXCHANGE_RATES[service.quotation_currency || "MYR"] || 1;
+
+    const componentValue = service.assigned_component_id ? ((service.estimated_price ?? 0) * estRate) : 0;
+    const serviceValue = (service.quotation_price ?? service.estimated_price ?? 0) * (service.quotation_price ? quotRate : estRate);
     const totalValue = componentValue + serviceValue;
 
     return {
@@ -631,7 +643,7 @@ const MaintenanceBubbleChart = ({
               >
                 {b.shortName}
               </text>
-              {/* MYR Cost */}
+              {/* USD Cost */}
               <text
                 x={b.cx}
                 y={clampedLabelY + 26}
@@ -639,7 +651,7 @@ const MaintenanceBubbleChart = ({
                 fontSize={9.5}
                 fill="#374151"
               >
-                MYR {Math.round(b.cost).toLocaleString()}
+                ${Math.round(b.cost).toLocaleString()}
               </text>
               {/* MH */}
               <text
@@ -698,7 +710,7 @@ const MaintenanceBubbleChart = ({
           fill="#374151"
           transform={`rotate(90, ${LEG_X + LEG_BAR_W + 46}, ${LEG_Y_TOP + LEG_BAR_H / 2})`}
         >
-          Financial Intensity (Total Value in MYR)
+          Financial Intensity (Total Value in USD)
         </text>
       </svg>
     </div>
@@ -816,9 +828,9 @@ const Dashboard = () => {
   const displayForecastData = chartData.monthlyData.slice(0, filterMonths);
 
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `MYR ${(value / 1000000).toFixed(2)}M`;
-    if (value >= 1000) return `MYR ${(value / 1000).toFixed(1)}k`;
-    return `MYR ${value}`;
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
+    if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+    return `$${value}`;
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -915,7 +927,7 @@ const Dashboard = () => {
                   <BarChart data={displayForecastData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `MYR ${val}`} tick={{ fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} tick={{ fontSize: 12 }} />
                     <RechartsTooltip content={<CustomTooltip />} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
                     <Bar dataKey="compCost" name="Component Cost" stackId="a" fill="#3B82F6" radius={[0, 0, 4, 4]} />
@@ -937,8 +949,8 @@ const Dashboard = () => {
                   <ComposedChart data={displayForecastData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tickFormatter={(val) => `MYR ${val}`} tick={{ fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tickFormatter={(val) => `MYR ${val}`} tick={{ fontSize: 12 }} />
+                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} tick={{ fontSize: 12 }} />
+                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} tick={{ fontSize: 12 }} />
                     <RechartsTooltip content={<CustomTooltip />} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
                     <Bar yAxisId="left" dataKey="total" name="Monthly Expense" fill="#F43F5E" radius={[4, 4, 0, 0]} barSize={40} />
@@ -1022,9 +1034,9 @@ const Dashboard = () => {
                     <TableHead className="font-semibold text-xs text-slate-500 uppercase">Remaining Life</TableHead>
                     <TableHead className="font-semibold text-xs text-slate-500 uppercase">Next Due Date</TableHead>
                     <TableHead className="font-semibold text-xs text-slate-500 uppercase text-right">Man-hours</TableHead>
-                    <TableHead className="font-semibold text-xs text-slate-500 uppercase text-right">Comp. Value (MYR)</TableHead>
-                    <TableHead className="font-semibold text-xs text-slate-500 uppercase text-right">Service Value (MYR)</TableHead>
-                    <TableHead className="font-semibold text-xs text-slate-500 uppercase text-right">Total Value (MYR)</TableHead>
+                    <TableHead className="font-semibold text-xs text-slate-500 uppercase text-right">Comp. Value (USD)</TableHead>
+                    <TableHead className="font-semibold text-xs text-slate-500 uppercase text-right">Service Value (USD)</TableHead>
+                    <TableHead className="font-semibold text-xs text-slate-500 uppercase text-right">Total Value (USD)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

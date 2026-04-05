@@ -52,6 +52,7 @@ interface Service {
   description: string | null;
   assigned_component_id: string | null;
   zones: string[] | null;
+  estimated_currency:string|null,
   estimated_price: number | null;
   interval_threshold: number | null;
   repeat_interval: number | null;
@@ -86,6 +87,7 @@ interface ForecastRow {
   taskCardRef: string | null;
   description: string | null;
   zones: string[];
+  estimatedCurrency:string|null,
   estimatedPrice: number | null;
   intervalThreshold: number | null;
   repeatInterval: number | null;
@@ -188,6 +190,7 @@ function buildRows(
         description: service.description,
         zones: service.zones ?? [],
         estimatedPrice: service.estimated_price,
+        estimatedCurrency: service.estimated_currency,
         intervalThreshold: service.interval_threshold,
         repeatInterval: service.repeat_interval,
         intervalUnit: unit,
@@ -385,7 +388,7 @@ function exportCSV(rows: ForecastRow[], aircraft: Aircraft) {
       r.nextCycles ?? "",
       r.remainingHours !== null ? r.remainingHours.toFixed(2) : "",
       r.remainingCycles !== null ? r.remainingCycles.toFixed(0) : "",
-      r.estimatedPrice ?? "",
+      r.estimatedPrice != null ? `${r.estimatedCurrency || "MYR"} ${r.estimatedPrice}` : "",
       (r.zones ?? []).join("; "),
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
