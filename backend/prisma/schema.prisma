@@ -89,7 +89,9 @@ model Service {
   assigned_component_id String?
   zones                 String[]
   estimated_manhours    Float?
+  estimated_currency    String?
   estimated_price       Float?
+  quotation_currency    String?
   quotation_price       Float?
   interval_threshold    Float?
   repeat_interval       Float?

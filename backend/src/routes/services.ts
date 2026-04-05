@@ -33,6 +33,8 @@ router.post('/', async (req, res) => {
             interval_unit,
             repeat_interval_unit,
             part_no,
+            estimated_currency,
+            quotation_currency,
         } = req.body;
 
         const service = await prisma.service.create({
@@ -47,7 +49,9 @@ router.post('/', async (req, res) => {
                 zones: zones || [],
                 estimated_manhours: estimated_manhours ? Number(estimated_manhours) : null,
                 estimated_price: estimated_price ? Number(estimated_price) : null,
+                estimated_currency: estimated_currency || 'MYR',
                 quotation_price: quotation_price ? Number(quotation_price) : null,
+                quotation_currency: quotation_currency || 'MYR',
                 interval_threshold: interval_threshold ? Number(interval_threshold) : null,
                 repeat_interval: repeat_interval ? Number(repeat_interval) : null,
                 interval_unit: interval_unit ?? 'Hours',
