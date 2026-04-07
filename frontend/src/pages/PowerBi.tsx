@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { decimalToHoursMinutes } from "@/lib/utils";
-import { addDays, addYears, format, differenceInMonths } from "date-fns";
+import { addDays, addYears, format, differenceInMonths, addMonths, differenceInDays } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -60,6 +60,7 @@ interface Service {
   interval_threshold: number | null;
   repeat_interval: number | null;
   interval_unit: string;
+  repeat_interval_unit:string;
 }
 
 interface ForecastRecord {
@@ -97,7 +98,7 @@ function calculateNextDue(
   avgHours: number,
   avgCycles: number
 ) {
-  const unit = forecast?.interval_unit ?? service.interval_unit ?? "Hours";
+  const unit = service.repeat_interval_unit ?? service.interval_unit ?? "Hours";
   const repeat = service.repeat_interval ?? 0;
 
   let nextDate: Date | null = null;
@@ -120,9 +121,16 @@ function calculateNextDue(
       const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / avgCycles) : 0;
       nextDate = addDays(new Date(), numDays);
       remaining = `${Math.round(remainingCycles)} FC`;
-    } else if (unit === "Years" && forecast.last_date) {
-      nextDate = addYears(new Date(forecast.last_date), repeat);
-      remaining = `${differenceInMonths(nextDate, new Date())} months`;
+    } else if (unit === "Years") {
+      if (forecast.last_date) {
+        nextDate = addYears(new Date(forecast.last_date), repeat);
+        remaining = `${differenceInDays(nextDate, new Date())} Days`;
+      }
+    } else if (unit === "Months") {
+      if (forecast.last_date) {
+        nextDate = addMonths(new Date(forecast.last_date), repeat);
+        remaining = `${differenceInDays(nextDate, new Date())} Days`;
+      }
     }
   }
 
@@ -160,7 +168,7 @@ function buildChartData(
   // Calculate next due dates and costs for each service
   const serviceData = modelServices.map((service) => {
     const forecast = forecasts.find((f) => f.service_id === service.id) ?? null;
-    const dueInfo = calculateNextDue(aircraft, service, forecast, dailyFlightHours, avgCycles);
+    const dueInfo = calculateNextDue(aircraft, service, forecast, avgHours, avgCycles);
 
     // Dynamic fallback exchange rates (could be fetched from API)
     const EXCHANGE_RATES: Record<string, number> = {
