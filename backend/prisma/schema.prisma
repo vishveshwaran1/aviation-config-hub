@@ -74,7 +74,9 @@ model Component {
   classification_date        DateTime?
   class_linkage              String?
   compatible_aircraft_models String[]
+  estimated_currency         String    @default("USD")
   estimated_price            Float?
+  quotation_currency         String    @default("USD")
   quotation_price            Float?
   created_at                 DateTime  @default(now())
   updated_at                 DateTime  @updatedAt

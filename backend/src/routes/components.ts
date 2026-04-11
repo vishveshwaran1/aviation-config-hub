@@ -21,7 +21,7 @@ router.post('/', async (req, res) => {
         const {
             manufacturer, name, part_number, cmm_number, classification,
             classification_date, class_linkage, compatible_aircraft_models,
-            estimated_price, quotation_price
+            estimated_price, quotation_price, estimated_currency, quotation_currency
         } = req.body;
 
         const component = await prisma.component.create({
@@ -34,7 +34,9 @@ router.post('/', async (req, res) => {
                 classification_date: classification_date ? new Date(classification_date) : null,
                 class_linkage,
                 compatible_aircraft_models: compatible_aircraft_models || [],
+                estimated_currency: estimated_currency || null,
                 estimated_price: estimated_price ? Number(estimated_price) : null,
+                quotation_currency: quotation_currency || null,
                 quotation_price: quotation_price ? Number(quotation_price) : null,
             }
         });
@@ -67,7 +69,7 @@ router.patch('/:id', async (req, res) => {
         const {
             manufacturer, name, part_number, cmm_number, classification,
             classification_date, class_linkage, compatible_aircraft_models,
-            estimated_price, quotation_price
+            estimated_price, quotation_price, estimated_currency, quotation_currency
         } = req.body;
 
         const component = await prisma.component.update({
@@ -81,7 +83,9 @@ router.patch('/:id', async (req, res) => {
                 classification_date: classification_date ? new Date(classification_date) : undefined,
                 class_linkage,
                 compatible_aircraft_models: compatible_aircraft_models || undefined,
+                estimated_currency: estimated_currency || undefined,
                 estimated_price: estimated_price !== undefined ? Number(estimated_price) : undefined,
+                quotation_currency: quotation_currency || undefined,
                 quotation_price: quotation_price !== undefined ? Number(quotation_price) : undefined,
             }
         });
