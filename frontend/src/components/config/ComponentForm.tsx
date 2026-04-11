@@ -149,7 +149,8 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
             classification_date: defaultValues?.classification_date ? new Date(defaultValues.classification_date).toISOString().split('T')[0] : "",
             class_linkage: defaultValues?.class_linkage || "",
             compatible_aircraft_models: defaultValues?.compatible_aircraft_models || [],
-            currency: defaultValues?.currency || "MYR",
+            estimated_currency: defaultValues?.estimated_currency || "MYR",
+            quotation_currency: defaultValues?.quotation_currency || "MYR",
             estimated_price: defaultValues?.estimated_price || 0,
             quotation_price: defaultValues?.quotation_price || 0,
         },
@@ -432,7 +433,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Estimated Price</FormLabel>
                                 <div className="flex gap-2 flex-1">
-                                    <FormField control={form.control} name="currency" render={({ field: cf }) => (
+                                    <FormField control={form.control} name="estimated_currency" render={({ field: cf }) => (
                                         <Select onValueChange={cf.onChange} value={cf.value}>
                                             <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
                                                 <SelectValue placeholder="CCY" />
@@ -462,7 +463,7 @@ export function ComponentForm({ defaultValues, onSuccess }: ComponentFormProps) 
                             <div className="flex items-center gap-3">
                                 <FormLabel className={labelCls(!!fieldState.error)}>Quotation Price</FormLabel>
                                 <div className="flex gap-2 flex-1">
-                                    <FormField control={form.control} name="currency" render={({ field: cf }) => (
+                                    <FormField control={form.control} name="quotation_currency" render={({ field: cf }) => (
                                         <Select onValueChange={cf.onChange} value={cf.value}>
                                             <SelectTrigger className="w-24 shrink-0 h-9 text-sm border-gray-300">
                                                 <SelectValue placeholder="CCY" />
