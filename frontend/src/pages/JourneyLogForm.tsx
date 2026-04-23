@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Save, Plus, Trash2, Upload } from "lucide-react";
 import { cn , decimalToHoursMinutes} from "@/lib/utils";
@@ -214,9 +214,12 @@ const Grid = ({ cols = 3, children }: { cols?: 2 | 3 | 4 | 6; children: React.Re
   )}>{children}</div>
 );
 
-const F = ({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) => (
+const F = ({ label, required, error, showWarning, children }: { label: string; required?: boolean; error?: string; showWarning?: boolean; children: React.ReactNode }) => (
   <div className="space-y-1.5">
-    <label className="text-xs font-medium text-gray-700">{label}{required && <span className="text-rose-500 ml-0.5">*</span>}</label>
+    <div className="flex justify-between items-end">
+      <label className="text-xs font-medium text-gray-700">{label}{required && <span className="text-rose-500 ml-0.5">*</span>}</label>
+      {showWarning && <span className="text-[10px] text-rose-500 font-semibold leading-none">Field not clear enter manually</span>}
+    </div>
     {children}
     {error && <p className="text-[11px] text-rose-500">{error}</p>}
   </div>
@@ -272,9 +275,10 @@ const calcDuration = (
   return { value: `${Math.floor(totalMins / 60)}:${String(totalMins % 60).padStart(2, "0")}`, error: null };
 };
 
-function SectorCard({ index, sector, onChange }: {
+function SectorCard({ index, sector, isExtracted, onChange }: {
   index: number;
   sector: Sector;
+  isExtracted: boolean;
   onChange: (f: keyof Sector, v: string) => void;
 }) {
   const onChangeRef = useRef(onChange);
@@ -313,14 +317,14 @@ function SectorCard({ index, sector, onChange }: {
 
       {/* Top row: flight info + dates */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <F label="Flight Number"><Input className={inp} placeholder="e.g. AK101" value={sector.flight_num} onChange={(e) => onChange("flight_num", e.target.value)} /></F>
-        <F label="Sector From"><Input className={cn(inp, "uppercase")} placeholder="KUL" maxLength={4} value={sector.sector_from} onChange={(e) => onChange("sector_from", e.target.value.toUpperCase())} /></F>
-        <F label="Sector To"><Input className={cn(inp, "uppercase")} placeholder="SIN" maxLength={4} value={sector.sector_to} onChange={(e) => onChange("sector_to", e.target.value.toUpperCase())} /></F>
-        <F label="Departure Date">
+        <F label="Flight Number" showWarning={isExtracted && !sector.flight_num}><Input className={inp} placeholder="e.g. AK101" value={sector.flight_num} onChange={(e) => onChange("flight_num", e.target.value)} /></F>
+        <F label="Sector From" showWarning={isExtracted && !sector.sector_from}><Input className={cn(inp, "uppercase")} placeholder="KUL" maxLength={4} value={sector.sector_from} onChange={(e) => onChange("sector_from", e.target.value.toUpperCase())} /></F>
+        <F label="Sector To" showWarning={isExtracted && !sector.sector_to}><Input className={cn(inp, "uppercase")} placeholder="SIN" maxLength={4} value={sector.sector_to} onChange={(e) => onChange("sector_to", e.target.value.toUpperCase())} /></F>
+        <F label="Departure Date" showWarning={isExtracted && !sector.on_chock_dep_date}>
           <Input className={inp} type="date" value={sector.on_chock_dep_date}
             onChange={(e) => { onChange("on_chock_dep_date", e.target.value); onChange("off_chock_dep_date", e.target.value); }} />
         </F>
-        <F label="Arrival Date">
+        <F label="Arrival Date" showWarning={isExtracted && !sector.on_chock_arr_date}>
           <Input className={inp} type="date" value={sector.on_chock_arr_date}
             onChange={(e) => { onChange("on_chock_arr_date", e.target.value); onChange("off_chock_arr_date", e.target.value); }} />
         </F>
@@ -341,13 +345,19 @@ function SectorCard({ index, sector, onChange }: {
                 <td className="border-r border-gray-200 px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Block Off</span>
-                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_dep_time} onChange={(e) => onChange("on_chock_dep_time", e.target.value)} />
+                    <div className="flex flex-col w-full">
+                      {isExtracted && !sector.on_chock_dep_time && <span className="text-[10px] text-rose-500 font-semibold leading-none mb-1">Field not clear enter manually</span>}
+                      <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_dep_time} onChange={(e) => onChange("on_chock_dep_time", e.target.value)} />
+                    </div>
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Take Off</span>
-                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_dep_time} onChange={(e) => onChange("off_chock_dep_time", e.target.value)} />
+                    <div className="flex flex-col w-full">
+                      {isExtracted && !sector.off_chock_dep_time && <span className="text-[10px] text-rose-500 font-semibold leading-none mb-1">Field not clear enter manually</span>}
+                      <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_dep_time} onChange={(e) => onChange("off_chock_dep_time", e.target.value)} />
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -356,13 +366,19 @@ function SectorCard({ index, sector, onChange }: {
                 <td className="border-r border-gray-200 px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Block On</span>
-                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_arr_time} onChange={(e) => onChange("on_chock_arr_time", e.target.value)} />
+                    <div className="flex flex-col w-full">
+                      {isExtracted && !sector.on_chock_arr_time && <span className="text-[10px] text-rose-500 font-semibold leading-none mb-1">Field not clear enter manually</span>}
+                      <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.on_chock_arr_time} onChange={(e) => onChange("on_chock_arr_time", e.target.value)} />
+                    </div>
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500 whitespace-nowrap w-16 shrink-0">Landing</span>
-                    <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_arr_time} onChange={(e) => onChange("off_chock_arr_time", e.target.value)} />
+                    <div className="flex flex-col w-full">
+                      {isExtracted && !sector.off_chock_arr_time && <span className="text-[10px] text-rose-500 font-semibold leading-none mb-1">Field not clear enter manually</span>}
+                      <Input className={inp} placeholder="HHMM" maxLength={5} value={sector.off_chock_arr_time} onChange={(e) => onChange("off_chock_arr_time", e.target.value)} />
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -421,6 +437,7 @@ const JourneyLogForm = () => {
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
   const [errors, setErrors] = useState<Partial<Record<keyof JourneyFormData, string>>>({});
   const [showOrg, setShowOrg] = useState(false);
+  const [isExtracted, setIsExtracted] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -533,9 +550,15 @@ const JourneyLogForm = () => {
         formData.append("file", uploadFile);
         const parsed = await api.journeyLogs.extract(formData);
 
+        const parsedFormDate = parsed.date ? parsed.date.split("T")[0] : "";
+
         setForm(prev => ({ 
           ...EMPTY_FORM, 
           ...parsed,
+          date: parsedFormDate,
+          due_at_date: parsed.due_at_date ? parsed.due_at_date.split("T")[0] : "",
+          daily_inspection: parsed.daily_inspection ? parsed.daily_inspection.split("T")[0] : "",
+          transit_inspection: parsed.transit_inspection ? parsed.transit_inspection.split("T")[0] : "",
           // Preserve autofetched aircraft data
           registration: prev.registration,
           msn: prev.msn,
@@ -548,13 +571,24 @@ const JourneyLogForm = () => {
           const s = parsed.sectors[0];
           setSectors([{
             ...EMPTY_SECTOR,
-            ...s
+            ...s,
+            on_chock_dep_date: s.on_chock_dep_date || parsedFormDate || "",
+            on_chock_arr_date: s.on_chock_arr_date || s.on_chock_dep_date || parsedFormDate || "",
+            off_chock_dep_date: s.off_chock_dep_date || parsedFormDate || "",
+            off_chock_arr_date: s.off_chock_arr_date || s.off_chock_dep_date || parsedFormDate || "",
           }]);
         } else {
-          setSectors([{ ...EMPTY_SECTOR }]);
+          setSectors([{ 
+            ...EMPTY_SECTOR,
+            on_chock_dep_date: parsedFormDate,
+            on_chock_arr_date: parsedFormDate,
+            off_chock_dep_date: parsedFormDate,
+            off_chock_arr_date: parsedFormDate,
+          }]);
         }
         setDefects([]);
         setShowUploadModal(false);
+        setIsExtracted(true);
         toast.success("Form pre-filled by AI extraction.");
       } catch (err) {
         console.error(err);
@@ -871,19 +905,19 @@ const JourneyLogForm = () => {
               <Section title="SECTION 1: INFORMATION">
                 <p className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Journey Log Panel</p>
                 <Grid cols={3}>
-                  <F label="Date" required error={errors.date}>
+                  <F label="Date" required error={errors.date} showWarning={isExtracted && !form.date}>
                     <Input type="date" className={cn(ec("date"), "bg-white")} value={form.date} onChange={set("date")} />
                   </F>
-                  <F label="Aircraft Registration" required error={errors.registration}>
+                  <F label="Aircraft Registration" required error={errors.registration} showWarning={isExtracted && !form.registration}>
                     <Input className={cn(ec("registration"), "uppercase bg-white")} placeholder="e.g. 9M-XXA" value={form.registration} readOnly />
                   </F>
-                  <F label="Aircraft Model">
+                  <F label="Aircraft Model" showWarning={isExtracted && !form.aircraft_type}>
                     <Input className={cn(inp, "bg-white")} placeholder="e.g. B737-800" value={form.aircraft_type} readOnly />
                   </F>
-                  <F label="MSN">
+                  <F label="MSN" showWarning={isExtracted && !form.msn}>
                     <Input className={cn(inp, "bg-white")} placeholder="Auto-fetched" value={form.msn} readOnly />
                   </F>
-                  <F label="Log Serial No.">
+                  <F label="Log Serial No." showWarning={isExtracted && !form.log_sl_no}>
                     <Input className={cn(inp, "bg-white")} placeholder="e.g. 9MXXA-001" value={form.log_sl_no} onChange={set("log_sl_no")} />
                   </F>
                   <div className="hidden lg:block"></div> {/* Helper to force next items to new row if needed, or just let Grid handle it */}
@@ -905,7 +939,7 @@ const JourneyLogForm = () => {
                   <div className="space-y-4">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Sector Info & Time Log (UTC)</h4>
                     {([0] as const).map((i) => (
-                      <SectorCard key={i} index={i} sector={sectors[i]}
+                      <SectorCard key={i} index={i} sector={sectors[i]} isExtracted={isExtracted}
                         onChange={(f, v) => updateSector(i, f, v)} />
                     ))}
                   </div>
@@ -914,16 +948,16 @@ const JourneyLogForm = () => {
                   <div className="space-y-4 border-t border-gray-200 pt-6">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Fuel Log</h4>
                     <Grid cols={3}>
-                      <F label="Fuel Arrival (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_arrival} onChange={set("fuel_arrival")} /></F>
-                      <F label="Fuel Uplift (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_uplift} onChange={set("fuel_uplift")} /></F>
+                      <F label="Fuel Arrival (kg)" showWarning={isExtracted && !form.fuel_arrival}><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_arrival} onChange={set("fuel_arrival")} /></F>
+                      <F label="Fuel Uplift (kg)" showWarning={isExtracted && !form.fuel_uplift}><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_uplift} onChange={set("fuel_uplift")} /></F>
                       <F label="Fuel Departure (kg)"><Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.fuel_departure} readOnly /></F>
                       
-                      <F label="Calculate total fuel(used) (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.calculate_total_fuel} onChange={set("calculate_total_fuel")} /></F>
+                      <F label="Calculate total fuel(used) (kg)" showWarning={isExtracted && !form.calculate_total_fuel}><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.calculate_total_fuel} onChange={set("calculate_total_fuel")} /></F>
                       <F label="Remaining Fuel Onboard (kg)"><Input className={cn(inp, "bg-gray-50")} type="number" min="0" placeholder="0" value={form.remaining_fuel_onboard} readOnly /></F>
-                      <F label="Fuel Discrepancy (kg)"><Input className={cn(inp, "bg-white")} type="number" placeholder="0" value={form.fuel_discrepancy} onChange={set("fuel_discrepancy")} /></F>
+                      <F label="Fuel Discrepancy (kg)" showWarning={isExtracted && !form.fuel_discrepancy}><Input className={cn(inp, "bg-white")} type="number" placeholder="0" value={form.fuel_discrepancy} onChange={set("fuel_discrepancy")} /></F>
                       
-                      <F label="Fuel Flight Deck Gauge (kg)"><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_flight_deck_gauge} onChange={set("fuel_flight_deck_gauge")} /></F>
-                      <F label="Fuel Density (S.G)"><Input className={cn(inp, "bg-white")} type="number" step="0.001" placeholder="e.g. 0.8" value={form.fuel_density} onChange={set("fuel_density")} /></F>
+                      <F label="Fuel Flight Deck Gauge (kg)" showWarning={isExtracted && !form.fuel_flight_deck_gauge}><Input className={cn(inp, "bg-white")} type="number" min="0" placeholder="0" value={form.fuel_flight_deck_gauge} onChange={set("fuel_flight_deck_gauge")} /></F>
+                      <F label="Fuel Density (S.G)" showWarning={isExtracted && !form.fuel_density}><Input className={cn(inp, "bg-white")} type="number" step="0.001" placeholder="e.g. 0.8" value={form.fuel_density} onChange={set("fuel_density")} /></F>
                     </Grid>
                   </div>
 
@@ -931,10 +965,10 @@ const JourneyLogForm = () => {
                   <div className="space-y-4 border-t border-gray-200 pt-6">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">PIC Auth</h4>
                     <Grid cols={3}>
-                      <F label="PIC Name" required error={errors.pic_name}>
+                      <F label="PIC Name" required error={errors.pic_name} showWarning={isExtracted && !form.pic_name}>
                         <Input className={cn(ec("pic_name"), "bg-white")} placeholder="Capt. Name" value={form.pic_name} onChange={set("pic_name")} />
                       </F>
-                      <F label="PIC Licence No.">
+                      <F label="PIC Licence No." showWarning={isExtracted && !form.pic_license_no}>
                         <Input className={cn(inp, "bg-white")} placeholder="ATPL-MY-XXXXX" value={form.pic_license_no} onChange={set("pic_license_no")} />
                       </F>
                     </Grid>
@@ -975,22 +1009,22 @@ const JourneyLogForm = () => {
                         </button>
                       </div>
                       <Grid cols={2}>
-                        <F label="Defect Description">
+                        <F label="Defect Description" showWarning={isExtracted && !d.defect_description}>
                           <textarea rows={3} placeholder="Describe the defect..."
                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             value={d.defect_description} onChange={(e) => updateDefect(i, "defect_description", e.target.value)} />
                         </F>
-                        <F label="Action Taken">
+                        <F label="Action Taken" showWarning={isExtracted && !d.action_taken}>
                           <textarea rows={3} placeholder="Action taken..."
                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             value={d.action_taken} onChange={(e) => updateDefect(i, "action_taken", e.target.value)} />
                         </F>
                       </Grid>
                       <Grid cols={4}>
-                        <F label="MEL Expiry Date"><Input className={inp} type="date" value={d.mel_expiry_date} onChange={(e) => updateDefect(i, "mel_expiry_date", e.target.value)} /></F>
-                        <F label="MEL Reference"><Input className={inp} placeholder="MEL-XX-XXX" value={d.mel_reference} onChange={(e) => updateDefect(i, "mel_reference", e.target.value)} /></F>
-                        <F label="MEL Repair Cat"><Input className={inp} placeholder="A / B / C / D" value={d.mel_repair_cat} onChange={(e) => updateDefect(i, "mel_repair_cat", e.target.value)} /></F>
-                        <F label="Lic No"><Input className={inp} placeholder="AME Licence No." value={d.lic_no} onChange={(e) => updateDefect(i, "lic_no", e.target.value)} /></F>
+                        <F label="MEL Expiry Date" showWarning={isExtracted && !d.mel_expiry_date}><Input className={inp} type="date" value={d.mel_expiry_date} onChange={(e) => updateDefect(i, "mel_expiry_date", e.target.value)} /></F>
+                        <F label="MEL Reference" showWarning={isExtracted && !d.mel_reference}><Input className={inp} placeholder="MEL-XX-XXX" value={d.mel_reference} onChange={(e) => updateDefect(i, "mel_reference", e.target.value)} /></F>
+                        <F label="MEL Repair Cat" showWarning={isExtracted && !d.mel_repair_cat}><Input className={inp} placeholder="A / B / C / D" value={d.mel_repair_cat} onChange={(e) => updateDefect(i, "mel_repair_cat", e.target.value)} /></F>
+                        <F label="Lic No" showWarning={isExtracted && !d.lic_no}><Input className={inp} placeholder="AME Licence No." value={d.lic_no} onChange={(e) => updateDefect(i, "lic_no", e.target.value)} /></F>
                       </Grid>
                       {/* Parts */}
                       {([1, 2] as const).map((pn) => {
@@ -998,18 +1032,18 @@ const JourneyLogForm = () => {
                         return (
                           <div key={pn} className="rounded-lg border bg-gray-50/50 p-3 space-y-3">
                             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Part Description – {pn}</span>
-                            <F label="Part Description">
+                            <F label="Part Description" showWarning={isExtracted && !(d[`${pre}description` as keyof DefectRow] as string)}>
                               <Input className={inp} placeholder={`Description of part ${pn}`}
                                 value={d[`${pre}description` as keyof DefectRow] as string}
                                 onChange={(e) => updateDefect(i, `${pre}description` as keyof Omit<DefectRow, "id">, e.target.value)} />
                             </F>
                             <Grid cols={2}>
-                              <F label="Part Number On"><Input className={inp} placeholder="P/N On" value={d[`${pre}number_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
-                              <F label="Part Number Off"><Input className={inp} placeholder="P/N Off" value={d[`${pre}number_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
-                              <F label="Serial Number On"><Input className={inp} placeholder="S/N On" value={d[`${pre}serial_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
-                              <F label="Serial Number Off"><Input className={inp} placeholder="S/N Off" value={d[`${pre}serial_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                              <F label="Part Number On" showWarning={isExtracted && !(d[`${pre}number_on` as keyof DefectRow] as string)}><Input className={inp} placeholder="P/N On" value={d[`${pre}number_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                              <F label="Part Number Off" showWarning={isExtracted && !(d[`${pre}number_off` as keyof DefectRow] as string)}><Input className={inp} placeholder="P/N Off" value={d[`${pre}number_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                              <F label="Serial Number On" showWarning={isExtracted && !(d[`${pre}serial_on` as keyof DefectRow] as string)}><Input className={inp} placeholder="S/N On" value={d[`${pre}serial_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                              <F label="Serial Number Off" showWarning={isExtracted && !(d[`${pre}serial_off` as keyof DefectRow] as string)}><Input className={inp} placeholder="S/N Off" value={d[`${pre}serial_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
                             </Grid>
-                            <F label="Certificate Number"><Input className={inp} placeholder="Cert. No." value={d[`${pre}cert_num` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}cert_num` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                            <F label="Certificate Number" showWarning={isExtracted && !(d[`${pre}cert_num` as keyof DefectRow] as string)}><Input className={inp} placeholder="Cert. No." value={d[`${pre}cert_num` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}cert_num` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
                           </div>
                         );
                       })}
@@ -1032,11 +1066,11 @@ const JourneyLogForm = () => {
                   <div className="space-y-4 pt-2">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Airworthiness</h4>
                     <Grid cols={3}>
-                      <F label="Type of Maintenance"><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
-                      <F label="Next Due Maintenance"><Input className={inp} type="number"  min="0" placeholder="0" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
-                      <F label="Carried Out date"><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
-                      <F label="Carried Out Hours"><Input className={inp} type="number"  min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
-                      <F label="Carried Out Cycles"><Input className={inp} type="number" min="0" placeholder="0" value={form.due_at_cycles} onChange={set("due_at_cycles")} /></F>
+                      <F label="Type of Maintenance" showWarning={isExtracted && !form.type_of_maintenance}><Input className={inp} placeholder="e.g. Daily Check" value={form.type_of_maintenance} onChange={set("type_of_maintenance")} /></F>
+                      <F label="Next Due Maintenance" showWarning={isExtracted && !form.next_due_maintenance}><Input className={inp} type="number"  min="0" placeholder="0" value={form.next_due_maintenance} onChange={set("next_due_maintenance")} /></F>
+                      <F label="Carried Out date" showWarning={isExtracted && !form.due_at_date}><Input className={inp} type="date" value={form.due_at_date} onChange={set("due_at_date")} /></F>
+                      <F label="Carried Out Hours" showWarning={isExtracted && !form.due_at_hours}><Input className={inp} type="number"  min="0" placeholder="0" value={form.due_at_hours} onChange={set("due_at_hours")} /></F>
+                      <F label="Carried Out Cycles" showWarning={isExtracted && !form.due_at_cycles}><Input className={inp} type="number" min="0" placeholder="0" value={form.due_at_cycles} onChange={set("due_at_cycles")} /></F>
                     </Grid>
                   </div>
 
@@ -1044,8 +1078,8 @@ const JourneyLogForm = () => {
                   <div className="space-y-4 border-t border-gray-200 pt-6">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Inspections</h4>
                     <Grid cols={3}>
-                      <F label="Daily Inspection"><Input className={inp} type="date" value={form.daily_inspection} onChange={set("daily_inspection")} /></F>
-                      <F label="Transit Inspection"><Input className={inp} type="date" value={form.transit_inspection} onChange={set("transit_inspection")} /></F>
+                      <F label="Daily Inspection" showWarning={isExtracted && !form.daily_inspection}><Input className={inp} type="date" value={form.daily_inspection} onChange={set("daily_inspection")} /></F>
+                      <F label="Transit Inspection" showWarning={isExtracted && !form.transit_inspection}><Input className={inp} type="date" value={form.transit_inspection} onChange={set("transit_inspection")} /></F>
                     </Grid>
                   </div>
 
@@ -1053,10 +1087,10 @@ const JourneyLogForm = () => {
                   <div className="space-y-4 border-t border-gray-200 pt-6">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">Fluid Servicing</h4>
                     <Grid cols={4}>
-                      <F label="Oil Uplift Engine No.1 (L)"><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.oil_uplift_eng1} onChange={set("oil_uplift_eng1")} /></F>
-                      <F label="Oil Uplift Engine No.2 (L)"><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.oil_uplift_eng2} onChange={set("oil_uplift_eng2")} /></F>
-                      <F label="Oil Uplift APU (L)"><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.oil_uplift_apu} onChange={set("oil_uplift_apu")} /></F>
-                      <F label="Hyd Fluid (L)"><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.hyd_fluid} onChange={set("hyd_fluid")} /></F>
+                      <F label="Oil Uplift Engine No.1 (L)" showWarning={isExtracted && !form.oil_uplift_eng1}><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.oil_uplift_eng1} onChange={set("oil_uplift_eng1")} /></F>
+                      <F label="Oil Uplift Engine No.2 (L)" showWarning={isExtracted && !form.oil_uplift_eng2}><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.oil_uplift_eng2} onChange={set("oil_uplift_eng2")} /></F>
+                      <F label="Oil Uplift APU (L)" showWarning={isExtracted && !form.oil_uplift_apu}><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.oil_uplift_apu} onChange={set("oil_uplift_apu")} /></F>
+                      <F label="Hyd Fluid (L)" showWarning={isExtracted && !form.hyd_fluid}><Input className={inp} type="number" step="0.1" min="0" placeholder="0.0" value={form.hyd_fluid} onChange={set("hyd_fluid")} /></F>
                     </Grid>
                   </div>
 
@@ -1064,8 +1098,8 @@ const JourneyLogForm = () => {
                   <div className="space-y-4 border-t border-gray-200 pt-6">
                     <h4 className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wider">APU Tracking</h4>
                     <Grid cols={3}>
-                      <F label="APU Hrs"><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>
-                      <F label="APU Cyc"><Input className={inp} type="number" min="0" placeholder="0" value={form.apu_cyc} onChange={set("apu_cyc")} /></F>
+                      <F label="APU Hrs" showWarning={isExtracted && !form.apu_hrs}><Input className={inp} type="number" step="0.01" min="0" placeholder="0" value={form.apu_hrs} onChange={set("apu_hrs")} /></F>
+                      <F label="APU Cyc" showWarning={isExtracted && !form.apu_cyc}><Input className={inp} type="number" min="0" placeholder="0" value={form.apu_cyc} onChange={set("apu_cyc")} /></F>
                     </Grid>
                   </div>
 
@@ -1098,16 +1132,16 @@ const JourneyLogForm = () => {
                   {showOrg && (
                     <div className="space-y-4">
                       <Grid cols={2}>
-                        <F label="AMO Name">
+                        <F label="AMO Name" showWarning={isExtracted && !form.amo_name}>
                           <Input className={cn(inp, "bg-white")} placeholder="e.g., MAS Engineering" value={form.amo_name} onChange={set("amo_name")} />
                         </F>
-                        <F label="AMO Approval">
+                        <F label="AMO Approval" showWarning={isExtracted && !form.amo_approval}>
                           <Input className={cn(inp, "bg-white")} placeholder="e.g., FAMTO-001" value={form.amo_approval} onChange={set("amo_approval")} />
                         </F>
-                        <F label="LAE Name">
+                        <F label="LAE Name" showWarning={isExtracted && !form.lae_name}>
                           <Input className={cn(inp, "bg-white")} placeholder="e.g., Mohamad Firdaus" value={form.lae_name} onChange={set("lae_name")} />
                         </F>
-                        <F label="LAE License">
+                        <F label="LAE License" showWarning={isExtracted && !form.lae_license}>
                           <Input className={cn(inp, "bg-white")} placeholder="e.g., CAAM-L-66-1234" value={form.lae_license} onChange={set("lae_license")} />
                         </F>
                       </Grid>
