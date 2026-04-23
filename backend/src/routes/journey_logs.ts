@@ -61,12 +61,13 @@ router.post('/extract', upload.single('file'), async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       generationConfig: { responseMimeType: "application/json" }
     });
 
     const prompt = `Extract all structured fields from this Aircraft Journey Log document.
-Return ONLY valid JSON with keys matching the following fields. If a field is not found or empty, leave it as an empty string.
+Format ALL dates precisely as "YYYY-MM-DD". Format ALL times as "HHMM" (military time).
+If a field is not found or empty, leave it as an empty string.
 JSON structure needed:
 {
   "company_name": "", "date": "", "registration": "", "aircraft_type": "", "log_sl_no": "",
