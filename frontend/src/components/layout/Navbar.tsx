@@ -30,7 +30,7 @@ const Navbar = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem asChild>
-              <Link to="/config/aircraft">Aircraft Setup</Link>
+              <Link to="/config/aircraft">Technical Specification</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/config/components">Component List Setup</Link>

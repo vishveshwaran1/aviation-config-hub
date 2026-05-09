@@ -217,10 +217,10 @@ const AircraftSetup = () => {
   const PageHeader = ({ showBack = false }: { showBack?: boolean }) => (
     <div className="flex items-center justify-between mb-4">
       <h2 className="text-2xl font-bold tracking-tight uppercase text-[#343a40]">
-        AIRCRAFT SETUP
+        Technical Specification
       </h2>
       <div className="flex items-center gap-4">
-        <span className="text-sm text-muted-foreground">Configuration / Aircraft Setup</span>
+        <span className="text-sm text-muted-foreground">Configuration / Technical Specification</span>
         {showBack && (
           <Button
             variant="outline"

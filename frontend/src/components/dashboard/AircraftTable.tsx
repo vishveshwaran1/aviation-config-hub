@@ -34,6 +34,18 @@ interface Aircraft {
     status: string;
 }
 
+/** Map internal status values to user-friendly display labels */
+const statusDisplayLabel = (status: string): string => {
+    switch (status) {
+        case "Active":
+            return "Serviceable";
+        case "Inactive":
+            return "Non-Serviceable";
+        default:
+            return status;
+    }
+};
+
 export function AircraftTable() {
     const [data, setData] = useState<Aircraft[]>([]);
     const [loading, setLoading] = useState(true);
@@ -114,10 +126,10 @@ export function AircraftTable() {
                             <TableHead>Aircraft Model</TableHead>
                             <TableHead>MSN</TableHead>
                             <TableHead>Aircraft Reg ID</TableHead>
-                            <TableHead>No of Engines</TableHead>
+                            {/* <TableHead>No of Engines</TableHead> */}
                             <TableHead>Flight Hours</TableHead>
                             <TableHead>Flight Cycles</TableHead>
-                            {/* <TableHead>Status</TableHead> */}
+                            <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -135,19 +147,19 @@ export function AircraftTable() {
                                     <TableCell className="font-medium">{aircraft.model}</TableCell>
                                     <TableCell>{aircraft.msn}</TableCell>
                                     <TableCell>{aircraft.registration_number}</TableCell>
-                                    <TableCell>{aircraft.engines_count}</TableCell>
+                                    {/* <TableCell>{aircraft.engines_count}</TableCell> */}
                                     <TableCell>{decimalToHoursMinutes(aircraft.flight_hours)}</TableCell>
                                     <TableCell>{aircraft.flight_cycles}</TableCell>
-                                    {/* <TableCell>
+                                    <TableCell>
                                         <span
                                             className={`px-2 py-1 rounded-full text-xs font-semibold ${aircraft.status === "Active"
                                                 ? "bg-green-100 text-green-800"
                                                 : "bg-gray-100 text-gray-800"
                                                 }`}
                                         >
-                                            {aircraft.status}
+                                            {statusDisplayLabel(aircraft.status)}
                                         </span>
-                                    </TableCell> */}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
