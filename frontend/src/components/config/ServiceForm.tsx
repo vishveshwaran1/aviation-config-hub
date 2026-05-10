@@ -35,6 +35,8 @@ const AIRCRAFT_MODELS = [
     "A320-200", "ATR72-500", "ATR72-600",
 ];
 
+const SOURCE_OPTIONS = ["AD", "SP", "MOD", "AMP/MPD"];
+
 // Task class options matching old PanelGthreeForm service_class values
 const SERVICE_CLASS_OPTIONS = [
     "GVI (General Visual Inspection)",
@@ -115,8 +117,8 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                 interval_unit: interval_threshold_unit || "Hours",
                 repeat_interval_unit: repeat_interval_unit || "Hours",
                 // Nullable optional fields
-                mpd_id: data.mpd_id || null,
-                amm_id: data.amm_id || null,
+                task_ref: data.task_ref || null,
+                source_ref: data.source_ref || null,
                 task_card_ref: data.task_card_ref || null,
                 part_no: data.part_no || null,
                 description: data.description || null,
@@ -190,6 +192,29 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
+                    {/* Source */}
+                    <FormField control={form.control} name="source" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={labelCls(!!fieldState.error)}>Source</FormLabel>
+                                <div className="relative flex-1">
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
+                                                <SelectValue placeholder="Select source" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {SOURCE_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    {fieldState.error && <SelectErrorBadge />}
+                                </div>
+                            </div>
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Select Source</p>}
+                        </FormItem>
+                    )} />
+
                     {/* Task Class (maps to task_name in DB — same as old service_class) */}
                     <FormField control={form.control} name="task_name" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
@@ -215,11 +240,11 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                         </FormItem>
                     )} />
 
-                    {/* MPD ID */}
-                    <FormField control={form.control} name="mpd_id" render={({ field, fieldState }) => (
+                    {/* Task Reference */}
+                    <FormField control={form.control} name="task_ref" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>MPD Task ID</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Task Reference</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input
                                         className={inputCls(!!fieldState.error)}
@@ -232,15 +257,15 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                                     {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter MPD ID</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Task Reference</p>}
                         </FormItem>
                     )} />
 
-                    {/* AMM ID */}
-                    <FormField control={form.control} name="amm_id" render={({ field, fieldState }) => (
+                    {/* Source Reference */}
+                    <FormField control={form.control} name="source_ref" render={({ field, fieldState }) => (
                         <FormItem className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-3">
-                                <FormLabel className={labelCls(!!fieldState.error)}>AMM Task ID</FormLabel>
+                                <FormLabel className={labelCls(!!fieldState.error)}>Source Reference</FormLabel>
                                 <div className="relative flex-1">
                                     <FormControl><Input
                                         className={inputCls(!!fieldState.error)}
@@ -253,7 +278,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                                     {fieldState.error && <ErrorBadge />}
                                 </div>
                             </div>
-                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter AMM ID</p>}
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Enter Source Reference</p>}
                         </FormItem>
                     )} />
 

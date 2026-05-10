@@ -18,9 +18,10 @@ router.post('/', async (req, res) => {
     try {
         const {
             aircraft_model,
+            source,
             task_name,
-            mpd_id,
-            amm_id,
+            task_ref,
+            source_ref,
             task_card_ref,
             description,
             assigned_component_id,
@@ -40,9 +41,10 @@ router.post('/', async (req, res) => {
         const service = await prisma.service.create({
             data: {
                 aircraft_model,
+                source: source || null,
                 task_name,
-                mpd_id,
-                amm_id,
+                task_ref,
+                source_ref,
                 task_card_ref,
                 description,
                 assigned_component_id,

@@ -6,9 +6,10 @@ const timeString = z.string().regex(/^\d+:[0-5]\d$/, "Format must be HHHH:MM");
 
 export const serviceSchema = z.object({
     aircraft_model: requiredString,
+    source: z.string().optional(),
     task_name: requiredString,
-    mpd_id: requiredString,
-    amm_id: requiredString,
+    task_ref: requiredString,
+    source_ref: requiredString,
     task_card_ref: requiredString,
     description: requiredString.max(999, "Description must be less than 1000 characters"),
     assigned_component_text: requiredString,

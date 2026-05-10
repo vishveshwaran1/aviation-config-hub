@@ -20,8 +20,9 @@ export interface ServiceItem {
   id: string;
   task_name: string;
   aircraft_model: string;
-  mpd_id?: string;
-  amm_id?: string;
+  source?: string;
+  task_ref?: string;
+  source_ref?: string;
   task_card_ref?: string;
   [key: string]: any;
 }
@@ -92,8 +93,8 @@ const ServiceListSetup = () => {
       "#": index + 1,
       "Aircraft Model": item.aircraft_model || "-",
       "Task Name": item.task_name || "-",
-      "MPD ID": item.mpd_id || "-",
-      "AMM ID": item.amm_id || "-",
+      "Task Reference": item.task_ref || "-",
+      "Source Reference": item.source_ref || "-",
       "Task Card Ref": item.task_card_ref || "-",
       "Zones": Array.isArray(item.zones) ? item.zones.join(", ") : (item.zones || "-"),
       "Assigned Component": item.assigned_component_id || "-",
@@ -179,9 +180,10 @@ const ServiceListSetup = () => {
               <TableRow>
                 <TableHead className="w-[50px]">#</TableHead>
                 <TableHead>Aircraft Model</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Task</TableHead>
-                <TableHead>MPD ID</TableHead>
-                {/* <TableHead>AMM ID</TableHead> */}
+                <TableHead>Task Reference</TableHead>
+                {/* <TableHead>Source Reference</TableHead> */}
                 <TableHead>Task Card Ref</TableHead>
                 <TableHead>Part No</TableHead>
                 <TableHead>Zone</TableHead>
@@ -193,20 +195,21 @@ const ServiceListSetup = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center h-24 text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={11} className="text-center h-24 text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center h-24 text-muted-foreground">No results found.</TableCell>
+                  <TableCell colSpan={11} className="text-center h-24 text-muted-foreground">No results found.</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((item, index) => (
                   <TableRow key={item.id || index}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{item.aircraft_model}</TableCell>
+                    <TableCell>{item.source || '-'}</TableCell>
                     <TableCell className="font-medium">{item.task_name}</TableCell>
-                    <TableCell>{item.mpd_id || '-'}</TableCell>
-                    {/* <TableCell>{item.amm_id || '-'}</TableCell> */}
+                    <TableCell>{item.task_ref || '-'}</TableCell>
+                    {/* <TableCell>{item.source_ref || '-'}</TableCell> */}
                     <TableCell>{item.task_card_ref || '-'}</TableCell>
                     <TableCell>{item.part_no || '-'}</TableCell>
                     <TableCell>{Array.isArray(item.zones) ? item.zones.join(', ') : (item.zones || '-')}</TableCell>

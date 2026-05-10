@@ -85,6 +85,7 @@ model Component {
 model Service {
   id                    String   @id @default(uuid())
   aircraft_model        String
+  source                String?
   task_name             String
   task_card_ref         String?
   description           String?
@@ -101,8 +102,8 @@ model Service {
   updated_at            DateTime @updatedAt
   interval_unit         String   @default("Hours")
   repeat_interval_unit  String   @default("Hours")
-  amm_id                String?
-  mpd_id                String?
+  source_ref            String?
+  task_ref              String?
   part_no               String?
 }
 
