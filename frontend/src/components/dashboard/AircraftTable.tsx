@@ -22,6 +22,7 @@ import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { decimalToHoursMinutes } from "@/lib/utils";
+import { format, addDays, addYears, addMonths } from "date-fns";
 
 interface Aircraft {
     id: string;
@@ -32,6 +33,7 @@ interface Aircraft {
     flight_hours: number;
     flight_cycles: number;
     status: string;
+    next_due_date?: string;
 }
 
 /** Map internal status values to user-friendly display labels */
@@ -62,7 +64,76 @@ export function AircraftTable() {
         try {
             setLoading(true);
             const data = await api.aircrafts.list();
-            setData(Array.isArray(data) ? data : []);
+            let aircrafts = Array.isArray(data) ? data : [];
+            
+            try {
+                const allServices = await api.services.list();
+                const activeAircrafts = aircrafts.filter((a: any) => a.status === 'Active');
+                const forecastsPromises = activeAircrafts.map((a: any) => api.forecast.getForAircraft(a.id));
+                const allForecastsArrays = await Promise.all(forecastsPromises);
+                
+                const aircraftForecasts: Record<string, any[]> = {};
+                activeAircrafts.forEach((a: any, index: number) => {
+                    aircraftForecasts[a.id] = allForecastsArrays[index] || [];
+                });
+                
+                aircrafts = aircrafts.map((ac: any) => {
+                    if (ac.status !== 'Active') return { ...ac, next_due_date: "—" };
+                    
+                    const forecasts = aircraftForecasts[ac.id] || [];
+                    const withAvg = forecasts.filter((f: any) => f.avg_hours);
+                    const avgHours = withAvg.length > 0 ? (withAvg[withAvg.length - 1].avg_hours ?? 10) : 10;
+                    const avgCycles = withAvg.length > 0 ? (withAvg[withAvg.length - 1].avg_cycles ?? 2) : 2;
+                
+                    const modelServices = allServices.filter((s: any) => s.aircraft_model === ac.model);
+                    let earliestDate: Date | null = null;
+                
+                    for (const service of modelServices) {
+                        const forecast = forecasts.find((f: any) => f.service_id === service.id) ?? null;
+                        if (!forecast) continue;
+                        
+                        const unit = service.repeat_interval_unit ?? service.interval_unit ?? "Hours";
+                        const repeat = service.repeat_interval ?? 0;
+                        let nextDate: Date | null = null;
+                        
+                        if (unit === "Hours") {
+                            const nextHours = (forecast.last_hours ?? 0) + repeat;
+                            const remainingHours = nextHours - ac.flight_hours;
+                            const numDays = remainingHours > 0 ? Math.floor(remainingHours / avgHours) : 0;
+                            nextDate = addDays(new Date(), numDays);
+                        } else if (unit === "Cycles") {
+                            const nextCycles = (forecast.last_cycles ?? 0) + repeat;
+                            const remainingCycles = nextCycles - ac.flight_cycles;
+                            const numDays = remainingCycles > 0 ? Math.floor(remainingCycles / avgCycles) : 0;
+                            nextDate = addDays(new Date(), numDays);
+                        } else if (unit === "Years") {
+                            if (forecast.last_date) {
+                                nextDate = addYears(new Date(forecast.last_date), repeat);
+                            }
+                        } else if (unit === "Months") {
+                            if (forecast.last_date) {
+                                nextDate = addMonths(new Date(forecast.last_date), repeat);
+                            }
+                        }
+                        
+                        if (nextDate) {
+                            if (!earliestDate || nextDate < earliestDate) {
+                                earliestDate = nextDate;
+                            }
+                        }
+                    }
+                    
+                    return {
+                        ...ac,
+                        next_due_date: earliestDate ? format(earliestDate, "dd-MMM-yyyy") : "—"
+                    };
+                });
+            } catch (err) {
+                console.error("Failed to fetch services/forecasts for next due date", err);
+                aircrafts = aircrafts.map((ac: any) => ({ ...ac, next_due_date: "—" }));
+            }
+
+            setData(aircrafts);
         } catch (error: any) {
             console.error("Error fetching aircraft:", error);
             if (error?.status === 403 || error?.error?.toLowerCase().includes("unauth") || error?.error?.toLowerCase().includes("forbidden")) {
@@ -129,6 +200,7 @@ export function AircraftTable() {
                             {/* <TableHead>No of Engines</TableHead> */}
                             <TableHead>Flight Hours</TableHead>
                             <TableHead>Flight Cycles</TableHead>
+                            <TableHead>Next Major Due</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -150,6 +222,15 @@ export function AircraftTable() {
                                     {/* <TableCell>{aircraft.engines_count}</TableCell> */}
                                     <TableCell>{decimalToHoursMinutes(aircraft.flight_hours)}</TableCell>
                                     <TableCell>{aircraft.flight_cycles}</TableCell>
+                                    <TableCell>
+                                        {aircraft.next_due_date && aircraft.next_due_date !== "—" ? (
+                                            <span className="text-red-500 font-medium">
+                                                {aircraft.next_due_date}
+                                            </span>
+                                        ) : (
+                                            "—"
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <span
                                             className={`px-2 py-1 rounded-full text-xs font-semibold ${aircraft.status === "Active"
