@@ -97,6 +97,7 @@ const ServiceListSetup = () => {
       "Source Reference": item.source_ref || "-",
       "Task Card Ref": item.task_card_ref || "-",
       "Zones": Array.isArray(item.zones) ? item.zones.join(", ") : (item.zones || "-"),
+      "Compliance Type": item.compliance_type || "-",
       "Assigned Component": item.assigned_component_id || "-",
       "Estimated Manhours": item.estimated_manhours || "-",
       "Comp Price": item.estimated_price != null ? `${item.estimated_currency || 'MYR'} ${item.estimated_price}` : "-",
@@ -187,6 +188,7 @@ const ServiceListSetup = () => {
                 <TableHead>Task Card Ref</TableHead>
                 <TableHead>Part No</TableHead>
                 <TableHead>Zone</TableHead>
+                <TableHead>Compliance</TableHead>
                 <TableHead>Comp Price</TableHead>
                 <TableHead>Service Price</TableHead>
                 <TableHead className="text-right">Action</TableHead>
@@ -195,11 +197,11 @@ const ServiceListSetup = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center h-24 text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={12} className="text-center h-24 text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center h-24 text-muted-foreground">No results found.</TableCell>
+                  <TableCell colSpan={12} className="text-center h-24 text-muted-foreground">No results found.</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((item, index) => (
@@ -213,6 +215,7 @@ const ServiceListSetup = () => {
                     <TableCell>{item.task_card_ref || '-'}</TableCell>
                     <TableCell>{item.part_no || '-'}</TableCell>
                     <TableCell>{Array.isArray(item.zones) ? item.zones.join(', ') : (item.zones || '-')}</TableCell>
+                    <TableCell>{item.compliance_type || '-'}</TableCell>
                     <TableCell>{item.estimated_price != null ? `${item.estimated_currency || 'MYR'} ${item.estimated_price}` : '-'}</TableCell>
                     <TableCell>{item.quotation_price != null ? `${item.quotation_currency || 'MYR'} ${item.quotation_price}` : '-'}</TableCell>
                     <TableCell className="text-right">

@@ -34,6 +34,7 @@ interface Aircraft {
     flight_cycles: number;
     status: string;
     next_due_date?: string;
+    next_due_task?: string;
 }
 
 /** Map internal status values to user-friendly display labels */
@@ -87,6 +88,7 @@ export function AircraftTable() {
                 
                     const modelServices = allServices.filter((s: any) => s.aircraft_model === ac.model);
                     let earliestDate: Date | null = null;
+                    let earliestTask: string | null = null;
                 
                     for (const service of modelServices) {
                         const forecast = forecasts.find((f: any) => f.service_id === service.id) ?? null;
@@ -119,18 +121,20 @@ export function AircraftTable() {
                         if (nextDate) {
                             if (!earliestDate || nextDate < earliestDate) {
                                 earliestDate = nextDate;
+                                earliestTask = service.task_name || service.mpd_id || service.id;
                             }
                         }
                     }
                     
                     return {
                         ...ac,
-                        next_due_date: earliestDate ? format(earliestDate, "dd-MMM-yyyy") : "—"
+                        next_due_date: earliestDate ? format(earliestDate, "dd-MMM-yyyy") : "—",
+                        next_due_task: earliestTask
                     };
                 });
             } catch (err) {
                 console.error("Failed to fetch services/forecasts for next due date", err);
-                aircrafts = aircrafts.map((ac: any) => ({ ...ac, next_due_date: "—" }));
+                aircrafts = aircrafts.map((ac: any) => ({ ...ac, next_due_date: "—", next_due_task: undefined }));
             }
 
             setData(aircrafts);
@@ -224,9 +228,14 @@ export function AircraftTable() {
                                     <TableCell>{aircraft.flight_cycles}</TableCell>
                                     <TableCell>
                                         {aircraft.next_due_date && aircraft.next_due_date !== "—" ? (
-                                            <span className="text-red-500 font-medium">
-                                                {aircraft.next_due_date}
-                                            </span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="font-semibold text-xs text-slate-700">
+                                                    {aircraft.next_due_task}
+                                                </span>
+                                                <span className="font-medium text-xs">
+                                                    {aircraft.next_due_date}
+                                                </span>
+                                            </div>
                                         ) : (
                                             "—"
                                         )}

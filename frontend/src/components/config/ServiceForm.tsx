@@ -55,6 +55,7 @@ const SERVICE_CLASS_OPTIONS = [
 
 const CURRENCIES = ["MYR", "USD", "EUR"];
 const UNIT_OPTIONS = ["Hours", "Cycles", "Months", "Years"];
+const COMPLIANCE_OPTIONS = ["Repetitive", "Terminating", "One-time"];
 
 interface ServiceFormProps {
     defaultValues?: any;
@@ -76,6 +77,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
             estimated_currency: defaultValues?.estimated_currency || "MYR",
             quotation_currency: defaultValues?.quotation_currency || "MYR",
             part_no: defaultValues?.part_no || "",
+            compliance_type: defaultValues?.compliance_type || "",
             // Provide default unit
             interval_threshold_unit: defaultValues?.interval_unit || "Hours",
             repeat_interval_unit: defaultValues?.repeat_interval_unit || "Hours",
@@ -121,6 +123,7 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                 source_ref: data.source_ref || null,
                 task_card_ref: data.task_card_ref || null,
                 part_no: data.part_no || null,
+                compliance_type: data.compliance_type || null,
                 description: data.description || null,
                 estimated_manhours: hoursMinutesToDecimal(data.estimated_manhours),
                 estimated_price: data.estimated_price ?? null,
@@ -529,6 +532,31 @@ export function ServiceForm({ defaultValues, onSuccess }: ServiceFormProps) {
                             </FormItem>
                         );
                     }} />
+
+                    {/* Compliance Type */}
+                    <FormField control={form.control} name="compliance_type" render={({ field, fieldState }) => (
+                        <FormItem className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-3">
+                                <FormLabel className={labelCls(!!fieldState.error)}>Compliance Type</FormLabel>
+                                <div className="relative flex-1">
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className={selectCls(!!fieldState.error)}>
+                                                <SelectValue placeholder="Select compliance type" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {COMPLIANCE_OPTIONS.map(c => (
+                                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {fieldState.error && <SelectErrorBadge />}
+                                </div>
+                            </div>
+                            {fieldState.error && <p className="text-xs text-red-500 ml-[11.5rem]">Select Compliance Type</p>}
+                        </FormItem>
+                    )} />
 
                 </div>
 
