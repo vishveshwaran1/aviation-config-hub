@@ -36,6 +36,7 @@ router.post('/', async (req, res) => {
             part_no,
             estimated_currency,
             quotation_currency,
+            compliance_type,
         } = req.body;
 
         const service = await prisma.service.create({
@@ -59,6 +60,7 @@ router.post('/', async (req, res) => {
                 interval_unit: interval_unit ?? 'Hours',
                 repeat_interval_unit: repeat_interval_unit ?? 'Hours',
                 part_no: part_no || null,
+                compliance_type: compliance_type || null,
             }
         });
         res.json(service);

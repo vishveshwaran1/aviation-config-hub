@@ -105,6 +105,7 @@ model Service {
   source_ref            String?
   task_ref              String?
   part_no               String?
+  compliance_type       String?
 }
 
 model Forecast {
