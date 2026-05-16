@@ -28,8 +28,9 @@ interface Aircraft {
 interface ServiceRow {
   id: string;
   task_name: string;
-  mpd_id: string | null;
-  amm_id: string | null;
+  source: string | null;
+  task_ref: string | null;
+  source_ref: string | null;
   task_card_ref: string | null;
   description: string | null;
   zones: string[];
@@ -304,8 +305,8 @@ const PrintTaskCard = () => {
               <tr className="bg-gray-100">
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-10">NO.</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left">TASKCARD REF</th>
-                <th className="border border-gray-400 px-2 py-1.5 text-left">MPD ID</th>
-                <th className="border border-gray-400 px-2 py-1.5 text-left">AMM ID</th>
+                <th className="border border-gray-400 px-2 py-1.5 text-left">TASK REF</th>
+                <th className="border border-gray-400 px-2 py-1.5 text-left">SOURCE REF</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-52">DESCRIPTION</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-16">ZONE</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left w-24">COMP REQ</th>
@@ -339,14 +340,14 @@ const PrintTaskCard = () => {
                     {item.task_card_ref || "—"}
                   </td>
 
-                  {/* MPD ID */}
+                  {/* TASK REF */}
                   <td className="border border-gray-400 px-2 py-1.5 font-mono text-[10px]">
-                    {item.mpd_id || "—"}
+                    {item.task_ref || "—"}
                   </td>
 
-                  {/* AMM ID */}
+                  {/* SOURCE REF */}
                   <td className="border border-gray-400 px-2 py-1.5 font-mono text-[10px]">
-                    {item.amm_id || "—"}
+                    {item.source_ref || "—"}
                   </td>
 
                   {/* DESCRIPTION */}
