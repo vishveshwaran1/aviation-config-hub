@@ -46,8 +46,9 @@ interface Service {
   id: string;
   aircraft_model: string;
   task_name: string;
-  mpd_id: string | null;
-  amm_id: string | null;
+  source:string;
+  task_ref: string | null;
+  source_ref: string | null;
   task_card_ref: string | null;
   description: string | null;
   assigned_component_id: string | null;
@@ -80,10 +81,11 @@ interface ForecastRecord {
 
 /** A merged row shown in the table */
 interface ForecastRow {
+  source : string;
   serviceId: string;
   serviceName: string;
-  mpdId: string | null;
-  ammId: string | null;
+  taskRef: string | null;
+  sourceRef: string | null;
   taskCardRef: string | null;
   description: string | null;
   zones: string[];
@@ -182,10 +184,11 @@ function buildRows(
       }
 
       return {
+        source: service.source,
         serviceId: service.id,
         serviceName: service.task_name,
-        mpdId: service.mpd_id,
-        ammId: service.amm_id,
+        taskRef: service.task_ref,
+        sourceRef: service.source_ref,
         taskCardRef: service.task_card_ref,
         description: service.description,
         zones: service.zones ?? [],
@@ -352,10 +355,11 @@ const StatPill = ({ label, value }: { label: string; value: string | number }) =
 
 function exportCSV(rows: ForecastRow[], aircraft: Aircraft) {
   const headers = [
-    "MPD ID",
-    "AMM ID",
-    "Task Card Ref",
-    "Task Name",
+    "Source",
+    "Task Reference",
+    "Source Reference",
+    "Task Card Ref ID",
+    "Task",
     "Interval Unit",
     "Interval Threshold",
     "Repeat Interval",
@@ -373,8 +377,9 @@ function exportCSV(rows: ForecastRow[], aircraft: Aircraft) {
 
   const csvRows = rows.map((r) =>
     [
-      r.mpdId ?? "",
-      r.ammId ?? "",
+      r.source??"",
+      r.taskRef ?? "",
+      r.sourceRef ?? "",
       r.taskCardRef ?? "",
       r.serviceName,
       r.intervalUnit,
@@ -703,8 +708,8 @@ const Forecast = () => {
     const q = search.toLowerCase();
     return (
       r.serviceName.toLowerCase().includes(q) ||
-      (r.mpdId ?? "").toLowerCase().includes(q) ||
-      (r.ammId ?? "").toLowerCase().includes(q) ||
+      (r.taskRef ?? "").toLowerCase().includes(q) ||
+      (r.sourceRef ?? "").toLowerCase().includes(q) ||
       (r.taskCardRef ?? "").toLowerCase().includes(q)
     );
   });
@@ -813,7 +818,7 @@ const Forecast = () => {
             <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search task, MPD ID..."
+                placeholder="Search task, Task Reference..."
                 className="pl-8 h-8 text-sm"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -883,7 +888,7 @@ const Forecast = () => {
             <thead>
               <tr className="bg-gray-50 border-b text-left">
                 {/* Select-all checkbox */}
-                <th className="w-8 px-3 py-3">
+                <th className="w-6 px-1 py-2">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-[#556ee6] focus:ring-[#556ee6] h-3.5 w-3.5"
@@ -892,9 +897,9 @@ const Forecast = () => {
                     title="Select all on this page"
                   />
                 </th>
-                <th className="w-8 px-3 py-3" />
-                {["#", "MPD ID", "AMM ID", "Task Card Ref", "Task Name", "Unit", "Next Due", "Rem. Hours", "Rem. Cycles", "Update"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                <th className="w-6 px-1 py-1" />
+                {[ "Source", "Task Reference", "Source Reference", "Task Card Ref ID", "Task", "Unit", "Next Due", "Rem. Hours", "Rem. Cycles", "Update"].map((h) => (
+                  <th key={h} className="px-2 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -946,7 +951,7 @@ const Forecast = () => {
                         )}
                       >
                         {/* Row select checkbox */}
-                        <td className="px-3 py-3">
+                        <td className="px-1 py-1">
                           <input
                             type="checkbox"
                             className="rounded border-gray-300 text-[#556ee6] focus:ring-[#556ee6] h-3.5 w-3.5"
@@ -957,43 +962,42 @@ const Forecast = () => {
                           />
                         </td>
                         {/* Expand toggle */}
-                        <td className="px-3 py-3">
+                        <td className="px-1 py-1">
                           <button
                             onClick={() => setExpandedId(isExpanded ? null : row.serviceId)}
-                            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-gray-200 transition-colors"
+                            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-gray-200 transition-colors"
                           >
                             {isExpanded
                               ? <ChevronDown className="h-3.5 w-3.5" />
                               : <ChevronRight className="h-3.5 w-3.5" />}
                           </button>
                         </td>
-                        {/* # */}
-                        <td className="px-4 py-3">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#556ee6]/10 text-[#556ee6] text-[11px] font-bold">
-                            {rowNum}
-                          </div>
+                       
+                        {/* Source */}
+                        <td className="px-2 py-2 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
+                          {row.source || "—"}
                         </td>
-                        {/* MPD ID */}
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
-                          {row.mpdId || "—"}
+                        {/* Task Reference */}
+                        <td className="px-2 py-2 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
+                          {row.taskRef || "—"}
                         </td>
-                        {/* AMM ID */}
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
-                          {row.ammId || "—"}
+                        {/* Source Reference */}
+                        <td className="px-2 py-2 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
+                          {row.sourceRef || "—"}
                         </td>
                         {/* Task Card Ref */}
-                        <td className="px-4 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">
+                        <td className="px-2 py-2 font-mono text-xs text-gray-600 whitespace-nowrap">
                           {row.taskCardRef || "—"}
                         </td>
                         {/* Task Name */}
-                        <td className="px-4 py-3 font-medium text-gray-800 max-w-[200px] truncate whitespace-nowrap" title={row.serviceName}>
+                        <td className="px-2 py-2 font-medium text-gray-800 max-w-[150px] truncate whitespace-nowrap" title={row.serviceName}>
                           {row.serviceName}
                         </td>
                         {/* Unit */}
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2">
                           <div className="flex">
                             <span className={cn(
-                              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                              "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
                               row.repeatIntervalUnit === "Hours"
                                 ? "bg-blue-100 text-blue-700"
                                 : row.repeatIntervalUnit === "Cycles"
@@ -1007,38 +1011,38 @@ const Forecast = () => {
                           </div>
                         </td>
                         {/* Next Due */}
-                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap text-xs">
+                        <td className="px-2 py-2 text-gray-700 whitespace-nowrap text-xs">
                           {row.hasForecast ? fmtDate(row.nextDate) : (
-                            <span className="text-muted-foreground text-[11px] italic">No data</span>
+                            <span className="text-muted-foreground text-[10px] italic">No data</span>
                           )}
                         </td>
                         {/* Rem. Hours */}
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-2 py-2 whitespace-nowrap">
                           {row.repeatIntervalUnit === "Hours" && row.remainingHours !== null ? (
                             <span className={cn(
-                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs",
+                              "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
                               remainingBadgeClass(row.remainingHours)
                             )}>
                               {fmtFH(row.remainingHours)}
                             </span>
-                          ) : <span className="text-muted-foreground text-xs">—</span>}
+                          ) : <span className="text-muted-foreground text-[10px]">—</span>}
                         </td>
                         {/* Rem. Cycles */}
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-2 py-2 whitespace-nowrap">
                           {row.repeatIntervalUnit === "Cycles" && row.remainingCycles !== null ? (
                             <span className={cn(
-                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs",
+                              "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
                               remainingBadgeClass(row.remainingCycles)
                             )}>
                               {fmtFC(row.remainingCycles)}
                             </span>
-                          ) : <span className="text-muted-foreground text-xs">—</span>}
+                          ) : <span className="text-muted-foreground text-[10px]">—</span>}
                         </td>
                         {/* Update */}
-                        <td className="px-4 py-3">
+                        <td className="px-2 py-2">
                           <button
                             onClick={() => openEdit(row)}
-                            className="flex h-7 w-7 items-center justify-center rounded-md text-[#556ee6] hover:bg-[#556ee6]/10 transition-colors"
+                            className="flex h-6 w-6 items-center justify-center rounded-md text-[#556ee6] hover:bg-[#556ee6]/10 transition-colors"
                             title="Edit last carried out"
                           >
                             <Pencil className="h-3.5 w-3.5" />
