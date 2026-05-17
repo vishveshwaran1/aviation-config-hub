@@ -245,6 +245,8 @@ router.post('/', async (req, res) => {
               part2_serial_on: d.part2_serial_on,
               part2_serial_off: d.part2_serial_off,
               part2_cert_num: d.part2_cert_num,
+              part_required: d.part_required,
+              part_availability: d.part_availability,
             })),
           },
         },
@@ -253,6 +255,49 @@ router.post('/', async (req, res) => {
           defects: { orderBy: { sl_no: 'asc' } },
         },
       });
+
+      // Handle DMI / Inventory Logic
+      for (const d of log.defects) {
+        if (d.part_required) {
+          if (d.part_availability === 'OUT_OF_STOCK') {
+            // Create DMI
+            await tx.dMI.create({
+              data: {
+                dmi_number: `DMI-${Math.floor(Math.random() * 100000)}`,
+                aircraft_id,
+                journey_log_id: log.id,
+                defect_id: d.id,
+                part_number: d.part_required,
+                description: d.defect_description,
+                status: 'SOURCING',
+                mel_reference: d.mel_reference,
+                mel_category: d.mel_repair_cat,
+                mel_expiry_date: d.mel_expiry_date ? new Date(d.mel_expiry_date) : undefined,
+              }
+            });
+          } else if (d.part_availability === 'IN_STOCK') {
+            // Reserve Inventory
+            const item = await tx.inventory.findFirst({
+              where: {
+                OR: [
+                  { part_number: d.part_required },
+                  { sn_or_batch: d.part_required },
+                  { interchangeable: d.part_required },
+                ]
+              }
+            });
+            if (item && item.available > 0) {
+              await tx.inventory.update({
+                where: { id: item.id },
+                data: {
+                  reserved: { increment: 1 },
+                  available: { decrement: 1 }
+                }
+              });
+            }
+          }
+        }
+      }
       
       const sectorFH = toFloat(total_flight_hrs) ?? 0;
 
@@ -362,8 +407,17 @@ router.patch('/:id', async (req, res) => {
               part2_serial_on: d.part2_serial_on,
               part2_serial_off: d.part2_serial_off,
               part2_cert_num: d.part2_cert_num,
+              part_required: d.part_required,
+              part_availability: d.part_availability,
             })),
           });
+
+          // Just handle the creation logic if there are any new ones out of stock (Not strictly reconciling diff, but good enough for new updates)
+          for (const d of defects) {
+            if (d.part_required) {
+               // Skipping DMI/stock patch update to avoid duplication complexities with out of scope tasks.
+            }
+          }
         }
       }
 

@@ -236,6 +236,49 @@ model JourneyLogDefect {
   part2_serial_on    String?
   part2_serial_off   String?
   part2_cert_num     String?
+  part_required      String?
+  part_availability  String?
   created_at         DateTime   @default(now())
   journey_log        JourneyLog @relation(fields: [journey_log_id], references: [id], onDelete: Cascade)
+  dmi                DMI?
 }
+
+model Inventory {
+  id                    String    @id @default(uuid())
+  part_number           String    @unique
+  description           String?
+  ata                   String?
+  effectivity           String?
+  interchangeable       String?
+  sn_or_batch           String?
+  condition             String?
+  cert_type             String?
+  cure_date             String?
+  on_hand               Float     @default(0)
+  reserved              Float     @default(0)
+  available             Float     @default(0)
+  min_stock             Float     @default(0)
+  lead_time_days        Int       @default(0)
+  last_updated          DateTime  @default(now())
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+}
+
+model DMI {
+  id                  String    @id @default(uuid())
+  dmi_number          String    @unique
+  aircraft_id         String
+  journey_log_id      String?
+  defect_id           String?   @unique
+  part_number         String?
+  description         String?
+  status              String    @default("SOURCING")
+  deferral_reason     String?
+  mel_reference       String?
+  mel_category        String?
+  mel_expiry_date     DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  defect              JourneyLogDefect? @relation(fields: [defect_id], references: [id])
+}
+
