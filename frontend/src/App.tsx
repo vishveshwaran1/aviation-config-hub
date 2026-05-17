@@ -25,6 +25,8 @@ import Scheduler from "@/pages/Scheduler";
 import PowerBi from "@/pages/PowerBi";
 import NotFound from "@/pages/NotFound";
 import ForgotPassword from "@/pages/ForgotPassword";
+import InventoryPanel from "@/pages/InventoryPanel";
+import DMIPanel from "@/pages/DMIPanel";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,8 @@ const App = () => (
               <Route path="/aircraft/:id/journey/:logId/edit" element={<JourneyLogForm />} />
               <Route path="/aircraft/:id/journey/:logId/view" element={<ViewJourneyLog />} />
               <Route path="/aircraft/:id/forecast" element={<Forecast />} />
+              <Route path="/aircraft/:id/inventory" element={<InventoryPanel />} />
+              <Route path="/aircraft/:id/dmi" element={<DMIPanel />} />
               <Route path="/aircraft/:id/forecast/print/:selectedIds" element={<PrintTaskCard />} />
               <Route path="/aircraft/:id/scheduler" element={<Scheduler />} />
               <Route path="/aircraft/:id/powerbi" element={<PowerBi />} />

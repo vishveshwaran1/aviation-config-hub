@@ -53,6 +53,8 @@ interface DefectRow {
   part2_serial_on: string;
   part2_serial_off: string;
   part2_cert_num: string;
+  part_required?: string;
+  part_availability?: string; // "IN_STOCK" | "OUT_OF_STOCK" | null
 }
 
 interface JourneyFormData {
@@ -176,6 +178,7 @@ const EMPTY_DEFECT: Omit<DefectRow, "id"> = {
   mel_expiry_date: "", mel_reference: "", mel_repair_cat: "", lic_no: "",
   part1_description: "", part1_number_on: "", part1_number_off: "", part1_serial_on: "", part1_serial_off: "", part1_cert_num: "",
   part2_description: "", part2_number_on: "", part2_number_off: "", part2_serial_on: "", part2_serial_off: "", part2_cert_num: "",
+  part_required: "", part_availability: "",
 };
 
 const EMPTY_FORM: JourneyFormData = {
@@ -438,6 +441,11 @@ const JourneyLogForm = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof JourneyFormData, string>>>({});
   const [showOrg, setShowOrg] = useState(false);
   const [isExtracted, setIsExtracted] = useState(false);
+  const [inventoryParts, setInventoryParts] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.inventory.getAll().then((data: any) => setInventoryParts(data)).catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -1008,45 +1016,82 @@ const JourneyLogForm = () => {
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <Grid cols={2}>
-                        <F label="Defect Description" showWarning={isExtracted && !d.defect_description}>
-                          <textarea rows={3} placeholder="Describe the defect..."
-                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            value={d.defect_description} onChange={(e) => updateDefect(i, "defect_description", e.target.value)} />
-                        </F>
-                        <F label="Action Taken" showWarning={isExtracted && !d.action_taken}>
-                          <textarea rows={3} placeholder="Action taken..."
-                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            value={d.action_taken} onChange={(e) => updateDefect(i, "action_taken", e.target.value)} />
-                        </F>
-                      </Grid>
-                      <Grid cols={4}>
-                        <F label="MEL Expiry Date" showWarning={isExtracted && !d.mel_expiry_date}><Input className={inp} type="date" value={d.mel_expiry_date} onChange={(e) => updateDefect(i, "mel_expiry_date", e.target.value)} /></F>
-                        <F label="MEL Reference" showWarning={isExtracted && !d.mel_reference}><Input className={inp} placeholder="MEL-XX-XXX" value={d.mel_reference} onChange={(e) => updateDefect(i, "mel_reference", e.target.value)} /></F>
-                        <F label="MEL Repair Cat" showWarning={isExtracted && !d.mel_repair_cat}><Input className={inp} placeholder="A / B / C / D" value={d.mel_repair_cat} onChange={(e) => updateDefect(i, "mel_repair_cat", e.target.value)} /></F>
-                        <F label="Lic No" showWarning={isExtracted && !d.lic_no}><Input className={inp} placeholder="AME Licence No." value={d.lic_no} onChange={(e) => updateDefect(i, "lic_no", e.target.value)} /></F>
-                      </Grid>
-                      {/* Parts */}
-                      {([1, 2] as const).map((pn) => {
-                        const pre = `part${pn}_` as "part1_" | "part2_";
-                        return (
-                          <div key={pn} className="rounded-lg border bg-gray-50/50 p-3 space-y-3">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Part Description – {pn}</span>
-                            <F label="Part Description" showWarning={isExtracted && !(d[`${pre}description` as keyof DefectRow] as string)}>
-                              <Input className={inp} placeholder={`Description of part ${pn}`}
-                                value={d[`${pre}description` as keyof DefectRow] as string}
-                                onChange={(e) => updateDefect(i, `${pre}description` as keyof Omit<DefectRow, "id">, e.target.value)} />
-                            </F>
-                            <Grid cols={2}>
-                              <F label="Part Number On" showWarning={isExtracted && !(d[`${pre}number_on` as keyof DefectRow] as string)}><Input className={inp} placeholder="P/N On" value={d[`${pre}number_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
-                              <F label="Part Number Off" showWarning={isExtracted && !(d[`${pre}number_off` as keyof DefectRow] as string)}><Input className={inp} placeholder="P/N Off" value={d[`${pre}number_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
-                              <F label="Serial Number On" showWarning={isExtracted && !(d[`${pre}serial_on` as keyof DefectRow] as string)}><Input className={inp} placeholder="S/N On" value={d[`${pre}serial_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
-                              <F label="Serial Number Off" showWarning={isExtracted && !(d[`${pre}serial_off` as keyof DefectRow] as string)}><Input className={inp} placeholder="S/N Off" value={d[`${pre}serial_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
-                            </Grid>
-                            <F label="Certificate Number" showWarning={isExtracted && !(d[`${pre}cert_num` as keyof DefectRow] as string)}><Input className={inp} placeholder="Cert. No." value={d[`${pre}cert_num` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}cert_num` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                      <Grid cols={3}>
+                        <div className="flex flex-col gap-1.5 col-span-full">
+                          <label className="text-xs font-semibold text-gray-700">Check Inventory (Part No.)</label>
+                          <div className="flex gap-2">
+                            <Input list="inventory-list" className={inp} placeholder="Search Part Number..." value={d.part_required || ""} onChange={(e) => updateDefect(i, "part_required", e.target.value)} />
+                            <datalist id="inventory-list">
+                              {inventoryParts.map(p => (
+                                <option key={p.part_no} value={p.part_no}>{p.component_name || p.part_no}</option>
+                              ))}
+                            </datalist>
+                            <Button type="button" size="sm" className="h-8" onClick={async () => {
+                              if (!d.part_required) {
+                                // If they clear it, maybe let them see everything or reset
+                                updateDefect(i, "part_availability", "");
+                                return;
+                              }
+                              try {
+                                const res = await api.inventory.checkStock(d.part_required);
+                                updateDefect(i, "part_availability", res.inStock ? "IN_STOCK" : "OUT_OF_STOCK");
+                              } catch (err) {
+                                console.error(err);
+                                toast.error("Failed to check inventory");
+                              }
+                            }}>Check</Button>
                           </div>
-                        );
-                      })}
+                          {d.part_availability === "IN_STOCK" && <p className="text-xs text-green-600 font-bold mt-1">Part In Stock - Proceed with Fix & CRS</p>}
+                          {d.part_availability === "OUT_OF_STOCK" && <p className="text-xs text-rose-600 font-bold mt-1">Part NOT In Stock - Create DMI / Defer</p>}
+                        </div>
+                      </Grid>
+
+                      {d.part_availability && (
+                        <Grid cols={3}>
+                          <F label="Defect Description" showWarning={isExtracted && !d.defect_description}>
+                            <textarea rows={3} placeholder="Describe the defect..."
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={d.defect_description} onChange={(e) => updateDefect(i, "defect_description", e.target.value)} />
+                          </F>
+                          <F label="Action Taken" showWarning={isExtracted && !d.action_taken}>
+                            <textarea rows={3} placeholder="Action taken... (e.g., parts not in stock)"
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={d.action_taken} onChange={(e) => updateDefect(i, "action_taken", e.target.value)} />
+                          </F>
+                        </Grid>
+                      )}
+
+                      {d.part_availability === "OUT_OF_STOCK" && (
+                        <>
+                          <Grid cols={4}>
+                            <F label="MEL Expiry Date" showWarning={isExtracted && !d.mel_expiry_date}><Input className={inp} type="date" value={d.mel_expiry_date} onChange={(e) => updateDefect(i, "mel_expiry_date", e.target.value)} /></F>
+                            <F label="MEL Reference" showWarning={isExtracted && !d.mel_reference}><Input className={inp} placeholder="MEL-XX-XXX" value={d.mel_reference} onChange={(e) => updateDefect(i, "mel_reference", e.target.value)} /></F>
+                            <F label="MEL Repair Cat" showWarning={isExtracted && !d.mel_repair_cat}><Input className={inp} placeholder="A / B / C / D" value={d.mel_repair_cat} onChange={(e) => updateDefect(i, "mel_repair_cat", e.target.value)} /></F>
+                            <F label="Lic No" showWarning={isExtracted && !d.lic_no}><Input className={inp} placeholder="AME Licence No." value={d.lic_no} onChange={(e) => updateDefect(i, "lic_no", e.target.value)} /></F>
+                          </Grid>
+                          {/* Parts */}
+                          {([1, 2] as const).map((pn) => {
+                            const pre = `part${pn}_` as "part1_" | "part2_";
+                            return (
+                              <div key={pn} className="rounded-lg border bg-gray-50/50 p-3 space-y-3">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Part Description – {pn}</span>
+                                <F label="Part Description" showWarning={isExtracted && !(d[`${pre}description` as keyof DefectRow] as string)}>
+                                  <Input className={inp} placeholder={`Description of part ${pn}`}
+                                    value={d[`${pre}description` as keyof DefectRow] as string}
+                                    onChange={(e) => updateDefect(i, `${pre}description` as keyof Omit<DefectRow, "id">, e.target.value)} />
+                                </F>
+                                <Grid cols={2}>
+                                  <F label="Part Number On" showWarning={isExtracted && !(d[`${pre}number_on` as keyof DefectRow] as string)}><Input className={inp} placeholder="P/N On" value={d[`${pre}number_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                                  <F label="Part Number Off" showWarning={isExtracted && !(d[`${pre}number_off` as keyof DefectRow] as string)}><Input className={inp} placeholder="P/N Off" value={d[`${pre}number_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}number_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                                  <F label="Serial Number On" showWarning={isExtracted && !(d[`${pre}serial_on` as keyof DefectRow] as string)}><Input className={inp} placeholder="S/N On" value={d[`${pre}serial_on` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_on` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                                  <F label="Serial Number Off" showWarning={isExtracted && !(d[`${pre}serial_off` as keyof DefectRow] as string)}><Input className={inp} placeholder="S/N Off" value={d[`${pre}serial_off` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}serial_off` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                                </Grid>
+                                <F label="Certificate Number" showWarning={isExtracted && !(d[`${pre}cert_num` as keyof DefectRow] as string)}><Input className={inp} placeholder="Cert. No." value={d[`${pre}cert_num` as keyof DefectRow] as string} onChange={(e) => updateDefect(i, `${pre}cert_num` as keyof Omit<DefectRow, "id">, e.target.value)} /></F>
+                              </div>
+                            );
+                          })}
+                        </>
+                      )}
                     </div>
                   ))}
                   <Button type="button" variant="outline" size="sm"

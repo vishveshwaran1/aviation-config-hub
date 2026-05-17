@@ -10,6 +10,8 @@ import {
   TrendingUp,
   ArrowLeft,
   Lock,
+  ListTodo,
+  Archive
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn, decimalToHoursMinutes } from "@/lib/utils";
@@ -70,10 +72,22 @@ const PANELS: Panel[] = [
     icon: TrendingUp,
     href: "/aircraft/:id/forecast",
   },
+  {
+    id: "S8",
+    label: "DMI Panel S8",
+    icon: ListTodo,
+    href: "/aircraft/:id/dmi",
+  },
+  {
+    id: "S9",
+    label: "Inventory Panel S9",
+    icon: Archive,
+    href: "/aircraft/:id/inventory",
+  },
 ];
 
-// Fill S8–S30 as locked placeholders
-for (let i = 8; i <= 30; i++) {
+// Fill S10–S30 as locked placeholders
+for (let i = 10; i <= 30; i++) {
   PANELS.push({
     id: `S${i}`,
     label: `Panel S${i}`,

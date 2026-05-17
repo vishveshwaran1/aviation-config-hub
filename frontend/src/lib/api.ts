@@ -127,6 +127,52 @@ export const api = {
             return res.status === 204 ? { ok: true } : res.json();
         }
     },
+    inventory: {
+        getAll: async () => {
+            const res = await fetch(`${API_URL}/inventory`, { headers: getHeaders() });
+            await throwIfError(res);
+            return res.json();
+        },
+        checkStock: async (partNumber: string) => {
+            const res = await fetch(`${API_URL}/inventory/check/${partNumber}`, { headers: getHeaders() });
+            await throwIfError(res);
+            return res.json();
+        },
+        create: async (data: any) => {
+            const res = await fetch(`${API_URL}/inventory`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            await throwIfError(res);
+            return res.json();
+        },
+        update: async (id: string, data: any) => {
+            const res = await fetch(`${API_URL}/inventory/${id}`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            await throwIfError(res);
+            return res.json();
+        }
+    },
+    dmi: {
+        getForAircraft: async (id: string) => {
+            const res = await fetch(`${API_URL}/dmi/aircraft/${id}`, { headers: getHeaders() });
+            await throwIfError(res);
+            return res.json();
+        },
+        update: async (id: string, data: any) => {
+            const res = await fetch(`${API_URL}/dmi/${id}`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            await throwIfError(res);
+            return res.json();
+        }
+    },
     aircraftComponents: {
         create: async (data: any) => {
             const res = await fetch(`${API_URL}/aircraft_components`, {
