@@ -45,6 +45,8 @@ const InventoryPanel = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [manualEntry, setManualEntry] = useState<Partial<InventoryItem>>({
     part_number: "", description: "", ata: "", effectivity: "", interchangeable: "",
     sn_or_batch: "", condition: "", cert_type: "", cure_date: "", on_hand: 0,
@@ -159,21 +161,46 @@ const InventoryPanel = () => {
     }
 
     try {
-      await api.inventory.create({
+      const payload = {
         ...manualEntry,
         on_hand: Number(manualEntry.on_hand),
         reserved: Number(manualEntry.reserved),
         available: Number(manualEntry.available),
         min_stock: Number(manualEntry.min_stock),
         lead_time_days: Number(manualEntry.lead_time_days)
-      });
-      toast({ title: "Success", description: "Inventory item added manually" });
+      };
+
+      if (isEditMode && editingId) {
+        await api.inventory.update(editingId, payload);
+        toast({ title: "Success", description: "Inventory item updated" });
+      } else {
+        await api.inventory.create(payload);
+        toast({ title: "Success", description: "Inventory item added manually" });
+      }
       setIsManualEntryOpen(false);
       loadItems();
     } catch (error) {
       console.error(error);
-      toast({ title: "Error", description: "Could not add inventory item", variant: "destructive" });
+      toast({ title: "Error", description: `Could not ${isEditMode ? "update" : "add"} inventory item`, variant: "destructive" });
     }
+  };
+
+  const openEditModal = (item: InventoryItem) => {
+    setManualEntry({ ...item, cure_date: item.cure_date ? new Date(item.cure_date).toISOString().split('T')[0] : "" });
+    setEditingId(item.id);
+    setIsEditMode(true);
+    setIsManualEntryOpen(true);
+  };
+
+  const openAddModal = () => {
+    setManualEntry({
+      part_number: "", description: "", ata: "", effectivity: "", interchangeable: "",
+      sn_or_batch: "", condition: "", cert_type: "", cure_date: "", on_hand: 0,
+      reserved: 0, available: 0, min_stock: 0, lead_time_days: 0
+    });
+    setIsEditMode(false);
+    setEditingId(null);
+    setIsManualEntryOpen(true);
   };
 
   const filtered = items.filter((i) =>
@@ -224,16 +251,14 @@ const InventoryPanel = () => {
               Upload Excel
             </Button>
             
+            <Button className="h-8 text-xs font-semibold px-4 bg-[#556ee6] hover:bg-[#556ee6]/90 transition-colors" onClick={openAddModal}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Manually
+            </Button>
             <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-              <DialogTrigger asChild>
-                <Button className="h-8 text-xs font-semibold px-4 bg-[#556ee6] hover:bg-[#556ee6]/90 transition-colors">
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Add Manually
-                </Button>
-              </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Add Inventory Item</DialogTitle>
+                  <DialogTitle>{isEditMode ? "Edit Inventory Item" : "Add Inventory Item"}</DialogTitle>
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 py-4">
                   <div className="space-y-2">
@@ -432,13 +457,14 @@ const InventoryPanel = () => {
                 <th className="px-4 py-3 font-semibold text-gray-600">On-Hand</th>
                 <th className="px-4 py-3 font-semibold text-gray-600">Reserved</th>
                 <th className="px-4 py-3 font-semibold text-gray-600">Min Stock</th>
+                <th className="px-4 py-3 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-4 text-center">Loading...</td></tr>
+                <tr><td colSpan={10} className="px-4 py-4 text-center">Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-4 text-center">No items found</td></tr>
+                <tr><td colSpan={10} className="px-4 py-4 text-center">No items found</td></tr>
               ) : (
                 filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50/50">
@@ -451,6 +477,11 @@ const InventoryPanel = () => {
                     <td className="px-4 py-3 text-blue-600">{item.on_hand}</td>
                     <td className="px-4 py-3 text-orange-600">{item.reserved}</td>
                     <td className="px-4 py-3 text-gray-600">{item.min_stock}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      <Button variant="ghost" size="sm" onClick={() => openEditModal(item)} className="h-8 px-2 text-xs">
+                        Edit
+                      </Button>
+                    </td>
                   </tr>
                 ))
               )}

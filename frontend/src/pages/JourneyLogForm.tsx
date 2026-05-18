@@ -1020,10 +1020,10 @@ const JourneyLogForm = () => {
                         <div className="flex flex-col gap-1.5 col-span-full">
                           <label className="text-xs font-semibold text-gray-700">Check Inventory (Part No.)</label>
                           <div className="flex gap-2">
-                            <Input list="inventory-list" className={inp} placeholder="Search Part Number..." value={d.part_required || ""} onChange={(e) => updateDefect(i, "part_required", e.target.value)} />
-                            <datalist id="inventory-list">
+                            <Input list={`inventory-list-${i}`} className={inp} placeholder="Search Part Number..." value={d.part_required || ""} onChange={(e) => updateDefect(i, "part_required", e.target.value)} />
+                            <datalist id={`inventory-list-${i}`}>
                               {inventoryParts.map(p => (
-                                <option key={p.part_no} value={p.part_no}>{p.component_name || p.part_no}</option>
+                                <option key={p.id} value={p.part_number}>{p.description || p.part_number}</option>
                               ))}
                             </datalist>
                             <Button type="button" size="sm" className="h-8" onClick={async () => {
@@ -1054,9 +1054,26 @@ const JourneyLogForm = () => {
                               value={d.defect_description} onChange={(e) => updateDefect(i, "defect_description", e.target.value)} />
                           </F>
                           <F label="Action Taken" showWarning={isExtracted && !d.action_taken}>
-                            <textarea rows={3} placeholder="Action taken... (e.g., parts not in stock)"
-                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              value={d.action_taken} onChange={(e) => updateDefect(i, "action_taken", e.target.value)} />
+                            <div className="flex flex-col gap-2">
+                              <select 
+                                className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                onChange={(e) => {
+                                  const text = d.action_taken ? d.action_taken + "\nUsed Part: " + e.target.value : "Used Part: " + e.target.value;
+                                  updateDefect(i, "action_taken", text);
+                                  e.target.value = "";
+                                }}
+                              >
+                                <option value="">Select Inventory Item to append...</option>
+                                {inventoryParts.map(p => (
+                                  <option key={p.id} value={`${p.part_number} (${p.description || "No Desc"})`}>
+                                    {p.part_number} - {p.description || "No Desc"}
+                                  </option>
+                                ))}
+                              </select>
+                              <textarea rows={2} placeholder="Action taken... (e.g., parts not in stock)"
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                value={d.action_taken} onChange={(e) => updateDefect(i, "action_taken", e.target.value)} />
+                            </div>
                           </F>
                         </Grid>
                       )}
