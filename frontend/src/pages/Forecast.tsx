@@ -729,10 +729,10 @@ const Forecast = () => {
 
   const allOnPageSelected =
     paginated.length > 0 &&
-    paginated.filter((r) => r.hasForecast).every((r) => selectedServiceIds.has(r.serviceId));
+    paginated.every((r) => selectedServiceIds.has(r.serviceId));
 
   const toggleSelectAll = () => {
-    const selectableIds = paginated.filter((r) => r.hasForecast).map((r) => r.serviceId);
+    const selectableIds = paginated.map((r) => r.serviceId);
     setSelectedServiceIds((prev) => {
       const next = new Set(prev);
       if (allOnPageSelected) {
@@ -861,11 +861,20 @@ const Forecast = () => {
               size="sm"
               variant="outline"
               className="h-8 gap-1.5 text-xs whitespace-nowrap"
-              title="Open PowerBI dashboard"
-              onClick={() => navigate(`/aircraft/${id}/powerbi`)}
+              title={selectedServiceIds.size > 0 ? `Open dashboard for ${selectedServiceIds.size} selected row(s)` : "Open PowerBI dashboard"}
+              onClick={() => {
+                const selectedArray = Array.from(selectedServiceIds);
+                const queryParams = selectedArray.length > 0 ? `?selectedIds=${selectedArray.join(",")}` : "";
+                navigate(`/aircraft/${id}/powerbi${queryParams}`);
+              }}
             >
               <BarChart3 className="h-3.5 w-3.5" />
               Dashboard
+              {selectedServiceIds.size > 0 && (
+                <span className="ml-0.5 rounded-full bg-[#556ee6] text-white text-[9px] px-1.5 py-px font-bold">
+                  {selectedServiceIds.size}
+                </span>
+              )}
             </Button>
 
             {/* Export CSV */}
@@ -945,20 +954,25 @@ const Forecast = () => {
                       {/* ── Main row ── */}
                       <tr
                         className={cn(
-                          "hover:bg-gray-50/60 transition-colors",
+                          "hover:bg-gray-50/60 transition-colors cursor-pointer",
                           isExpanded && "bg-blue-50/40",
                           selectedServiceIds.has(row.serviceId) && "bg-blue-50"
                         )}
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("input")) {
+                            return;
+                          }
+                          toggleSelect(row.serviceId);
+                        }}
                       >
                         {/* Row select checkbox */}
                         <td className="px-1 py-1">
                           <input
                             type="checkbox"
-                            className="rounded border-gray-300 text-[#556ee6] focus:ring-[#556ee6] h-3.5 w-3.5"
+                            className="rounded border-gray-300 text-[#556ee6] focus:ring-[#556ee6] h-3.5 w-3.5 cursor-pointer"
                             checked={selectedServiceIds.has(row.serviceId)}
-                            disabled={!row.hasForecast}
                             onChange={() => toggleSelect(row.serviceId)}
-                            title={row.hasForecast ? "Select for printing" : "Enter 'Last Carried Out' data first"}
+                            title="Select row for printing/dashboard"
                           />
                         </td>
                         {/* Expand toggle */}

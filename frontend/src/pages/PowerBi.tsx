@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { decimalToHoursMinutes } from "@/lib/utils";
@@ -123,13 +123,19 @@ function calculateNextDue(
       remaining = `${Math.round(remainingCycles)} FC`;
     } else if (unit === "Years") {
       if (forecast.last_date) {
-        nextDate = addYears(new Date(forecast.last_date), repeat);
-        remaining = `${differenceInDays(nextDate, new Date())} Days`;
+        const lastD = new Date(forecast.last_date);
+        if (!isNaN(lastD.getTime())) {
+          nextDate = addYears(lastD, repeat);
+          remaining = `${differenceInDays(nextDate, new Date())} Days`;
+        }
       }
     } else if (unit === "Months") {
       if (forecast.last_date) {
-        nextDate = addMonths(new Date(forecast.last_date), repeat);
-        remaining = `${differenceInDays(nextDate, new Date())} Days`;
+        const lastD = new Date(forecast.last_date);
+        if (!isNaN(lastD.getTime())) {
+          nextDate = addMonths(lastD, repeat);
+          remaining = `${differenceInDays(nextDate, new Date())} Days`;
+        }
       }
     }
   }
@@ -151,13 +157,22 @@ function buildChartData(
   forecasts: ForecastRecord[],
   avgHours: number,
   avgCycles: number,
-  dailyFlightHours: number = 8
+  dailyFlightHours: number = 8,
+  selectedIds?: string[]
 ) {
   console.log("Building chart data for aircraft model:", aircraft.model);
 
   // Filter services for this aircraft model
-  const modelServices = services.filter((s) => s.aircraft_model === aircraft.model);
+  let modelServices = services.filter((s) => s.aircraft_model === aircraft.model);
   console.log(`Found ${modelServices.length} services for model ${aircraft.model}`);
+
+  // Further filter modelServices if selectedIds is provided and not empty
+  if (selectedIds && selectedIds.length > 0) {
+    console.log("Filtering modelServices. selectedIds:", selectedIds);
+    console.log("Original modelServices IDs:", modelServices.map((s) => s.id));
+    modelServices = modelServices.filter((s) => selectedIds.includes(s.id));
+    console.log(`Filtered modelServices to ${modelServices.length} selected tasks`);
+  }
 
   // If no services for this model, but there are services in general, show a warning
   if (modelServices.length === 0 && services.length > 0) {
@@ -195,11 +210,12 @@ function buildChartData(
     };
   });
 
-  // Sort by next due date
+  // Sort by next due date (keep items without dates at the end)
   const sortedData = serviceData
-    .filter((d) => d.dueInfo.nextDate)
     .sort((a, b) => {
-      if (!a.dueInfo.nextDate || !b.dueInfo.nextDate) return 0;
+      if (!a.dueInfo.nextDate && !b.dueInfo.nextDate) return 0;
+      if (!a.dueInfo.nextDate) return 1;
+      if (!b.dueInfo.nextDate) return -1;
       return a.dueInfo.nextDate.getTime() - b.dueInfo.nextDate.getTime();
     });
 
@@ -737,6 +753,12 @@ const StatBadge = ({ label, value }: { label: string; value: string | number }) 
 const Dashboard = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedIdsParam = searchParams.get("selectedIds");
+  const selectedIds = selectedIdsParam 
+    ? decodeURIComponent(selectedIdsParam).split(",").map(item => item.trim()).filter(Boolean) 
+    : [];
+
   const [aircraft, setAircraft] = useState<Aircraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any>(null);
@@ -776,8 +798,8 @@ const Dashboard = () => {
         const avgCycles = withAvg.length > 0 ? (withAvg[withAvg.length - 1].avg_cycles ?? 2) : 2;
 
         console.log("Building chart data...");
-        // Build chart data with utilization settings
-        const data = buildChartData(ac, allServices, allForecasts, avgHours, avgCycles, utilizationSettings.dailyFlightHours);
+        // Build chart data with utilization settings and selected row filtering
+        const data = buildChartData(ac, allServices, allForecasts, avgHours, avgCycles, utilizationSettings.dailyFlightHours, selectedIds);
         console.log("Chart data built:", data);
         setChartData(data);
       } catch (error) {
@@ -800,7 +822,7 @@ const Dashboard = () => {
     };
 
     loadData();
-  }, [id, utilizationSettings.dailyFlightHours]);
+  }, [id, utilizationSettings.dailyFlightHours, selectedIdsParam]);
 
   if (loading) {
     return (
@@ -897,6 +919,40 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+
+        {selectedIdsParam && (
+          <div className="mb-6 flex flex-col gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 shadow-sm transition-all duration-300 hover:shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#556ee6]/10 text-[#556ee6]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-filter">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800">Forecast Panel Filter Applied</p>
+                  <p className="text-xs text-slate-500">
+                    Showing results for <span className="font-semibold text-[#556ee6]">{selectedIds.length}</span> selected task(s).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate(`/aircraft/${id}/powerbi`)}
+                className="text-xs font-semibold bg-white border border-[#556ee6]/30 text-[#556ee6] hover:bg-[#556ee6]/10 px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:border-[#556ee6]/50 shrink-0 whitespace-nowrap active:scale-95"
+              >
+                Clear Filter (Show All)
+              </button>
+            </div>
+            {chartData.remainingLifeData.filter((d: any) => d.date === "—").length > 0 && (
+              <div className="mt-1 text-xs text-amber-700 bg-amber-50 border border-amber-200/50 p-2.5 rounded-lg flex items-start gap-2">
+                <span className="font-bold">⚠️ Notice:</span>
+                <span>
+                  Some or all of your selected tasks do not have "Last Carried Out" dates configured yet. These tasks are displayed in the <strong>Remaining Life Table</strong> below, but cannot be plotted on the timeline charts (Budget & Annual Forecasts) until dates are set.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-800">Financial & Maintenance Forecasts</h2>
