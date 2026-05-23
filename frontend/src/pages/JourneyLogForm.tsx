@@ -689,6 +689,8 @@ const JourneyLogForm = () => {
           mel_reference: d.mel_reference ?? "",
           mel_repair_cat: d.mel_repair_cat ?? "",
           lic_no: d.lic_no ?? "",
+          part_required: d.part_required ?? "",
+          part_availability: d.part_availability ?? "",
           part1_description: d.part1_description ?? "",
           part1_number_on: d.part1_number_on ?? "",
           part1_number_off: d.part1_number_off ?? "",

@@ -15,6 +15,81 @@ const toDate = (v: unknown): Date | null => {
   return isNaN(d.getTime()) ? null : d;
 };
 
+const resolvePartAvailability = async (
+  tx: any,
+  partRequired: string,
+  currentAvailability?: string | null,
+) => {
+  const normalizedPart = partRequired.trim();
+
+  if (!normalizedPart) {
+    return currentAvailability ?? '';
+  }
+
+  if (currentAvailability === 'IN_STOCK' || currentAvailability === 'OUT_OF_STOCK') {
+    return currentAvailability;
+  }
+
+  const item = await tx.inventory.findFirst({
+    where: {
+      OR: [
+        { part_number: normalizedPart },
+        { sn_or_batch: normalizedPart },
+        { interchangeable: normalizedPart },
+      ],
+    },
+    select: { available: true },
+  });
+
+  return item && item.available > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK';
+};
+
+const findInventoryItemByPart = async (tx: any, partRequired: string) => {
+  const normalizedPart = partRequired.trim();
+
+  if (!normalizedPart) {
+    return null;
+  }
+
+  return tx.inventory.findFirst({
+    where: {
+      OR: [
+        { part_number: normalizedPart },
+        { sn_or_batch: normalizedPart },
+        { interchangeable: normalizedPart },
+      ],
+    },
+  });
+};
+
+const reserveInventoryForPart = async (tx: any, partRequired: string) => {
+  const item = await findInventoryItemByPart(tx, partRequired);
+
+  if (item && item.available > 0) {
+    await tx.inventory.update({
+      where: { id: item.id },
+      data: {
+        reserved: { increment: 1 },
+        available: { decrement: 1 },
+      },
+    });
+  }
+};
+
+const restoreInventoryForPart = async (tx: any, partRequired: string) => {
+  const item = await findInventoryItemByPart(tx, partRequired);
+
+  if (item && item.reserved > 0) {
+    await tx.inventory.update({
+      where: { id: item.id },
+      data: {
+        reserved: { decrement: 1 },
+        available: { increment: 1 },
+      },
+    });
+  }
+};
+
 router.get('/:aircraft_id', async (req, res) => {
   try {
     const { aircraft_id } = req.params;
@@ -257,9 +332,11 @@ router.post('/', async (req, res) => {
       });
 
       // Handle DMI / Inventory Logic
-      for (const d of log.defects) {
+      for (const d of log.defects) {  
         if (d.part_required) {
-          if (d.part_availability === 'OUT_OF_STOCK') {
+          const availability = await resolvePartAvailability(tx, d.part_required, d.part_availability);
+
+          if (availability === 'OUT_OF_STOCK') {
             // Create DMI
             await tx.dMI.create({
               data: {
@@ -275,14 +352,14 @@ router.post('/', async (req, res) => {
                 mel_expiry_date: d.mel_expiry_date ? new Date(d.mel_expiry_date) : undefined,
               }
             });
-          } else if (d.part_availability === 'IN_STOCK') {
+          } else if (availability === 'IN_STOCK') {
             // Reserve Inventory
             const item = await tx.inventory.findFirst({
               where: {
                 OR: [
-                  { part_number: d.part_required },
-                  { sn_or_batch: d.part_required },
-                  { interchangeable: d.part_required },
+                  { part_number: d.part_required.trim() },
+                  { sn_or_batch: d.part_required.trim() },
+                  { interchangeable: d.part_required.trim() },
                 ]
               }
             });
@@ -295,6 +372,13 @@ router.post('/', async (req, res) => {
                 }
               });
             }
+          }
+
+          if (d.part_availability !== availability) {
+            await tx.journeyLogDefect.update({
+              where: { id: d.id },
+              data: { part_availability: availability },
+            });
           }
         }
       }
@@ -347,11 +431,32 @@ router.patch('/:id', async (req, res) => {
 
     // Run in a transaction: update header, replace sectors & defects
     await prisma.$transaction(async (tx) => {
-      const oldLog = await tx.journeyLog.findUnique({ where: { id } });
+      const oldLog = await tx.journeyLog.findUnique({
+        where: { id },
+        include: {
+          defects: {
+            include: {
+              dmi: true,
+            },
+            orderBy: { sl_no: 'asc' },
+          },
+        },
+      });
       if (!oldLog) throw new Error('Journey log not found');
 
       const oldFH = oldLog.total_flight_hrs ?? 0;
       const oldFC = oldLog.total_flight_cyc ?? 0;
+
+      for (const defect of oldLog.defects) {
+        if (defect.dmi) {
+          await tx.dMI.delete({ where: { id: defect.dmi.id } });
+        }
+
+        if (defect.part_required && defect.part_availability === 'IN_STOCK') {
+          await restoreInventoryForPart(tx, defect.part_required);
+        }
+      }
+
       // Update the journey log header fields
       const { aircraft_id: _aid, msn: _msn, ...updateData } = data;
       await tx.journeyLog.update({ where: { id }, data: updateData });
@@ -384,38 +489,63 @@ router.patch('/:id', async (req, res) => {
       if (defects !== undefined) {
         await tx.journeyLogDefect.deleteMany({ where: { journey_log_id: id } });
         if ((defects as any[]).length > 0) {
-          await tx.journeyLogDefect.createMany({
-            data: (defects as any[]).map((d: any, idx: number) => ({
-              journey_log_id: id,
-              sl_no: idx + 1,
-              category: d.category ?? 'PIREP',
-              defect_description: d.defect_description,
-              action_taken: d.action_taken,
-              mel_expiry_date: d.mel_expiry_date,
-              mel_reference: d.mel_reference,
-              mel_repair_cat: d.mel_repair_cat,
-              lic_no: d.lic_no,
-              part1_description: d.part1_description,
-              part1_number_on: d.part1_number_on,
-              part1_number_off: d.part1_number_off,
-              part1_serial_on: d.part1_serial_on,
-              part1_serial_off: d.part1_serial_off,
-              part1_cert_num: d.part1_cert_num,
-              part2_description: d.part2_description,
-              part2_number_on: d.part2_number_on,
-              part2_number_off: d.part2_number_off,
-              part2_serial_on: d.part2_serial_on,
-              part2_serial_off: d.part2_serial_off,
-              part2_cert_num: d.part2_cert_num,
-              part_required: d.part_required,
-              part_availability: d.part_availability,
-            })),
-          });
+          for (const [idx, d] of (defects as any[]).entries()) {
+            const createdDefect = await tx.journeyLogDefect.create({
+              data: {
+                journey_log_id: id,
+                sl_no: idx + 1,
+                category: d.category ?? 'PIREP',
+                defect_description: d.defect_description,
+                action_taken: d.action_taken,
+                mel_expiry_date: d.mel_expiry_date,
+                mel_reference: d.mel_reference,
+                mel_repair_cat: d.mel_repair_cat,
+                lic_no: d.lic_no,
+                part1_description: d.part1_description,
+                part1_number_on: d.part1_number_on,
+                part1_number_off: d.part1_number_off,
+                part1_serial_on: d.part1_serial_on,
+                part1_serial_off: d.part1_serial_off,
+                part1_cert_num: d.part1_cert_num,
+                part2_description: d.part2_description,
+                part2_number_on: d.part2_number_on,
+                part2_number_off: d.part2_number_off,
+                part2_serial_on: d.part2_serial_on,
+                part2_serial_off: d.part2_serial_off,
+                part2_cert_num: d.part2_cert_num,
+                part_required: d.part_required,
+                part_availability: d.part_availability,
+              },
+            });
 
-          // Just handle the creation logic if there are any new ones out of stock (Not strictly reconciling diff, but good enough for new updates)
-          for (const d of defects) {
-            if (d.part_required) {
-               // Skipping DMI/stock patch update to avoid duplication complexities with out of scope tasks.
+            if (createdDefect.part_required) {
+              const availability = await resolvePartAvailability(tx, createdDefect.part_required, createdDefect.part_availability);
+
+              if (createdDefect.part_availability !== availability) {
+                await tx.journeyLogDefect.update({
+                  where: { id: createdDefect.id },
+                  data: { part_availability: availability },
+                });
+              }
+
+              if (availability === 'OUT_OF_STOCK') {
+                await tx.dMI.create({
+                  data: {
+                    dmi_number: `DMI-${Math.floor(Math.random() * 100000)}`,
+                    aircraft_id: oldLog.aircraft_id,
+                    journey_log_id: id,
+                    defect_id: createdDefect.id,
+                    part_number: createdDefect.part_required,
+                    description: createdDefect.defect_description,
+                    status: 'SOURCING',
+                    mel_reference: createdDefect.mel_reference,
+                    mel_category: createdDefect.mel_repair_cat,
+                    mel_expiry_date: createdDefect.mel_expiry_date ? new Date(createdDefect.mel_expiry_date) : undefined,
+                  },
+                });
+              } else if (availability === 'IN_STOCK') {
+                await reserveInventoryForPart(tx, createdDefect.part_required);
+              }
             }
           }
         }
@@ -455,8 +585,42 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
     await prisma.$transaction(async (tx) => {
-      const log = await tx.journeyLog.findUnique({ where: { id } });
+      const log = await tx.journeyLog.findUnique({
+        where: { id },
+        include: {
+          defects: true,
+        },
+      });
       if (!log) return;
+
+      for (const defect of log.defects) {
+        const partRequired = defect.part_required?.trim();
+        if (!partRequired) continue;
+
+        if (defect.part_availability === 'IN_STOCK') {
+          const item = await tx.inventory.findFirst({
+            where: {
+              OR: [
+                { part_number: partRequired },
+                { sn_or_batch: partRequired },
+                { interchangeable: partRequired },
+              ],
+            },
+          });
+
+          if (item && item.reserved > 0) {
+            await tx.inventory.update({
+              where: { id: item.id },
+              data: {
+                reserved: { decrement: 1 },
+                available: { increment: 1 },
+              },
+            });
+          }
+        }
+      }
+
+      await tx.dMI.deleteMany({ where: { journey_log_id: id } });
 
       await tx.journeyLog.delete({ where: { id } });
 
