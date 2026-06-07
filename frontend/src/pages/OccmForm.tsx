@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface FormState {
+  ata: string;                  // System / ATA chapter
+  component_name: string;       // Component name
   part_number: string;
   serial_number: string;
   model: string;                // Description
@@ -21,6 +23,8 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
+  ata: "",
+  component_name: "",
   part_number: "",
   serial_number: "",
   model: "",
@@ -80,6 +84,8 @@ const OccmForm = () => {
         const comp = Array.isArray(data) ? data.find((c) => c.id === componentId) : null;
         if (comp) {
           setForm({
+            ata:                  comp.ata                  ?? "",
+            component_name:       comp.component_name       ?? "",
             part_number:          comp.part_number          ?? "",
             serial_number:        comp.serial_number        ?? "",
             model:                comp.model                ?? "",
@@ -121,6 +127,8 @@ const OccmForm = () => {
     setSaving(true);
     try {
       await api.aircraftComponents.update(componentId, {
+        ata:                  form.ata.trim() || null,
+        component_name:       form.component_name.trim() || null,
         part_number:          form.part_number.trim(),
         serial_number:        form.serial_number.trim(),
         model:                form.model.trim(),
@@ -178,6 +186,28 @@ const OccmForm = () => {
 
           {/* Identification */}
           <div className="space-y-4">
+
+            <Field label="System / ATA">
+              <Input
+                name="ata"
+                value={form.ata}
+                onChange={handleChange}
+                placeholder="e.g. 34 — Navigation"
+                maxLength={60}
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field label="Component">
+              <Input
+                name="component_name"
+                value={form.component_name}
+                onChange={handleChange}
+                placeholder="e.g. Air Data Computer"
+                maxLength={120}
+                autoComplete="off"
+              />
+            </Field>
 
             <Field label="Component Part No." >
               <Input

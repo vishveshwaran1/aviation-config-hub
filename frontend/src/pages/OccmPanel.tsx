@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -9,6 +9,11 @@ import {
   Upload,
   CheckCircle,
   XCircle,
+  AlertTriangle,
+  Eye,
+  FileUp,
+  FileText,
+  X,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { api } from "@/lib/api";
@@ -39,6 +44,7 @@ interface AircraftComponent {
   id: string;
   aircraft_id?: string;
   ata?: string;
+  component_name?: string;
   section: string;           // POS
   manufacturer?: string;
   model?: string;            // Description
@@ -49,6 +55,7 @@ interface AircraftComponent {
   cycles_since_new?: number;     // CSN
   tsi?: number;                  // Time Since Installation
   csi?: number;                  // Cycles Since Installation
+  certificate_url?: string;
 }
 
 const fmtDate = (d?: string | null) =>
@@ -57,17 +64,11 @@ const fmtDate = (d?: string | null) =>
 const fmtNum = (n?: number | null) =>
   n !== undefined && n !== null ? n.toLocaleString() : "";
 
-const StatPill = ({ label, value }: { label: string; value: string | number }) => (
-  <div className="flex flex-col gap-0.5 min-w-[80px]">
-    <span className="text-[10px] uppercase tracking-widest text-white/50 font-medium">{label}</span>
-    <span className="text-sm font-semibold text-white leading-none">{value ?? "-"}</span>
-  </div>
-);
-
 const OccmPanel = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const certInputRef = useRef<HTMLInputElement>(null);
 
   const [aircraft, setAircraft]     = useState<Aircraft | null>(null);
   const [components, setComponents] = useState<AircraftComponent[]>([]);
@@ -80,6 +81,13 @@ const OccmPanel = () => {
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<AircraftComponent | null>(null);
   const [deleting, setDeleting]         = useState(false);
+
+  // View dialog
+  const [viewTarget, setViewTarget] = useState<AircraftComponent | null>(null);
+
+  // Certificate upload
+  const [certUploadTarget, setCertUploadTarget] = useState<string | null>(null);
+  const [uploadingCert, setUploadingCert] = useState(false);
 
   // Excel import dialog
   const [importRows, setImportRows]   = useState<AircraftComponent[]>([]);
@@ -106,7 +114,7 @@ const OccmPanel = () => {
     loadComponents();
   }, [id]);
 
-  /*  Delete*/
+  /*  Delete */
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -122,7 +130,46 @@ const OccmPanel = () => {
     }
   };
 
-  /* Excel import*/
+  /* Certificate upload */
+  const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !certUploadTarget) return;
+    setUploadingCert(true);
+    try {
+      const updated = await api.aircraftComponents.uploadCertificate(certUploadTarget, file);
+      setComponents((prev) =>
+        prev.map((c) => (c.id === certUploadTarget ? { ...c, certificate_url: updated.certificate_url } : c))
+      );
+      // Also update viewTarget if viewing
+      if (viewTarget?.id === certUploadTarget) {
+        setViewTarget((prev) => prev ? { ...prev, certificate_url: updated.certificate_url } : prev);
+      }
+      toast.success("Certificate uploaded successfully.");
+    } catch {
+      toast.error("Failed to upload certificate.");
+    } finally {
+      setUploadingCert(false);
+      setCertUploadTarget(null);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteCertificate = async (componentId: string) => {
+    try {
+      await api.aircraftComponents.deleteCertificate(componentId);
+      setComponents((prev) =>
+        prev.map((c) => (c.id === componentId ? { ...c, certificate_url: undefined } : c))
+      );
+      if (viewTarget?.id === componentId) {
+        setViewTarget((prev) => prev ? { ...prev, certificate_url: undefined } : prev);
+      }
+      toast.success("Certificate removed.");
+    } catch {
+      toast.error("Failed to remove certificate.");
+    }
+  };
+
+  /* Excel import */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id) return;
@@ -138,7 +185,8 @@ const OccmPanel = () => {
         const mapped: AircraftComponent[] = rows.map((r) => ({
           id: "",
           aircraft_id: id,
-          ata:               r["ATA"]          ?? r["ata"]               ?? "",
+          ata:               r["ATA"]          ?? r["SYSTEM"]        ?? r["ata"]               ?? "",
+          component_name:    r["COMPONENT"]    ?? r["component_name"] ?? r["Component"]        ?? "",
           part_number:       r["PART_NO"]      ?? r["part_number"]       ?? "",
           serial_number:     r["SERIAL_NO"]    ?? r["serial_number"]     ?? "",
           model:             r["DESCRIPTION"]  ?? r["model"]             ?? "",
@@ -158,7 +206,6 @@ const OccmPanel = () => {
       }
     };
     reader.readAsBinaryString(file);
-    // reset so same file can be re-selected
     e.target.value = "";
   };
 
@@ -166,7 +213,6 @@ const OccmPanel = () => {
     if (!id || importRows.length === 0) return;
     setImporting(true);
     try {
-      // Strip the temporary `id: ""` field; only send data columns + aircraft_id
       const payload = importRows.map(({ id: _omit, ...r }) => ({ ...r, aircraft_id: id }));
       await api.aircraftComponents.create(payload);
       toast.success(`${importRows.length} component(s) imported successfully.`);
@@ -175,16 +221,35 @@ const OccmPanel = () => {
       loadComponents();
     } catch(error) {
       toast.error("Import failed. Please try again.");
-      console.log(error)
+      console.log(error);
     } finally {
       setImporting(false);
     }
+  };
+
+  /* ── Update a single cell in the import preview ── */
+  const updateImportCell = (rowIndex: number, field: keyof AircraftComponent, value: string) => {
+    setImportRows((prev) =>
+      prev.map((r, i) => {
+        if (i !== rowIndex) return r;
+        if (["hours_since_new", "cycles_since_new", "tsi", "csi"].includes(field)) {
+          return { ...r, [field]: value === "" ? 0 : parseFloat(value) || 0 };
+        }
+        return { ...r, [field]: value };
+      })
+    );
+  };
+
+  const removeImportRow = (rowIndex: number) => {
+    setImportRows((prev) => prev.filter((_, i) => i !== rowIndex));
   };
 
   /* Derived */
   const filtered = components.filter((c) => {
     const q = search.toLowerCase();
     return (
+      c.ata?.toLowerCase().includes(q) ||
+      c.component_name?.toLowerCase().includes(q) ||
       c.section?.toLowerCase().includes(q) ||
       c.manufacturer?.toLowerCase().includes(q) ||
       c.model?.toLowerCase().includes(q) ||
@@ -197,6 +262,20 @@ const OccmPanel = () => {
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const loading = loadingAc || loadingComp;
+
+  /* ── Helper: Get the base API URL for certificate links ── */
+  const apiBase = (import.meta.env.VITE_USE_PROD_API === 'True'
+    ? import.meta.env.VITE_API_URL_LIVE
+    : (import.meta.env.VITE_API_URL_LOCAL || "http://localhost:3000")) as string;
+  // certificate_url is like /api/uploads/certificates/xyz.pdf → strip the /api prefix since apiBase already includes the base
+  const getCertUrl = (certUrl: string) => {
+    // certUrl = "/api/uploads/certificates/file.pdf"
+    // apiBase = "http://localhost:3000/api" or "http://localhost:3000"
+    if (apiBase.endsWith('/api')) {
+      return apiBase.replace(/\/api$/, '') + certUrl;
+    }
+    return apiBase + certUrl;
+  };
 
   /*  Render  */
   return (
@@ -218,6 +297,7 @@ const OccmPanel = () => {
             </div>
           </div>
         </div>
+
       {/*  Component table  */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
 
@@ -228,7 +308,7 @@ const OccmPanel = () => {
             <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search part, serial etc..."
+                placeholder="Search ATA, part, serial, component..."
                 className="pl-8 h-8 text-sm"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -254,12 +334,21 @@ const OccmPanel = () => {
           </div>
         </div>
 
+        {/* Hidden certificate file input */}
+        <input
+          ref={certInputRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+          className="hidden"
+          onChange={handleCertificateUpload}
+        />
+
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b text-left">
-                {["#", "Part No.", "Serial No.", "Description", "POS", "INST Date","TSN", "CSN", "TSI","CSI", "Actions"].map((h) => (
+                {["#", "System/ATA", "Component", "Part No.", "Serial No.", "Description", "POS", "INST Date","TSN", "CSN", "TSI","CSI", "Certificate", "Actions"].map((h) => (
                   <th key={h} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                     {h}
                   </th>
@@ -270,7 +359,7 @@ const OccmPanel = () => {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 11 }).map((_, j) => (
+                    {Array.from({ length: 14 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-3 rounded bg-gray-100 animate-pulse" style={{ width: "60%" }} />
                       </td>
@@ -279,7 +368,7 @@ const OccmPanel = () => {
                 ))
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-16 text-center">
+                  <td colSpan={14} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Info className="h-8 w-8 opacity-30" />
                       <p className="text-sm font-medium">
@@ -298,25 +387,33 @@ const OccmPanel = () => {
                     <tr key={comp.id} className="hover:bg-gray-50/60 transition-colors">
                       {/* # */}
                       <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">{rowNum}</td>
+                      {/* System/ATA */}
+                      <td className="px-4 py-3 text-xs text-gray-700 whitespace-nowrap">
+                        {comp.ata || "—"}
+                      </td>
+                      {/* Component */}
+                      <td className="px-4 py-3 text-xs font-medium text-gray-700 whitespace-nowrap max-w-[140px] truncate" title={comp.component_name ?? ""}>
+                        {comp.component_name || "—"}
+                      </td>
                       {/* Part No. */}
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
-                        {comp.part_number || "NA"}
+                        {comp.part_number || "—"}
                       </td>
                       {/* Serial No. */}
                       <td className="px-4 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">
-                        {comp.serial_number || "NA"}
+                        {comp.serial_number || "—"}
                       </td>
                       {/* Description */}
                       <td className="px-4 py-3 text-gray-700 whitespace-nowrap max-w-[180px] truncate" title={comp.model ?? ""}>
-                        {comp.model || "NA"}
+                        {comp.model || "—"}
                       </td>
                       {/* POS */}
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {comp.section || "NA"}
+                        {comp.section || "—"}
                       </td>
                       {/* INST Date */}
                       <td className="px-4 py-3 text-gray-700 text-xs whitespace-nowrap">
-                        {fmtDate(comp.last_shop_visit_date) || "NA"}
+                        {fmtDate(comp.last_shop_visit_date) || "—"}
                       </td>
                       {/* TSN */}
                       <td className="px-4 py-3 tabular-nums text-gray-700 whitespace-nowrap">
@@ -334,9 +431,53 @@ const OccmPanel = () => {
                       <td className="px-4 py-3 tabular-nums text-gray-700 whitespace-nowrap">
                         {fmtNum(comp.csi)}
                       </td>
+                      {/* Certificate */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          {comp.certificate_url ? (
+                            <>
+                              <a
+                                href={getCertUrl(comp.certificate_url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                title="View Certificate"
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                              </a>
+                              <button
+                                onClick={() => handleDeleteCertificate(comp.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-rose-400 hover:bg-rose-50 transition-colors"
+                                title="Remove Certificate"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setCertUploadTarget(comp.id);
+                                certInputRef.current?.click();
+                              }}
+                              disabled={uploadingCert}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Upload Certificate"
+                            >
+                              <FileUp className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       {/* Actions */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setViewTarget(comp)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="View"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
                           <button
                             onClick={() => navigate(`/aircraft/${id}/occm/${comp.id}/edit`)}
                             className="flex h-7 w-7 items-center justify-center rounded-md text-blue-600 hover:bg-blue-50 transition-colors"
@@ -390,6 +531,93 @@ const OccmPanel = () => {
         )}
       </div>
 
+      {/*  View Component Dialog  */}
+      <Dialog open={!!viewTarget} onOpenChange={(o) => !o && setViewTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#556ee6]">
+              <Eye className="h-5 w-5" /> Component Details
+            </DialogTitle>
+          </DialogHeader>
+          {viewTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-[140px_1fr] gap-y-2.5 gap-x-4">
+                {([
+                  ["System / ATA", viewTarget.ata],
+                  ["Component", viewTarget.component_name],
+                  ["Part No.", viewTarget.part_number],
+                  ["Serial No.", viewTarget.serial_number],
+                  ["Description", viewTarget.model],
+                  ["POS", viewTarget.section],
+                  ["Manufacturer", viewTarget.manufacturer],
+                  ["INST Date", fmtDate(viewTarget.last_shop_visit_date)],
+                  ["TSN", fmtNum(viewTarget.hours_since_new)],
+                  ["CSN", fmtNum(viewTarget.cycles_since_new)],
+                  ["TSI", fmtNum(viewTarget.tsi)],
+                  ["CSI", fmtNum(viewTarget.csi)],
+                ] as [string, string | undefined][]).map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">{label}</span>
+                    <span className="text-gray-800 font-medium">{value || "—"}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Certificate section */}
+              <div className="border-t pt-3 mt-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium mb-2">Certificate</p>
+                {viewTarget.certificate_url ? (
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={getCertUrl(viewTarget.certificate_url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-[#556ee6] hover:underline font-medium"
+                    >
+                      <FileText className="h-4 w-4" /> View / Download Certificate
+                    </a>
+                    <button
+                      onClick={() => handleDeleteCertificate(viewTarget.id)}
+                      className="text-xs text-rose-500 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-xs">No certificate uploaded.</span>
+                    <button
+                      onClick={() => {
+                        setCertUploadTarget(viewTarget.id);
+                        certInputRef.current?.click();
+                      }}
+                      className="text-xs text-[#556ee6] hover:underline font-medium"
+                    >
+                      Upload now
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setViewTarget(null)}>
+              Close
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5 bg-[#556ee6] hover:bg-[#4560d5]"
+              onClick={() => {
+                if (viewTarget) navigate(`/aircraft/${id}/occm/${viewTarget.id}/edit`);
+                setViewTarget(null);
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/*  Delete Confirmation Dialog  */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="max-w-sm">
@@ -414,48 +642,168 @@ const OccmPanel = () => {
         </DialogContent>
       </Dialog>
 
-      {/*  Excel Import Preview Dialog  */}
+      {/*  Excel Import Preview Dialog — Editable  */}
       <Dialog open={showImportModal} onOpenChange={(o) => !o && setShowImportModal(false)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-[#556ee6]">
-              <Upload className="h-5 w-5" /> Confirm Import
+              <Upload className="h-5 w-5" /> Review & Edit Import
             </DialogTitle>
             <DialogDescription>
-              <strong>{importRows.length}</strong> component row(s) detected. Review a preview below, then approve to import.
+              <strong>{importRows.length}</strong> component row(s) detected. You can <strong>click any cell</strong> to correct values before importing.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="overflow-x-auto max-h-64 border rounded-lg text-xs">
+          {/* Warning banner when there are empty required fields */}
+          {importRows.some((r) => !r.part_number || !r.serial_number) && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+              <span>Some rows have <strong>empty Part No. or Serial No.</strong> fields highlighted below. Please fill them before importing.</span>
+            </div>
+          )}
+
+          <div className="overflow-x-auto max-h-[400px] border rounded-lg text-xs">
             <table className="w-full">
-              <thead className="bg-gray-50 sticky top-0">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  {["Part No.", "Serial No.", "Description", "POS", "INST Date", "TSN", "CSN", "TSI", "CSI"].map((h) => (
-                    <th key={h} className="px-3 py-2 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
+                  <th className="px-2 py-2 text-center font-semibold text-muted-foreground w-8">#</th>
+                  {["ATA", "Component", "Part No.", "Serial No.", "Description", "POS", "INST Date", "TSN", "CSN", "TSI", "CSI"].map((h) => (
+                    <th key={h} className="px-2 py-2 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
+                  <th className="px-2 py-2 text-center font-semibold text-muted-foreground w-8"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {importRows.slice(0, 20).map((r, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
-                    <td className="px-3 py-1.5 font-mono">{r.part_number || "NA"}</td>
-                    <td className="px-3 py-1.5 font-mono">{r.serial_number || "NA"}</td>
-                    <td className="px-3 py-1.5 max-w-[140px] truncate">{r.model || "NA"}</td>
-                    <td className="px-3 py-1.5">{r.section || "NA"}</td>
-                    <td className="px-3 py-1.5 text-xs">{fmtDate(r.last_shop_visit_date) || "NA"}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{r.hours_since_new ?? 0}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{r.cycles_since_new ?? 0}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{r.tsi ?? 0}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{r.csi ?? 0}</td>
-                  </tr>
-                ))}
+                {importRows.map((r, i) => {
+                  const missingPart = !r.part_number;
+                  const missingSerial = !r.serial_number;
+                  const emptyCellClass = "bg-amber-50 ring-1 ring-inset ring-amber-300";
+                  return (
+                    <tr key={i} className="hover:bg-gray-50/60 transition-colors group">
+                      <td className="px-2 py-1 text-center text-muted-foreground tabular-nums">{i + 1}</td>
+                      {/* ATA */}
+                      <td className="px-1 py-0.5">
+                        <input
+                          className="w-full bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.ata ?? ""}
+                          placeholder="—"
+                          onChange={(e) => updateImportCell(i, "ata", e.target.value)}
+                        />
+                      </td>
+                      {/* Component */}
+                      <td className="px-1 py-0.5">
+                        <input
+                          className="w-full bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.component_name ?? ""}
+                          placeholder="—"
+                          onChange={(e) => updateImportCell(i, "component_name", e.target.value)}
+                        />
+                      </td>
+                      {/* Part No. */}
+                      <td className={cn("px-1 py-0.5", missingPart && emptyCellClass)}>
+                        <input
+                          className="w-full bg-transparent border-0 outline-none px-1.5 py-1 rounded font-mono text-xs focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.part_number ?? ""}
+                          placeholder="Required"
+                          onChange={(e) => updateImportCell(i, "part_number", e.target.value)}
+                        />
+                      </td>
+                      {/* Serial No. */}
+                      <td className={cn("px-1 py-0.5", missingSerial && emptyCellClass)}>
+                        <input
+                          className="w-full bg-transparent border-0 outline-none px-1.5 py-1 rounded font-mono text-xs focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.serial_number ?? ""}
+                          placeholder="Required"
+                          onChange={(e) => updateImportCell(i, "serial_number", e.target.value)}
+                        />
+                      </td>
+                      {/* Description */}
+                      <td className={cn("px-1 py-0.5", !r.model && "bg-gray-50")}>
+                        <input
+                          className="w-full bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.model ?? ""}
+                          placeholder="—"
+                          onChange={(e) => updateImportCell(i, "model", e.target.value)}
+                        />
+                      </td>
+                      {/* POS */}
+                      <td className={cn("px-1 py-0.5", !r.section && "bg-gray-50")}>
+                        <input
+                          className="w-full bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.section ?? ""}
+                          placeholder="—"
+                          onChange={(e) => updateImportCell(i, "section", e.target.value)}
+                        />
+                      </td>
+                      {/* INST Date */}
+                      <td className={cn("px-1 py-0.5", !r.last_shop_visit_date && "bg-gray-50")}>
+                        <input
+                          type="date"
+                          className="w-full bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.last_shop_visit_date ?? ""}
+                          onChange={(e) => updateImportCell(i, "last_shop_visit_date", e.target.value)}
+                        />
+                      </td>
+                      {/* TSN */}
+                      <td className="px-1 py-0.5">
+                        <input
+                          type="number"
+                          className="w-16 bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs tabular-nums text-right focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.hours_since_new ?? 0}
+                          min={0}
+                          step="0.1"
+                          onChange={(e) => updateImportCell(i, "hours_since_new", e.target.value)}
+                        />
+                      </td>
+                      {/* CSN */}
+                      <td className="px-1 py-0.5">
+                        <input
+                          type="number"
+                          className="w-16 bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs tabular-nums text-right focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.cycles_since_new ?? 0}
+                          min={0}
+                          step="1"
+                          onChange={(e) => updateImportCell(i, "cycles_since_new", e.target.value)}
+                        />
+                      </td>
+                      {/* TSI */}
+                      <td className="px-1 py-0.5">
+                        <input
+                          type="number"
+                          className="w-16 bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs tabular-nums text-right focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.tsi ?? 0}
+                          min={0}
+                          step="0.1"
+                          onChange={(e) => updateImportCell(i, "tsi", e.target.value)}
+                        />
+                      </td>
+                      {/* CSI */}
+                      <td className="px-1 py-0.5">
+                        <input
+                          type="number"
+                          className="w-16 bg-transparent border-0 outline-none px-1.5 py-1 rounded text-xs tabular-nums text-right focus:bg-white focus:ring-1 focus:ring-[#556ee6]/40 transition-all"
+                          value={r.csi ?? 0}
+                          min={0}
+                          step="1"
+                          onChange={(e) => updateImportCell(i, "csi", e.target.value)}
+                        />
+                      </td>
+                      {/* Remove row */}
+                      <td className="px-1 py-0.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeImportRow(i)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-rose-400 hover:text-rose-600 p-0.5 rounded"
+                          title="Remove row"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-            {importRows.length > 20 && (
-              <p className="text-center text-muted-foreground py-2 text-[11px]">
-                …and {importRows.length - 20} more rows
-              </p>
-            )}
           </div>
 
           <DialogFooter className="gap-2">
@@ -470,7 +818,7 @@ const OccmPanel = () => {
             <Button
               size="sm"
               className="gap-1.5 bg-[#556ee6] hover:bg-[#4560d5]"
-              disabled={importing}
+              disabled={importing || importRows.length === 0}
               onClick={handleConfirmImport}
             >
               <CheckCircle className="h-4 w-4" />
