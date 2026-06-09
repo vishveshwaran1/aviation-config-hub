@@ -212,7 +212,27 @@ export const api = {
             });
             await throwIfError(res);
             return res.json();
-        }
+        },
+        uploadCertificate: async (componentId: string, file: File) => {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('certificate', file);
+            const res = await fetch(`${API_URL}/aircraft_components/upload-certificate/${componentId}`, {
+                method: 'POST',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                body: formData,
+            });
+            await throwIfError(res);
+            return res.json();
+        },
+        deleteCertificate: async (componentId: string) => {
+            const res = await fetch(`${API_URL}/aircraft_components/certificate/${componentId}`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+            });
+            await throwIfError(res);
+            return res.json();
+        },
     },
     services: {
         list: async () => {

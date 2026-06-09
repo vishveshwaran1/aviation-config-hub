@@ -1,10 +1,45 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 
 const router = Router();
 import prisma from '../lib/prisma';
 
-// Get components for an aircraft
+// ── Certificate upload setup ──
+const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads', 'certificates');
+// Ensure the directory exists
+if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+    filename: (_req, file, cb) => {
+        // Generate a safe unique filename: uuid + original extension
+        const ext = path.extname(file.originalname);
+        const safeName = `${crypto.randomUUID()}${ext}`;
+        cb(null, safeName);
+    },
+});
+
+const upload = multer({
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+    fileFilter: (_req, file, cb) => {
+        const allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowed.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`File type ${ext} not allowed. Accepted: ${allowed.join(', ')}`));
+        }
+    },
+});
+
+// ── Get components for an aircraft ──
 router.get('/:aircraftId', async (req, res) => {
     try {
         const components = await prisma.aircraftComponent.findMany({
@@ -17,7 +52,7 @@ router.get('/:aircraftId', async (req, res) => {
     }
 });
 
-// Create aircraft components (supports single or bulk insert)
+// ── Create aircraft components (supports single or bulk insert) ──
 router.post('/', async (req, res) => {
     try {
         const body = req.body;
@@ -34,6 +69,7 @@ router.post('/', async (req, res) => {
                     serial_number: item.serial_number,
                     part_number: item.part_number,
                     status: item.status,
+                    component_name: item.component_name ?? null,
                     manufacture_date: (typeof item.manufacture_date === 'string' && item.manufacture_date.trim() !== "") ? new Date(item.manufacture_date) : null,
                     // handle dates and numbers
                     last_shop_visit_date: (typeof item.last_shop_visit_date === 'string' && item.last_shop_visit_date.trim() !== "") ? new Date(item.last_shop_visit_date) : null,
@@ -58,6 +94,7 @@ router.post('/', async (req, res) => {
                     serial_number: body.serial_number,
                     part_number: body.part_number,
                     status: body.status,
+                    component_name: body.component_name ?? null,
                     manufacture_date: (typeof body.manufacture_date === 'string' && body.manufacture_date.trim() !== "") ? new Date(body.manufacture_date) : null,
                     last_shop_visit_date: (typeof body.last_shop_visit_date === 'string' && body.last_shop_visit_date.trim() !== "") ? new Date(body.last_shop_visit_date) : null,
                     time_since_visit: body.time_since_visit !== undefined && body.time_since_visit !== null ? Number(body.time_since_visit) : null,
@@ -77,7 +114,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Update a single aircraft component
+// ── Update a single aircraft component ──
 router.patch('/:componentId', async (req, res) => {
     try {
         const { componentId } = req.params;
@@ -92,6 +129,7 @@ router.patch('/:componentId', async (req, res) => {
                 serial_number: body.serial_number,
                 part_number: body.part_number,
                 status: body.status,
+                component_name: body.component_name !== undefined ? body.component_name : undefined,
                 manufacture_date: (typeof body.manufacture_date === 'string' && body.manufacture_date.trim() !== "") ? new Date(body.manufacture_date) : undefined,
                 last_shop_visit_date: (typeof body.last_shop_visit_date === 'string' && body.last_shop_visit_date.trim() !== "") ? new Date(body.last_shop_visit_date) : undefined,
                 time_since_visit: body.time_since_visit !== undefined && body.time_since_visit !== null ? Number(body.time_since_visit) : undefined,
@@ -110,10 +148,90 @@ router.patch('/:componentId', async (req, res) => {
     }
 });
 
-// Delete a single aircraft component
+// ── Upload certificate for a component ──
+router.post('/upload-certificate/:componentId', upload.single('certificate'), async (req, res) => {
+    try {
+        const { componentId } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file provided' });
+        }
+
+        // Check the component exists before updating
+        const existing = await prisma.aircraftComponent.findUnique({ where: { id: componentId } });
+        if (!existing) {
+            // Clean up the uploaded file since component doesn't exist
+            fs.unlinkSync(req.file.path);
+            return res.status(404).json({ error: 'Component not found' });
+        }
+
+        // If there's an existing certificate, remove the old file
+        if (existing.certificate_url) {
+            const oldFilename = path.basename(existing.certificate_url);
+            const oldPath = path.join(UPLOAD_DIR, oldFilename);
+            if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+            }
+        }
+
+        const certificateUrl = `/api/uploads/certificates/${req.file.filename}`;
+
+        const updated = await prisma.aircraftComponent.update({
+            where: { id: componentId },
+            data: { certificate_url: certificateUrl } as any,
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error("Error uploading certificate:", error);
+        res.status(500).json({ error: 'Failed to upload certificate', details: (error as Error).message });
+    }
+});
+
+// ── Delete certificate for a component ──
+router.delete('/certificate/:componentId', async (req, res) => {
+    try {
+        const { componentId } = req.params;
+        const existing = await prisma.aircraftComponent.findUnique({ where: { id: componentId } });
+        if (!existing) {
+            return res.status(404).json({ error: 'Component not found' });
+        }
+        if (!existing.certificate_url) {
+            return res.status(400).json({ error: 'No certificate to delete' });
+        }
+
+        // Remove the file from disk
+        const filename = path.basename(existing.certificate_url);
+        const filePath = path.join(UPLOAD_DIR, filename);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        // Null out the DB field
+        const updated = await prisma.aircraftComponent.update({
+            where: { id: componentId },
+            data: { certificate_url: null } as any,
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error("Error deleting certificate:", error);
+        res.status(500).json({ error: 'Failed to delete certificate', details: (error as Error).message });
+    }
+});
+
+// ── Delete a single aircraft component ──
 router.delete('/:componentId', async (req, res) => {
     try {
         const { componentId } = req.params;
+        // Clean up certificate file if it exists
+        const existing = await prisma.aircraftComponent.findUnique({ where: { id: componentId } });
+        if (existing?.certificate_url) {
+            const filename = path.basename(existing.certificate_url);
+            const filePath = path.join(UPLOAD_DIR, filename);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }
         await prisma.aircraftComponent.delete({ where: { id: componentId } });
         res.json({ success: true });
     } catch (error) {

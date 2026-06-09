@@ -61,6 +61,8 @@ model AircraftComponent {
   ata                  String?
   csi                  Float?
   tsi                  Float?
+  component_name       String?
+  certificate_url      String?
   aircraft             Aircraft  @relation(fields: [aircraft_id], references: [id])
 }
 

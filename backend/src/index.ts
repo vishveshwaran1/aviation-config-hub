@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
@@ -20,6 +21,9 @@ app.use(cors({
 
 app.options('*', cors());
 app.use(express.json());
+
+// Serve uploaded files (certificates, etc.)
+app.use('/api/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Health Check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
