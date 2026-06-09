@@ -56,6 +56,8 @@ const InventoryPanel = () => {
   const [importRows, setImportRows] = useState<Partial<InventoryItem>[]>([]);
   const [importing, setImporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
 
   const loadItems = () => {
     setLoading(true);
@@ -201,6 +203,26 @@ const InventoryPanel = () => {
     setIsEditMode(false);
     setEditingId(null);
     setIsManualEntryOpen(true);
+  };
+
+  const confirmDelete = (item: InventoryItem) => {
+    setItemToDelete(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await api.inventory.delete(itemToDelete.id);
+      toast({ title: "Success", description: "Inventory item deleted successfully" });
+      loadItems();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to delete inventory item", variant: "destructive" });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
   };
 
   const filtered = items.filter((i) =>
@@ -478,9 +500,14 @@ const InventoryPanel = () => {
                     <td className="px-4 py-3 text-orange-600">{item.reserved}</td>
                     <td className="px-4 py-3 text-gray-600">{item.min_stock}</td>
                     <td className="px-4 py-3 text-gray-600">
-                      <Button variant="ghost" size="sm" onClick={() => openEditModal(item)} className="h-8 px-2 text-xs">
-                        Edit
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEditModal(item)} className="h-8 px-2 text-xs">
+                          Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => confirmDelete(item)} className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -489,6 +516,25 @@ const InventoryPanel = () => {
           </table>
         </div>
       </div>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the inventory item "{itemToDelete?.part_number} - {itemToDelete?.description}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

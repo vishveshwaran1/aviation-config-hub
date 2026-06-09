@@ -65,4 +65,17 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Delete inventory
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.inventory.delete({
+      where: { id },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete inventory item" });
+  }
+});
+
 export default router;

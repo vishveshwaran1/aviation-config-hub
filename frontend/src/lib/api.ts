@@ -155,6 +155,14 @@ export const api = {
             });
             await throwIfError(res);
             return res.json();
+        },
+        delete: async (id: string) => {
+            const res = await fetch(`${API_URL}/inventory/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+            await throwIfError(res);
+            return res.json();
         }
     },
     dmi: {
