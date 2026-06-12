@@ -226,6 +226,33 @@ export const api = {
             return res.json();
         },
     },
+    occmHistory: {
+        getHistory: async (partNumber: string, serialNumber: string) => {
+            const res = await fetch(`${API_URL}/occm-history/${encodeURIComponent(partNumber)}/${encodeURIComponent(serialNumber)}`, {
+                headers: getHeaders()
+            });
+            await throwIfError(res);
+            return res.json();
+        },
+        createEvent: async (data: any) => {
+            const res = await fetch(`${API_URL}/occm-history`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            await throwIfError(res);
+            return res.json();
+        },
+        deleteEvent: async (id: string) => {
+            const res = await fetch(`${API_URL}/occm-history/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+            await throwIfError(res);
+            // 204 No Content has no body
+            return res.status === 204 ? { ok: true } : res.json();
+        }
+    },
     services: {
         list: async () => {
             const res = await fetch(`${API_URL}/services`, { headers: getHeaders() });

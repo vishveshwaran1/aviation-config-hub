@@ -38,6 +38,7 @@ import schedulerRoutes from './routes/scheduler';
 import journeyLogRoutes from './routes/journey_logs';
 import inventoryRoutes from './routes/inventory';
 import dmiRoutes from './routes/dmi';
+import occmHistoryRoutes from './routes/occm_history';
 
 app.use('/api/services', serviceRoutes);
 app.use('/api/aircraft_components', aircraftComponentRoutes);
@@ -46,6 +47,7 @@ app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/journey_logs', journeyLogRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/dmi', dmiRoutes);
+app.use('/api/occm-history', occmHistoryRoutes);
 
 const PORT = process.env.PORT || 3000;
 
