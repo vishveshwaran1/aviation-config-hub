@@ -27,6 +27,7 @@ import NotFound from "@/pages/NotFound";
 import ForgotPassword from "@/pages/ForgotPassword";
 import InventoryPanel from "@/pages/InventoryPanel";
 import DMIPanel from "@/pages/DMIPanel";
+import SupplyChain from "@/pages/SupplyChain";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/aircraft/:id/forecast/print/:selectedIds" element={<PrintTaskCard />} />
               <Route path="/aircraft/:id/scheduler" element={<Scheduler />} />
               <Route path="/aircraft/:id/powerbi" element={<PowerBi />} />
+              <Route path="/supply-chain" element={<SupplyChain />} />
               <Route path="/config/aircraft" element={<AircraftSetup />} />
               <Route path="/config/components" element={<ComponentListSetup />} />
               <Route path="/config/services" element={<ServiceListSetup />} />

@@ -158,6 +158,11 @@ export const api = {
         }
     },
     dmi: {
+        getAll: async () => {
+            const res = await fetch(`${API_URL}/dmi`, { headers: getHeaders() });
+            await throwIfError(res);
+            return res.json();
+        },
         getForAircraft: async (id: string) => {
             const res = await fetch(`${API_URL}/dmi/aircraft/${id}`, { headers: getHeaders() });
             await throwIfError(res);
