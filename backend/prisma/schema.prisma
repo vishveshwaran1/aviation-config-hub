@@ -284,3 +284,22 @@ model DMI {
   defect              JourneyLogDefect? @relation(fields: [defect_id], references: [id])
 }
 
+model OccmHistory {
+  id                  String    @id @default(uuid())
+  part_number         String
+  serial_number       String
+  component_name      String?
+  manufacturer        String?
+  date_of_manufacture DateTime?
+  event_date          DateTime
+  action_type         String    // e.g. "Installation", "Removal", "Overhaul", "Shop Visit", "Inspection", "Manufactured"
+  ac_reg_facility     String?   // Aircraft Registration or Maintenance Facility
+  airframe_total_time String?   // e.g. "1,200 FH / 450 FC"
+  component_tsn_csn   String?   // e.g. "500 FH / 200 FC" (Time Since New)
+  component_tso_cso   String?   // e.g. "100 FH / 40 FC" (Time Since Overhaul)
+  doc_ref_details     String?   // Associated document reference or details
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  @@index([part_number, serial_number])
+}

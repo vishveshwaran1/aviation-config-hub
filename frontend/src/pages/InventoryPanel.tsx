@@ -235,15 +235,17 @@ const InventoryPanel = () => {
       <div className="rounded-xl bg-[#ffffff] px-6 py-5 shadow-sm border border-gray-100">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(`/aircraft/${id}/activity`)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-black hover:bg-gray-200 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+            {id && (
+              <button
+                onClick={() => navigate(`/aircraft/${id}/activity`)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-black hover:bg-gray-200 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
             <div>
-              <p className="text-xs uppercase tracking-widest text-[#556ee6] font-bold mb-0.5">Aircraft Activity</p>
-              <h1 className="text-lg font-bold text-gray-900 leading-none">Inventory Panel</h1>
+              <p className="text-xs uppercase tracking-widest text-[#556ee6] font-bold mb-0.5">{id ? "Aircraft Activity" : "Supply Chain (S1)"}</p>
+              <h1 className="text-lg font-bold text-gray-900 leading-none">Inventory & Stock Check</h1>
             </div>
           </div>
 

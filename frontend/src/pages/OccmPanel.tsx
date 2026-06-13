@@ -14,6 +14,9 @@ import {
   FileUp,
   FileText,
   X,
+  History,
+  Plus,
+  Calendar,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { api } from "@/lib/api";
@@ -84,6 +87,106 @@ const OccmPanel = () => {
 
   // View dialog
   const [viewTarget, setViewTarget] = useState<AircraftComponent | null>(null);
+
+  // OCCM History Dialog
+  const [historyTarget, setHistoryTarget] = useState<AircraftComponent | null>(null);
+  const [historyEvents, setHistoryEvents] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addingEvent, setAddingEvent] = useState(false);
+
+  const [newEvent, setNewEvent] = useState({
+    event_date: new Date().toISOString().split('T')[0],
+    action_type: "Inspection",
+    ac_reg_facility: "",
+    airframe_total_time: "",
+    component_tsn_csn: "",
+    component_tso_cso: "",
+    doc_ref_details: ""
+  });
+
+  const handleOpenHistory = async (comp: AircraftComponent) => {
+    setHistoryTarget(comp);
+    setLoadingHistory(true);
+    setShowAddForm(false);
+    
+    // Pre-populate some fields in newEvent based on component
+    setNewEvent({
+      event_date: new Date().toISOString().split('T')[0],
+      action_type: "Inspection",
+      ac_reg_facility: aircraft?.registration_number || "",
+      airframe_total_time: aircraft ? `${fmtNum(aircraft.flight_hours)} FH / ${fmtNum(aircraft.flight_cycles)} FC` : "",
+      component_tsn_csn: `${fmtNum(comp.hours_since_new)} FH / ${fmtNum(comp.cycles_since_new)} FC`,
+      component_tso_cso: comp.tsi !== undefined && comp.csi !== undefined ? `${fmtNum(comp.tsi)} FH / ${fmtNum(comp.csi)} FC` : "",
+      doc_ref_details: ""
+    });
+
+    try {
+      if (comp.part_number && comp.serial_number) {
+        const data = await api.occmHistory.getHistory(comp.part_number, comp.serial_number);
+        setHistoryEvents(data);
+        if (data.length === 0) {
+          setShowAddForm(true);
+        }
+      } else {
+        setHistoryEvents([]);
+      }
+    } catch (error) {
+      console.error("Failed to load OCCM history:", error);
+      toast.error("Failed to load OCCM history.");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleAddHistoryEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!historyTarget || !historyTarget.part_number || !historyTarget.serial_number) return;
+    
+    setAddingEvent(true);
+    try {
+      const payload = {
+        part_number: historyTarget.part_number,
+        serial_number: historyTarget.serial_number,
+        component_name: historyTarget.component_name,
+        manufacturer: historyTarget.manufacturer,
+        date_of_manufacture: historyTarget.manufacture_date,
+        ...newEvent
+      };
+
+      const created = await api.occmHistory.createEvent(payload);
+      setHistoryEvents((prev) => [created, ...prev]);
+      toast.success("History event added successfully.");
+      setShowAddForm(false);
+      
+      // Reset fields
+      setNewEvent({
+        event_date: new Date().toISOString().split('T')[0],
+        action_type: "Inspection",
+        ac_reg_facility: aircraft?.registration_number || "",
+        airframe_total_time: aircraft ? `${fmtNum(aircraft.flight_hours)} FH / ${fmtNum(aircraft.flight_cycles)} FC` : "",
+        component_tsn_csn: `${fmtNum(historyTarget.hours_since_new)} FH / ${fmtNum(historyTarget.cycles_since_new)} FC`,
+        component_tso_cso: historyTarget.tsi !== undefined && historyTarget.csi !== undefined ? `${fmtNum(historyTarget.tsi)} FH / ${fmtNum(historyTarget.csi)} FC` : "",
+        doc_ref_details: ""
+      });
+    } catch (error) {
+      console.error("Failed to add OCCM history event:", error);
+      toast.error("Failed to add history event.");
+    } finally {
+      setAddingEvent(false);
+    }
+  };
+
+  const handleDeleteHistoryEvent = async (eventId: string) => {
+    try {
+      await api.occmHistory.deleteEvent(eventId);
+      setHistoryEvents((prev) => prev.filter((ev) => ev.id !== eventId));
+      toast.success("History event deleted.");
+    } catch (error) {
+      console.error("Failed to delete OCCM history event:", error);
+      toast.error("Failed to delete history event.");
+    }
+  };
 
   // Certificate upload
   const [certUploadTarget, setCertUploadTarget] = useState<string | null>(null);
@@ -392,20 +495,52 @@ const OccmPanel = () => {
                         {comp.ata || "—"}
                       </td>
                       {/* Component */}
-                      <td className="px-4 py-3 text-xs font-medium text-gray-700 whitespace-nowrap max-w-[140px] truncate" title={comp.component_name ?? ""}>
-                        {comp.component_name || "—"}
+                      <td className="px-4 py-3 text-xs font-medium whitespace-nowrap max-w-[140px] truncate" title={(comp.component_name || comp.model || "Component")}>
+                        <button
+                          onClick={() => handleOpenHistory(comp)}
+                          className="text-left font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer focus:outline-none"
+                        >
+                          {comp.component_name || comp.model || "Component"}
+                        </button>
                       </td>
                       {/* Part No. */}
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
-                        {comp.part_number || "—"}
+                      <td className="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap">
+                        {comp.part_number ? (
+                          <button
+                            onClick={() => handleOpenHistory(comp)}
+                            className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer focus:outline-none text-left"
+                          >
+                            {comp.part_number}
+                          </button>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       {/* Serial No. */}
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">
-                        {comp.serial_number || "—"}
+                      <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
+                        {comp.serial_number ? (
+                          <button
+                            onClick={() => handleOpenHistory(comp)}
+                            className="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer focus:outline-none text-left"
+                          >
+                            {comp.serial_number}
+                          </button>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       {/* Description */}
-                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap max-w-[180px] truncate" title={comp.model ?? ""}>
-                        {comp.model || "—"}
+                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap max-w-[180px] truncate animate-none" title={comp.model ?? ""}>
+                        {comp.model ? (
+                          <button
+                            onClick={() => handleOpenHistory(comp)}
+                            className="text-left text-gray-700 hover:text-indigo-600 hover:underline cursor-pointer focus:outline-none"
+                          >
+                            {comp.model}
+                          </button>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       {/* POS */}
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
@@ -471,6 +606,13 @@ const OccmPanel = () => {
                       {/* Actions */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenHistory(comp)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="OCCM History"
+                          >
+                            <History className="h-3.5 w-3.5" />
+                          </button>
                           <button
                             onClick={() => setViewTarget(comp)}
                             className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
@@ -823,6 +965,260 @@ const OccmPanel = () => {
             >
               <CheckCircle className="h-4 w-4" />
               {importing ? "Importing..." : `Approve & Import ${importRows.length} rows`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* OCCM History Dialog */}
+      <Dialog open={!!historyTarget} onOpenChange={(o) => !o && setHistoryTarget(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-indigo-600 text-lg font-semibold">
+              <History className="h-5 w-5" /> OCCM Lifecycle History
+            </DialogTitle>
+            <DialogDescription>
+              Track and log the installation, removal, overhaul, and shop history of the component.
+            </DialogDescription>
+          </DialogHeader>
+
+          {historyTarget && (
+            <div className="space-y-6">
+              {/* Warning Alert if Part No or Serial No is missing */}
+              {(!historyTarget.part_number || !historyTarget.serial_number) && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block mb-0.5">Missing Component Identifiers</span>
+                    This component does not have a Part Number and/or Serial Number configured. Please edit the component first to add these identifiers before logging or viewing history.
+                  </div>
+                </div>
+              )}
+
+              {/* Component Info Card */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 text-xs">
+                <div>
+                  <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Component</p>
+                  <p className="text-gray-900 font-semibold truncate" title={historyTarget.component_name ?? ""}>
+                    {historyTarget.component_name || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Part Number</p>
+                  <p className="text-gray-900 font-mono font-semibold">{historyTarget.part_number || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Serial Number</p>
+                  <p className="text-gray-900 font-mono font-semibold">{historyTarget.serial_number || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">Manufacturer</p>
+                  <p className="text-gray-900 font-semibold">{historyTarget.manufacturer || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-medium uppercase tracking-wider mb-1">DOM</p>
+                  <p className="text-gray-900 font-semibold">{fmtDate(historyTarget.manufacture_date as any) || "—"}</p>
+                </div>
+              </div>
+
+              {/* Add Event Button and Form */}
+              <div className="border rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 text-gray-500" /> Lifecycle Events
+                  </h3>
+                  {historyTarget.part_number && historyTarget.serial_number && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1"
+                      onClick={() => setShowAddForm(!showAddForm)}
+                    >
+                      {showAddForm ? (
+                        <>
+                          <X className="h-3.5 w-3.5" /> Close Form
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-3.5 w-3.5" /> Log Event
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {showAddForm && historyTarget.part_number && historyTarget.serial_number && (
+                  <form onSubmit={handleAddHistoryEvent} className="bg-gray-50/50 p-4 rounded-lg border border-dashed space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs font-normal">
+                      <div className="space-y-1">
+                        <label className="font-medium text-gray-600 block">Event Date <span className="text-red-500">*</span></label>
+                        <Input
+                          type="date"
+                          required
+                          className="h-8 text-xs bg-white"
+                          value={newEvent.event_date}
+                          onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-medium text-gray-600 block">Action Type <span className="text-red-500">*</span></label>
+                        <select
+                          required
+                          className="w-full rounded-md border border-input bg-white px-3 py-1 text-xs shadow-sm h-8 focus:ring-1 focus:ring-ring outline-none"
+                          value={newEvent.action_type}
+                          onChange={(e) => setNewEvent({ ...newEvent, action_type: e.target.value })}
+                        >
+                          {["Installation", "Removal", "Shop Visit", "Overhaul", "Inspection", "Manufactured"].map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-medium text-gray-600 block">AC Reg / Facility</label>
+                        <Input
+                          placeholder="e.g. LN-ABC / AeroShop"
+                          className="h-8 text-xs bg-white"
+                          value={newEvent.ac_reg_facility}
+                          onChange={(e) => setNewEvent({ ...newEvent, ac_reg_facility: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-medium text-gray-600 block">Airframe Total Time</label>
+                        <Input
+                          placeholder="e.g. 1,200 FH / 450 FC"
+                          className="h-8 text-xs bg-white"
+                          value={newEvent.airframe_total_time}
+                          onChange={(e) => setNewEvent({ ...newEvent, airframe_total_time: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-medium text-gray-600 block">Component TSN/CSN</label>
+                        <Input
+                          placeholder="e.g. 500 FH / 200 FC"
+                          className="h-8 text-xs bg-white"
+                          value={newEvent.component_tsn_csn}
+                          onChange={(e) => setNewEvent({ ...newEvent, component_tsn_csn: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-medium text-gray-600 block">Component TSO/CSO</label>
+                        <Input
+                          placeholder="e.g. 100 FH / 40 FC"
+                          className="h-8 text-xs bg-white"
+                          value={newEvent.component_tso_cso}
+                          onChange={(e) => setNewEvent({ ...newEvent, component_tso_cso: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1 md:col-span-2">
+                        <label className="font-medium text-gray-600 block">Associated Doc Ref / Details</label>
+                        <Input
+                          placeholder="e.g. Form 1, Release Cert #12345"
+                          className="h-8 text-xs bg-white"
+                          value={newEvent.doc_ref_details}
+                          onChange={(e) => setNewEvent({ ...newEvent, doc_ref_details: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => setShowAddForm(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+                        disabled={addingEvent}
+                      >
+                        {addingEvent ? "Adding..." : "Log Event"}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+
+                {/* History Table */}
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="bg-gray-50 border-b text-gray-500 font-semibold uppercase tracking-wider">
+                        <th className="px-4 py-2.5">Event Date</th>
+                        <th className="px-4 py-2.5">Action Type</th>
+                        <th className="px-4 py-2.5">AC Reg / Facility</th>
+                        <th className="px-4 py-2.5">Airframe Time</th>
+                        <th className="px-4 py-2.5">TSN/CSN</th>
+                        <th className="px-4 py-2.5">TSO/CSO</th>
+                        <th className="px-4 py-2.5">Associated Document / Details</th>
+                        <th className="px-4 py-2.5 text-center w-12"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {loadingHistory ? (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                            Loading history logs...
+                          </td>
+                        </tr>
+                      ) : historyEvents.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                            No lifecycle history logs recorded yet. Use the Log Event form above to create logs.
+                          </td>
+                        </tr>
+                      ) : (
+                        historyEvents.map((ev) => {
+                          let badgeClass = "bg-gray-100 text-gray-700";
+                          const act = ev.action_type.toLowerCase();
+                          if (act === "manufactured") badgeClass = "bg-purple-50 text-purple-700 border border-purple-100";
+                          else if (act === "installation") badgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-100";
+                          else if (act === "removal") badgeClass = "bg-rose-50 text-rose-700 border border-rose-100";
+                          else if (act === "shop visit" || act === "overhaul") badgeClass = "bg-amber-50 text-amber-700 border border-amber-100";
+                          else if (act === "inspection") badgeClass = "bg-sky-50 text-sky-700 border border-sky-100";
+
+                          return (
+                            <tr key={ev.id} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="px-4 py-3 font-medium whitespace-nowrap">
+                                {ev.event_date ? format(new Date(ev.event_date), "dd MMM yyyy") : "—"}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${badgeClass}`}>
+                                  {ev.action_type}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 font-medium text-gray-700">{ev.ac_reg_facility || "—"}</td>
+                              <td className="px-4 py-3 font-mono text-gray-600">{ev.airframe_total_time || "—"}</td>
+                              <td className="px-4 py-3 font-mono text-gray-600">{ev.component_tsn_csn || "—"}</td>
+                              <td className="px-4 py-3 font-mono text-gray-600">{ev.component_tso_cso || "—"}</td>
+                              <td className="px-4 py-3 text-gray-600 italic">{ev.doc_ref_details || "—"}</td>
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteHistoryEvent(ev.id)}
+                                  className="text-rose-400 hover:text-rose-600 p-1 rounded transition-colors"
+                                  title="Delete event log"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setHistoryTarget(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

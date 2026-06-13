@@ -50,6 +50,15 @@ const Navbar = () => {
         >
           Dashboard
         </Link>
+        <Link
+          to="/supply-chain"
+          className={cn(
+            "rounded-md px-3 py-1.5 text-sm font-medium text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground",
+            isActive("/supply-chain") && "bg-primary-foreground/15 text-primary-foreground"
+          )}
+        >
+          Supply Chain
+        </Link>
       </div>
     </nav>
   );
